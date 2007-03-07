@@ -1,0 +1,21 @@
+export(
+	hydrosanity,
+	blankStateHSP,
+	timelineplot,
+	timeseriesplot,
+	fdcplot,
+	monthlyboxplot,
+	sanitycheck.rain,
+	sanitycheck.flow,
+	is.timeblob,
+	read.timeblob,
+	start.timeblob,
+	end.timeblob,
+	window.timeblob,
+	aggregate.timeblob,
+	smooth.timeblob,
+	floor.year
+)
+
+exportPattern("_") # Needed for the Glade interface
+
