@@ -1,4 +1,4 @@
-## HydroSanity: an interface for exploring hydrological time series in R
+## Hydrosanity: an interface for exploring hydrological time series in R
 ##
 ## Time-stamp: <2007-03-05 00:00:00 Felix>
 ##
@@ -18,7 +18,8 @@ updateImportPage <- function() {
 		dfStart[i] <- format(start.timeblob(hsp$data[[i]]))
 		dfEnd[i] <- format(end.timeblob(hsp$data[[i]]))
 		dfLength[i] <- difftimeString(myLength, digits=2)
-		dfFreq[i] <- difftimeString(myAvgFreq, digits=2)
+		#dfFreq[i] <- difftimeString(myAvgFreq, digits=2)
+		dfFreq[i] <- attr(hsp$data[[i]], "timestep")
 		
 		dfData[i] <- names(hsp$data[[i]])[2]
 		dfQual[i] <- class(hsp$data[[i]]$Qual[1])[1]
@@ -269,16 +270,11 @@ on_import_makefactor_button_clicked <- function(button) {
 	
 	for (blobIndex in blobIndices) {
 		blobName <- names(hsp$data)[blobIndex]
-		if (ncol(hsp$data[[blobIndex]]) < colIndex) {
-			continue
-			#warn("Data item ", blobName, "
-		}
 		data.cmd <- sprintf("hsp$data[[%i]]$Qual", blobIndex)
 		factor.cmd <- sprintf("%s <<- factor(tmp.factor(%s), exclude=NULL)", data.cmd, data.cmd)
 		addToLog(factor.cmd)
 		result <- guiTryEval(factor.cmd)
 		if (inherits(result, "try-error")) { return() }
-		varName <- names(hsp$data[[blobIndex]])[colIndex]
 		setStatusBar(sprintf('Converted quality codes of object "%s" to factor.', blobName))
 	}
 	addToLog('rm(tmp.factor)')

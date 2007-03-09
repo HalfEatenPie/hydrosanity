@@ -1,4 +1,4 @@
-## HydroSanity: an interface for exploring hydrological time series in R
+## Hydrosanity: an interface for exploring hydrological time series in R
 ##
 ## Time-stamp: <2007-03-05 00:00:00 Felix>
 ##
@@ -34,15 +34,35 @@ updateExplorePage <- function() {
 }
 
 on_explore_timeseries_button_clicked <- function(button) {
-	theWidget("hs_window")$setSensitive(F)
-	on.exit(theWidget("hs_window")$setSensitive(T))
+	#theWidget("hs_window")$setSensitive(F)
+	#on.exit(theWidget("hs_window")$setSensitive(T))
 	setStatusBar("")
 	
 	selNames <- iconViewGetSelectedNames(theWidget("explore_iconview"))
 	
 	setPlotDevice("explore")
-	timeseriesplot(hsp$data[selNames], timeStart=hsp$timePeriod[1], timeEnd=hsp$timePeriod[2])
-	
+	timeseriesplot(hsp$data[selNames], timeStart=hsp$timePeriod[1], timeEnd=hsp$timePeriod[2]) #, interactive=T)
 }
 
+on_explore_cdf_button_clicked <- function(button) {
+	#theWidget("hs_window")$setSensitive(F)
+	#on.exit(theWidget("hs_window")$setSensitive(T))
+	setStatusBar("")
+	
+	selNames <- iconViewGetSelectedNames(theWidget("explore_iconview"))
+	
+	setPlotDevice("explore")
+	fdcplot(hsp$data[selNames], timeStart=hsp$timePeriod[1], timeEnd=hsp$timePeriod[2], plotQualCodes=T)
+}
+
+on_explore_seasonal_button_clicked <- function(button) {
+	#theWidget("hs_window")$setSensitive(F)
+	#on.exit(theWidget("hs_window")$setSensitive(T))
+	setStatusBar("")
+	
+	selNames <- iconViewGetSelectedNames(theWidget("explore_iconview"))
+	
+	setPlotDevice("explore")
+	monthlyboxplot(hsp$data[[selNames[1]]])
+}
 

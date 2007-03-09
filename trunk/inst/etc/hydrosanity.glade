@@ -1372,7 +1372,7 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 			<widget class="GtkVBox" id="vbox12">
 			  <property name="visible">True</property>
 			  <property name="homogeneous">False</property>
-			  <property name="spacing">0</property>
+			  <property name="spacing">2</property>
 
 			  <child>
 			    <widget class="GtkTable" id="table1">
@@ -1559,7 +1559,7 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 			    <widget class="GtkHBox" id="hbox35">
 			      <property name="visible">True</property>
 			      <property name="homogeneous">False</property>
-			      <property name="spacing">0</property>
+			      <property name="spacing">2</property>
 
 			      <child>
 				<widget class="GtkVBox" id="vbox19">
@@ -1614,9 +1614,9 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 					      <child>
 						<widget class="GtkLabel" id="label68">
 						  <property name="visible">True</property>
-						  <property name="label" translatable="yes">View data timeline</property>
+						  <property name="label" translatable="yes">&lt;b&gt;View data timeline&lt;/b&gt;</property>
 						  <property name="use_underline">True</property>
-						  <property name="use_markup">False</property>
+						  <property name="use_markup">True</property>
 						  <property name="justify">GTK_JUSTIFY_LEFT</property>
 						  <property name="wrap">False</property>
 						  <property name="selectable">False</property>
@@ -1765,7 +1765,7 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 			    <widget class="GtkTextView" id="timeperiod_summary_textview">
 			      <property name="visible">True</property>
 			      <property name="can_focus">True</property>
-			      <property name="editable">True</property>
+			      <property name="editable">False</property>
 			      <property name="overwrite">False</property>
 			      <property name="accepts_tab">True</property>
 			      <property name="justification">GTK_JUSTIFY_LEFT</property>
@@ -1788,7 +1788,7 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 		  <child>
 		    <widget class="GtkLabel" id="label50">
 		      <property name="visible">True</property>
-		      <property name="label" translatable="yes">&lt;b&gt;Summary of missing values and quality in analysis period&lt;/b&gt;</property>
+		      <property name="label" translatable="yes">&lt;b&gt;Summary of missing values in analysis period&lt;/b&gt;</property>
 		      <property name="use_underline">False</property>
 		      <property name="use_markup">True</property>
 		      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -1848,7 +1848,7 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 			      <property name="visible">True</property>
 			      <property name="can_focus">True</property>
 			      <property name="headers_visible">True</property>
-			      <property name="rules_hint">False</property>
+			      <property name="rules_hint">True</property>
 			      <property name="reorderable">False</property>
 			      <property name="enable_search">True</property>
 			      <property name="fixed_height_mode">False</property>
@@ -2081,9 +2081,9 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 					      <child>
 						<widget class="GtkLabel" id="label69">
 						  <property name="visible">True</property>
-						  <property name="label" translatable="yes">View time series</property>
+						  <property name="label" translatable="yes">&lt;b&gt;View time series&lt;/b&gt;</property>
 						  <property name="use_underline">True</property>
-						  <property name="use_markup">False</property>
+						  <property name="use_markup">True</property>
 						  <property name="justify">GTK_JUSTIFY_LEFT</property>
 						  <property name="wrap">False</property>
 						  <property name="selectable">False</property>
@@ -2143,6 +2143,7 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 			      <child>
 				<widget class="GtkVBox" id="vbox17">
 				  <property name="visible">True</property>
+				  <property name="sensitive">False</property>
 				  <property name="homogeneous">False</property>
 				  <property name="spacing">0</property>
 
@@ -2312,6 +2313,7 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 			      <child>
 				<widget class="GtkVBox" id="vbox18">
 				  <property name="visible">True</property>
+				  <property name="sensitive">False</property>
 				  <property name="homogeneous">False</property>
 				  <property name="spacing">0</property>
 
@@ -2563,12 +2565,12 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 			      <property name="spacing">0</property>
 
 			      <child>
-				<widget class="GtkButton" id="button7">
+				<widget class="GtkButton" id="explore_cdf_button">
 				  <property name="visible">True</property>
 				  <property name="can_focus">True</property>
 				  <property name="relief">GTK_RELIEF_NORMAL</property>
 				  <property name="focus_on_click">True</property>
-				  <signal name="clicked" handler="on_explore_timeseries_button_clicked" last_modification_time="Thu, 01 Mar 2007 04:27:14 GMT"/>
+				  <signal name="clicked" handler="on_explore_cdf_button_clicked" last_modification_time="Fri, 09 Mar 2007 03:08:19 GMT"/>
 
 				  <child>
 				    <widget class="GtkAlignment" id="alignment14">
@@ -2608,9 +2610,9 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 					  <child>
 					    <widget class="GtkLabel" id="label72">
 					      <property name="visible">True</property>
-					      <property name="label" translatable="yes">View cumulative distribution</property>
+					      <property name="label" translatable="yes">&lt;b&gt;View cumulative distribution&lt;/b&gt;</property>
 					      <property name="use_underline">True</property>
-					      <property name="use_markup">False</property>
+					      <property name="use_markup">True</property>
 					      <property name="justify">GTK_JUSTIFY_LEFT</property>
 					      <property name="wrap">False</property>
 					      <property name="selectable">False</property>
@@ -2718,12 +2720,12 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 			      <property name="spacing">0</property>
 
 			      <child>
-				<widget class="GtkButton" id="button8">
+				<widget class="GtkButton" id="explore_seasonal_button">
 				  <property name="visible">True</property>
 				  <property name="can_focus">True</property>
 				  <property name="relief">GTK_RELIEF_NORMAL</property>
 				  <property name="focus_on_click">True</property>
-				  <signal name="clicked" handler="on_explore_timeseries_button_clicked" last_modification_time="Thu, 01 Mar 2007 04:27:14 GMT"/>
+				  <signal name="clicked" handler="on_explore_seasonal_button_clicked" last_modification_time="Fri, 09 Mar 2007 03:10:49 GMT"/>
 
 				  <child>
 				    <widget class="GtkAlignment" id="alignment16">
@@ -2763,9 +2765,9 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 					  <child>
 					    <widget class="GtkLabel" id="label78">
 					      <property name="visible">True</property>
-					      <property name="label" translatable="yes">View seasonal plot</property>
+					      <property name="label" translatable="yes">&lt;b&gt;View seasonal plot&lt;/b&gt;</property>
 					      <property name="use_underline">True</property>
-					      <property name="use_markup">False</property>
+					      <property name="use_markup">True</property>
 					      <property name="justify">GTK_JUSTIFY_LEFT</property>
 					      <property name="wrap">False</property>
 					      <property name="selectable">False</property>
@@ -2798,7 +2800,7 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 			    </widget>
 			    <packing>
 			      <property name="padding">0</property>
-			      <property name="expand">True</property>
+			      <property name="expand">False</property>
 			      <property name="fill">True</property>
 			    </packing>
 			  </child>
@@ -2951,6 +2953,7 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 	      <child>
 		<widget class="GtkFrame" id="frame13">
 		  <property name="visible">True</property>
+		  <property name="sensitive">False</property>
 		  <property name="label_xalign">0</property>
 		  <property name="label_yalign">0.5</property>
 		  <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>

@@ -1,4 +1,4 @@
-## HydroSanity: an interface for exploring hydrological time series in R
+## Hydrosanity: an interface for exploring hydrological time series in R
 ##
 ## Time-stamp: <2007-03-05 00:00:00 Felix>
 ##
@@ -8,7 +8,7 @@ updateTimePeriodPage <- function() {
 	if (length(hsp$data) == 0) { return() }
 	# overall time period
 	wholePeriod <- c(start.timeblob(hsp$data), end.timeblob(hsp$data))
-	wholePeriodString <- sprintf("%s to %s", 
+	wholePeriodString <- sprintf('%s to %s', 
 		format(wholePeriod[1]), format(wholePeriod[2]))
 	theWidget("timeperiod_overallperiod_entry")$setText(wholePeriodString)
 	
@@ -18,7 +18,7 @@ updateTimePeriodPage <- function() {
 		hsp$timePeriod <<- wholePeriod
 		doUpdateTimePeriod <- T
 	}
-	chosenPeriodString <- sprintf("%s to %s", 
+	chosenPeriodString <- sprintf('%s to %s', 
 		format(hsp$timePeriod[1]), format(hsp$timePeriod[2]))
 	theWidget("timeperiod_chosenperiod_entry")$setText(chosenPeriodString)
 	theWidget("timeperiod_updateperiod_button")$setSensitive(FALSE)
@@ -31,11 +31,79 @@ updateTimePeriodPage <- function() {
 	# generate summary
 	TV <- "timeperiod_summary_textview"
 	setTextview(TV, "")
-	mySummary <- capture.output(summary(hsp$data[[1]][,2]))
-	addTextview(TV, paste(mySummary, collapse="\n"), "\n")
+	
+	missingSummary <- capture.output(
+		missingFrac <- summary.missing.timeblobList(hsp$data, 
+			hsp$timePeriod[1], hsp$timePeriod[2]) )
+	addTextview(TV, paste(missingSummary, collapse="\n"), "\n")
+	
+	dfName <- dfMin <- dfQ25 <- dfMedian <- dfQ75 <- dfMax <- dfMissing <- character(length(hsp$data))
+	
+	for (i in seq(along=hsp$data)) {
+		dfName[i] <- names(hsp$data)[i]
+		subBlob <- window.timeblob(hsp$data[[i]], hsp$timePeriod[1], hsp$timePeriod[2])
+		myQuantiles <- format(quantile(subBlob[,2], probs=c(0, 0.25, 0.5, 0.75, 1), na.rm=T), digits=2)
+		dfMin[i] <- myQuantiles[1]
+		dfQ25[i] <- myQuantiles[2]
+		dfMedian[i] <- myQuantiles[3]
+		dfQ75[i] <- myQuantiles[4]
+		dfMax[i] <- myQuantiles[5]
+		dfMissing[i] <- sprintf('%.0f%%', missingFrac[i]*100)
+		#sprintf('%.2f%%', sum(is.na(subBlob[,2])) / nrow(subBlob))
+	}
+	
+	dfModel <- rGtkDataFrame(data.frame(
+		Name=dfName,
+		Min=dfMin,
+		Q25=dfQ25,
+		Median=dfMedian,
+		Q75=dfQ75,
+		Max=dfMax,
+		Missing=dfMissing,
+		stringsAsFactors=F)
+		)
+	myTreeView <- theWidget("timeperiod_summary_treeview")
+	myTreeView$setModel(dfModel)
 	
 	theWidget("hs_window")$present()
 }
+
+
+on_timeperiod_updateperiod_button_clicked <- function(button) {
+	theWidget("hs_window")$setSensitive(F)
+	on.exit(theWidget("hs_window")$setSensitive(T))
+	setStatusBar("")
+	
+	myText <- theWidget("timeperiod_chosenperiod_entry")$getText()
+	myTimeStrings <- strsplit(myText, " to ")[[1]]
+	if (length(myTimeStrings) != 2) {
+		errorDialog("Give time period in form \"START to END\".")
+		return()
+	}
+	update.cmd <- sprintf('hsp$timePeriod <<- c(as.POSIXct("%s"), as.POSIXct("%s"))',
+		myTimeStrings[1], myTimeStrings[2])
+	
+	addLogItem("Set time period for analysis", update.cmd)
+	result <- guiTryEval(update.cmd)
+	if (inherits(result, "try-error")) { return() }
+	setStatusBar("Set time period for analysis:", 
+		myTimeStrings[1], "to", myTimeStrings[2])
+		
+#	sprintf('summary.missing.timeblobList(hsp$data, "%s", "%s")', 
+#		format(hsp$timePeriod[1]), format(hsp$timePeriod[2]))
+	
+	updateTimePeriodPage()
+}
+
+on_timeperiod_reset_button_clicked <- function(button) {
+	theWidget("hs_window")$setSensitive(F)
+	on.exit(theWidget("hs_window")$setSensitive(T))
+	setStatusBar("")
+	
+	hsp$timePeriod <<- NULL
+	updateTimePeriodPage()
+}
+
 
 on_timeperiod_viewtimeline_button_clicked <- function(button) {
 	theWidget("hs_window")$setSensitive(F)
@@ -60,37 +128,6 @@ on_timeperiod_viewtimeline_button_clicked <- function(button) {
 	setStatusBar("Generated timeline plot")
 }
 
-on_timeperiod_updateperiod_button_clicked <- function(button) {
-	theWidget("hs_window")$setSensitive(F)
-	on.exit(theWidget("hs_window")$setSensitive(T))
-	setStatusBar("")
-	
-	myText <- theWidget("timeperiod_chosenperiod_entry")$getText()
-	myTimeStrings <- strsplit(myText, " to ")[[1]]
-	if (length(myTimeStrings) != 2) {
-		errorDialog("Give time period in form \"START to END\".")
-		return()
-	}
-	update.cmd <- sprintf('hsp$timePeriod <<- c(as.POSIXct("%s"), as.POSIXct("%s"))',
-		myTimeStrings[1], myTimeStrings[2])
-	
-	addLogItem("Set time period for analysis", update.cmd)
-	result <- guiTryEval(update.cmd)
-	if (inherits(result, "try-error")) { return() }
-	setStatusBar("Set time period for analysis:", 
-		myTimeStrings[1], "to", myTimeStrings[2])
-	
-	updateTimePeriodPage()
-}
-
-on_timeperiod_reset_button_clicked <- function(button) {
-	theWidget("hs_window")$setSensitive(F)
-	on.exit(theWidget("hs_window")$setSensitive(T))
-	setStatusBar("")
-	
-	hsp$timePeriod <<- NULL
-	updateTimePeriodPage()
-}
 
 ## NON-ACTIONS, just interface bits and pieces
 
