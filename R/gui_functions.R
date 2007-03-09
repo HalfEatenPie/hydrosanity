@@ -1,4 +1,4 @@
-## HydroSanity: an interface for exploring hydrological time series in R
+## Hydrosanity: an interface for exploring hydrological time series in R
 ##
 ## Time-stamp: <2007-03-05 00:00:00 Felix>
 ##
@@ -32,6 +32,7 @@ choose.file.save <- function(default="", caption="Save File") {
 
 ## PLOT WINDOW FUNCTIONS
 
+# TODO: bring cairoWindow to front
 setPlotDevice <- function(name) {
 	#imageFile <- paste(tempfile(), ".png", sep="")
 	#myWidth <- theWidget("timeperiod_image")$getAllocation()$width
@@ -41,16 +42,19 @@ setPlotDevice <- function(name) {
 	if (is.null(.hydrosanity$dev[[name]]) ||
 		(.hydrosanity$dev[[name]] %notin% dev.list())) {
 		if (require("cairoDevice", quietly=TRUE)) {
-			newCairoWindow()
+			newCairoWindow(name)
 		} else {
 			do.call(getOption("device"), list())
 		}
 		.hydrosanity$dev[[name]] <<- dev.cur()
 	}
 	dev.set(.hydrosanity$dev[[name]])
+	if (!is.null(.hydrosanity$win[[name]])) {
+		.hydrosanity$win[[name]]$present()
+	}
 }
 
-newCairoWindow <- function() {
+newCairoWindow <- function(name) {
 	plotGUI <- gladeXMLNew(getpackagefile("hydrosanity.glade"), 
 		root="plot_window")
 	
@@ -58,16 +62,16 @@ newCairoWindow <- function() {
 	myWin <- plotGUI$getWidget("plot_window")
 	gSignalConnect(myWin, "delete-event", on_plot_delete_event)
 	
-	.hydrosanity$win[[length(.hydrosanity$win)+1]] <<- plotGUI$getWidget("plot_window")
+	.hydrosanity$win[[name]] <<- plotGUI$getWidget("plot_window")
 	newDev <- plotGUI$getWidget("drawingarea")
 	asCairoDevice(newDev)
-	myWin$setTitle(paste("HydroSanity: Plot", dev.cur()))
+	myWin$setTitle(paste("Hydrosanity: Plot", dev.cur()))
 }
 
 on_plot_delete_event <- function(widget, event, user.data) {
 	myWin <- widget
 	myTitle <- myWin$getTitle()
-	devnum <- as.integer(sub("HydroSanity: Plot ", "", myTitle))
+	devnum <- as.integer(sub("Hydrosanity: Plot ", "", myTitle))
 	dev.off(devnum)
 	for (i in seq(along=.hydrosanity$win)) {
 		if (myWin == .hydrosanity$win[[i]]) {
@@ -84,7 +88,7 @@ on_plot_delete_event <- function(widget, event, user.data) {
 insertTreeViewTextColumns <- function(treeView, colNames=colnames(treeView$getModel()), editors=NULL, combo=NULL) {
 	for (i in seq(along=colNames)) {
 		renderer <- gtkCellRendererText()
-		renderer$set(xalign = 0.0)
+		renderer$set(xalign = 1.0)
 		if (!is.null(combo[[ colNames[i] ]])) {
 			renderer <- gtkCellRendererCombo()
 			renderer$set(model = rGtkDataFrame(data.frame(combo[[ colNames[i] ]])), text_column = 0, has_entry = F)

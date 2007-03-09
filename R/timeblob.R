@@ -1,11 +1,8 @@
-## HydroSanity: an interface for exploring hydrological time series in R
+## Hydrosanity: an interface for exploring hydrological time series in R
 ##
 ## Time-stamp: <2007-03-05 00:00:00 Felix>
 ##
 ## Copyright (c) 2007 Felix Andrews <felix@nfrac.org>, GPL
-
-# ISOdate should be hour = 12, tz = "GMT"
-# as.POSIXct() changes the time?? (+1h?)
 
 
 is.timeblob <- function(x) {
@@ -15,6 +12,11 @@ is.timeblob <- function(x) {
 		inherits(x[1,2], "numeric") &&
 		(!is.null(x$Time)) &&
 		(!is.null(x$Qual)))
+}
+
+as.timeblob <- function(x) {
+	if (is.timeblob(x)) { return(x) }
+	else { stop("do not know how to convert to timeblob") }
 }
 
 
@@ -100,6 +102,7 @@ read.timeblob <- function(dataFile, skip=1, sep=",", dataName="Data", dataCol=2,
 	myBlob <- data.frame(Time=myTime, Data=rawData[,dataIndex], Qual=myQual, 
 		rawData[,-c(timeIndex, dataIndex, qualIndex)])
 	names(myBlob) <- c("Time", dataName, "Qual", extraNames)
+	attr(myBlob, "timestep") <- difftimeString(myBlob$Time[2] - myBlob$Time[1], digits=1)
 	return(myBlob)
 }
 
@@ -147,6 +150,85 @@ window.timeblob <- function(myBlob, start, end, inclusive=F) {
 		}
 	}
 	return(myBlob[seq(windowIdx[1],windowIdx[2]),])
+}
+
+
+# invisibly returns missing fraction for each series
+summary.missing.timeblobList <- function(blobs, startTime=start.timeblob(blobs), endTime=end.timeblob(blobs), timeStep=hsp$timeStep) {
+	startTime <- as.POSIXct(startTime)
+	endTime <- as.POSIXct(endTime)
+	subBlobs <- lapply(blobs, window.timeblob, startTime, endTime)
+	myN <- length(subBlobs)
+	myPeriod <- seq.POSIXt(startTime, endTime, by=timeStep)
+	myLengths <- sapply(subBlobs, nrow)
+	myNAs <- lapply(subBlobs, function(x) { is.na(x[,2]) })
+	myDataPoints <- myLengths - sapply(myNAs, sum)
+	myDataFrac <- myDataPoints / length(myPeriod)
+	overallDataFrac <- mean(myDataFrac)
+	myCompleteN <- sum(myDataFrac >= 1)
+	my95PctN <- sum(myDataFrac > 0.95)
+	my75PctN <- sum(myDataFrac > 0.75)
+	
+	# find whether data exists for each timeblob for each time in myPeriod
+	# (note: this rounds down if times do not match)
+	dataExistsMatrix <- sapply(subBlobs, function(x) {
+		myPeriodIndices <- matchperiod.timeblob(x, myPeriod)
+		!is.na(x[myPeriodIndices,2])
+	})
+	
+	activeNs <- apply(dataExistsMatrix, 1, sum)
+	allActiveSteps <- sum(activeNs == myN)
+	allActiveFrac <- allActiveSteps / length(myPeriod)
+	activeNQ <- quantile(activeNs, probs=c(0.25, 0.5, 0.75))
+	activeNQFrac <- activeNQ / myN
+	
+	cat(sprintf('Overall, %.0f%% of data is missing.\n', overallDataFrac*100))
+	cat(sprintf('There are %i time series, of which %i %s complete.\n', 
+		myN, myCompleteN, ifelse(myCompleteN==1,'is','are')))
+	cat(sprintf('...%i %s > 95%% complete and %i %s > 75%% complete.\n', 
+		my95PctN, ifelse(my95PctN==1,'is','are'), my75PctN, ifelse(my75PctN==1,'is','are')))
+	cat('\n')
+	cat(sprintf('%i time steps (%.1f%%) have data from all series.\n', allActiveSteps, allActiveFrac*100))
+	cat(sprintf('The median number of active sites is %i (%.0f%%).\n', activeNQ[2], activeNQFrac[2]*100))
+	cat(sprintf('...Half the time, the number of active sites is between %i and %i.\n', activeNQ[1], activeNQ[3]))
+	#cat(sprintf('The number of active sites ranges from %i to %i.\n', activeNQ[1], activeNQ[3]))
+	
+	# gap length distribution
+	
+	# quality code summary
+	
+	# missing fraction for each series
+	missingFrac <- (length(myPeriod) - apply(dataExistsMatrix, 2, sum)) / length(myPeriod)
+	
+	invisible(missingFrac)
+}
+
+# find indices into timeblob x for each time in myPeriod
+# values of NA are used for times outside the timeblob
+#
+# it resamples x$Time to correspond to each time in myPeriod
+#
+matchperiod.timeblob <- function(x, myPeriod) {
+	x <- as.timeblob(x)
+	# default for indices is NA
+	periodIndices <- rep(as.integer(NA), length(myPeriod))
+	# each blob here may be outside myPeriod, and may be empty
+	if ((nrow(x)==0)
+	  || (start.timeblob(x) > myPeriod[length(myPeriod)])
+	  || (end.timeblob(x) < myPeriod[1])) {
+		return(periodIndices)
+	}
+	# each blob here is not entirely outside myPeriod
+	blobBounds <- findInterval(c(start.timeblob(x), end.timeblob(x)), myPeriod)
+	blobWindowIndices <- seq(blobBounds[1], blobBounds[2])
+	# now myPeriod[blobWindowIdx] is not outside x$Time
+	periodIndices[blobWindowIndices] <- findInterval(myPeriod[blobWindowIndices], x$Time)
+	return(periodIndices)
+}
+
+
+gaps <- function() {
+	
 }
 
 

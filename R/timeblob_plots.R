@@ -1,16 +1,10 @@
-## HydroSanity: an interface for exploring hydrological time series in R
+## Hydrosanity: an interface for exploring hydrological time series in R
 ##
 ## Time-stamp: <2007-03-05 00:00:00 Felix>
 ##
 ## Copyright (c) 2007 Felix Andrews <felix@nfrac.org>, GPL
 
 # savePlot(filename, type=c("png", "pdf", "ps"))
-# getGraphicsEvent
-# bringToTop
-# dev.list
-# dev.set
-# dev.interactive
-# ?identify
 # ?plotcorr
 # ?colorRampPalette
 
@@ -19,11 +13,12 @@
 # and colMap must be a named list specifying the colours to plot for each code (factor level) in "Qual"
 timelineplot <- function(timeblobList, timeStart=start.timeblob(timeblobList), timeEnd=end.timeblob(timeblobList), plotQualCodes=F, colMap=list(good="black",maybe="orange",poor="red"), verticalGrid=T, ...) {
 	if (is.data.frame(timeblobList)) { timeblobList <- list(timeblobList) }
+	n_ts <- length(timeblobList)
 	timeStart <- as.POSIXct(timeStart)
 	timeEnd <- as.POSIXct(timeEnd)
 	opar <- par(mar=c(3,4,1,1))
 	on.exit(par(opar))
-	plot(0, type="n", xlim=c(timeStart, timeEnd), ylim=c(0.5, length(timeblobList)+0.5), axes=F, ann=F, ...)
+	plot(0, type="n", xlim=c(timeStart, timeEnd), ylim=c(length(timeblobList)+0.5, 0.5), axes=F, ann=F, ...)
 	axisTicks <- axis.POSIXct(1, timeStart)
 	if (verticalGrid) {
 		abline(v=axisTicks, col="grey", lty=2)
@@ -35,7 +30,7 @@ timelineplot <- function(timeblobList, timeStart=start.timeblob(timeblobList), t
 	# calculate the data time lines
 	for (k in seq(along=timeblobList)) {
 		subBlob <- window.timeblob(timeblobList[[k]], timeStart, timeEnd, inclusive=T)
-		if (nrow(subBlob)==0) { continue }
+		if (nrow(subBlob)==0) { next }
 		
 		thisNA <- is.na(subBlob[,2])
 		
@@ -216,6 +211,7 @@ fdcplot <- function(timeblobList, timeStart=start.timeblob(timeblobList), timeEn
 		labels=c("0.1", "1", "10", "20", "30", "40", "50", "60", "70", "80", "90", "99", "99.9"))
 	for (k in 1:n_ts) {
 		thisCDF <- window.timeblob(timeblobList[[k]], timeStart, timeEnd)
+		if (nrow(thisCDF)==0) { next }
 		thisCDF <- thisCDF[order(thisCDF[,2], decreasing=T, na.last=NA),]
 		thisProb <- seq(0, by=1/nrow(thisCDF), length.out=nrow(thisCDF))
 		if (normalScale) { thisProb[1] <- thisProb[2]/2 } # make sure it shows on the plot
@@ -227,7 +223,7 @@ fdcplot <- function(timeblobList, timeStart=start.timeblob(timeblobList), timeEn
 		probSet <- seq(probFn(pMin), probFn(pMax), length.out=plotPoints)
 		rowSet[round(invProbFn(probSet) * nrow(thisCDF))] <- TRUE
 		thisCol <- "black"
-		if (plotQualCodes && !is.null(thisCDF$Qual)) {
+		if (plotQualCodes) {
 			thisCol <- applyColourMap(thisCDF$Qual, colMap)
 			thisCol <- levels(thisCol)[thisCol]
 		}
@@ -249,14 +245,15 @@ monthlyboxplot <- function(myBlob, aggrFun=mean, zeroLevel=1, log="y", ...) {
 
 # returns factor, levels are colours
 applyColourMap <- function(qualityCodes, colMap) {
+	if (is.null(qualityCodes[1])) { stop("qualityCodes can not be NULL") }
 	if (!is.list(colMap)) { stop("colMap must be a list") }
 	if (!is.factor(qualityCodes[1])) { 
 		warning(paste("qualityCodes must be a factor, skipping"))
-		return(factor("black"))
+		return(rep(factor("black"), length(qualityCodes)))
 	}
 	if (length(intersect(names(colMap),levels(qualityCodes[1])))==0) {
-		warning(paste("Levels of qualityCodes do not match given colMap, skipping"))
-		return(factor("black"))
+		warning(paste("levels of qualityCodes do not match given colMap, skipping"))
+		return(rep(factor("black"), length(qualityCodes)))
 	}
 	# need to invert colMap list
 	colLevelMap <- as.list(names(colMap))

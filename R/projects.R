@@ -1,4 +1,4 @@
-## HydroSanity: an interface for exploring hydrological time series in R
+## Hydrosanity: an interface for exploring hydrological time series in R
 ##
 ## Time-stamp: <2007-03-05 00:00:00 Felix>
 ##
@@ -13,7 +13,7 @@ openProject <- function() {
 	on.exit(theWidget("hs_window")$setSensitive(T))
 	setStatusBar("")
 	
-	ff <- c("HydroSanity projects (.hydrosanity)", "*.hydrosanity")
+	ff <- c("Hydrosanity projects (.hydrosanity)", "*.hydrosanity")
 	filename <- choose.files(caption="Open project", filters=ff, multi=F)
 	theWidget("hs_window")$present()
 	if (filename=="") { return() }

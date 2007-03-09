@@ -1,4 +1,4 @@
-## HydroSanity: an interface for exploring hydrological time series in R
+## Hydrosanity: an interface for exploring hydrological time series in R
 ##
 ## Time-stamp: <2007-03-05 00:00:00 Felix>
 ##
@@ -54,14 +54,19 @@ hydrosanity <- function() {
 	gladeXMLSignalAutoconnect(.hydrosanity$GUI)
 	gSignalConnect(theWidget("hs_window"), "delete-event", on_menu_quit_activate)
 	
-	myTreeView <- theWidget("import_summary_treeview")
-	insertTreeViewTextColumns(myTreeView, 
+	importTreeView <- theWidget("import_summary_treeview")
+	insertTreeViewTextColumns(importTreeView, 
 		colNames=c("Name", "Start", "End", "Length", "Avg_Freq", "Data", "Qual", "Extra_columns", "Role"),
 		editors=list(Name=on_import_summary_treeview_name_edited,
 			Role=on_import_summary_treeview_role_edited),
 		combo=list(Role=data.frame(c("RAIN","FLOW","OTHER"))) )
-	myTreeView$getSelection()$setMode("multiple")
+	importTreeView$getSelection()$setMode("multiple")
 	#myTreeView$setHeadersClickable(TRUE)
+	
+	timeperiodTreeView <- theWidget("timeperiod_summary_treeview")
+	insertTreeViewTextColumns(timeperiodTreeView, 
+		colNames=c("Name", "Min", "Q25", "Median", "Q75", "Max", "Missing", ""))
+	#timeperiodTreeView$getSelection()$setMode("multiple")
 	
 	hsp$defaultImportOptions <- theWidget("import_options_entry")$getText()
 	theWidget("import_file_radio_options_notebook")$setShowTabs(FALSE)
@@ -91,6 +96,7 @@ blankStateHSP <- function() {
 	list(
 		data=list(),
 		timePeriod=NULL,
+		timeStep="1 DSTday",
 		cwd=getwd(),
 		defaultImportOptions=
 		'sep=",", skip=1, dataName="Data", dataCol=2, qualCol=3'
@@ -99,7 +105,7 @@ blankStateHSP <- function() {
 
 
 addInitialLogMessage <- function() {
-	addToLog(sprintf("## HydroSanity version %s", VERSION), "\n",
+	addToLog(sprintf("## Hydrosanity version %s", VERSION), "\n",
 sprintf("## Run by %s on %s", Sys.info()["user"], R.version.string), "\n\n",
 "## Save the contents of this log to a file using the export button. As well as 
 ## keeping a record of the analysis procedure, it can be used to repeat the 
@@ -107,12 +113,12 @@ sprintf("## Run by %s on %s", Sys.info()["user"], R.version.string), "\n\n",
 ## has been exported to the file \"veryclever.R\" then in the R Console 
 ## 'source(\"veryclever.R\")' will run the commands in that file. Of course the 
 ## log can be edited and annotated, either by editing the exported file, or by 
-## editing the text in this frame before exporting. Saving the HydroSanity 
+## editing the text in this frame before exporting. Saving the Hydrosanity 
 ## project also retains this log.
 
 library(hydrosanity)
 
-## The variable hsp is used to store the current HydroSanity Project. It is 
+## The variable hsp is used to store the current Hydrosanity Project. It is 
 ## initialised here to be empty, but will hold data and settings when needed.
 ## Type \"str(hsp)\" in the R Console to see what is stored there!
 
