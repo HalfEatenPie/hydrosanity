@@ -32,7 +32,6 @@ choose.file.save <- function(default="", caption="Save File") {
 
 ## PLOT WINDOW FUNCTIONS
 
-# TODO: bring cairoWindow to front
 setPlotDevice <- function(name) {
 	#imageFile <- paste(tempfile(), ".png", sep="")
 	#myWidth <- theWidget("timeperiod_image")$getAllocation()$width

@@ -29,17 +29,19 @@ updateImportPage <- function() {
 			')', sep='')
 		}
 		dfExtra[i] <- ""
-		for (xcol in seq(4, ncol(hsp$data[[i]]))) {
-			dfExtra[i] <- paste(dfExtra[i],
-				if(xcol > 4)', ',
-				names(hsp$data[[i]])[xcol],
-				if (is.factor(hsp$data[[i]][1,xcol])) {
-					paste(' (',
-					paste(levels(hsp$data[[i]][1,xcol]),collapse="/"),
-					')', sep='')
-				},
-				sep=''
-			)
+		if (ncol(hsp$data[[i]]) >= 4) {
+			for (xcol in seq(4, ncol(hsp$data[[i]]))) {
+				dfExtra[i] <- paste(dfExtra[i],
+					if(xcol > 4)', ',
+					names(hsp$data[[i]])[xcol],
+					if (is.factor(hsp$data[[i]][1,xcol])) {
+						paste(' (',
+						paste(levels(hsp$data[[i]][1,xcol]),collapse="/"),
+						')', sep='')
+					},
+					sep=''
+				)
+			}
 		}
 		
 		dfRole[i] <- attr(hsp$data[[i]], "role")
@@ -169,7 +171,7 @@ on_import_file_button_clicked <- function(button) {
 		myStartTime <- theWidget("import_time_start_entry")$getText()
 		myTimeSeqBy <- theWidget("import_time_step_comboboxentry")$getActiveText()
 		for (i in seq(along=filenames)) {
-			import.cmd[i] <- sprintf('hsp$data[["%s"]] <<- read.timeblob("%s", startTime=%i, timeSeqBy="%s"%s)',
+			import.cmd[i] <- sprintf('hsp$data[["%s"]] <<- read.timeblob("%s", startTime="%i", timeSeqBy="%s"%s)',
 				dataName[i], filenames[i], myStartTime, myTimeSeqBy, myOptionString)
 		}
 	}

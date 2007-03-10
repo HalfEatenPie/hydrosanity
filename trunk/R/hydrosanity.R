@@ -8,7 +8,7 @@
 
 MAJOR <- "0"
 MINOR <- "3"
-REVIS <- "0"
+REVIS <- "1"
 REVISION <- unlist(strsplit("$Revision$", split=" "))[2]
 VERSION <- paste(MAJOR, MINOR, REVIS, sep=".")
 COPYRIGHT <- "(c) 2007 Felix Andrews <felix@nfrac.org>, GPL\n based on Rattle, (c) 2006 Graham.Williams@togaware.com"
@@ -42,6 +42,10 @@ hydrosanity <- function() {
 	require(RGtk2, quietly=TRUE) # From http://www.ggobi.org/rgtk2/
 	require(cairoDevice, quietly=TRUE)
 	
+	if (exists('.hydrosanity') && !is.null(.hydrosanity$GUI)) {
+		on_menu_quit_activate()
+	}
+	
 	hsp <<- blankStateHSP()
 	.hydrosanity <<- list()
 	.hydrosanity$dev <<- list()
@@ -50,28 +54,17 @@ hydrosanity <- function() {
 	.hydrosanity$GUI <<- gladeXMLNew(getpackagefile("hydrosanity.glade"),
 		root="hs_window")
 	
-	## Now connect the callbacks
+	# connect the callbacks (event handlers)
 	gladeXMLSignalAutoconnect(.hydrosanity$GUI)
 	gSignalConnect(theWidget("hs_window"), "delete-event", on_menu_quit_activate)
 	
-	importTreeView <- theWidget("import_summary_treeview")
-	insertTreeViewTextColumns(importTreeView, 
-		colNames=c("Name", "Start", "End", "Length", "Avg_Freq", "Data", "Qual", "Extra_columns", "Role"),
-		editors=list(Name=on_import_summary_treeview_name_edited,
-			Role=on_import_summary_treeview_role_edited),
-		combo=list(Role=data.frame(c("RAIN","FLOW","OTHER"))) )
-	importTreeView$getSelection()$setMode("multiple")
-	#myTreeView$setHeadersClickable(TRUE)
+	# set up initial GUI state
+	theWidget("notebook")$setCurrentPage(0)
 	
-	timeperiodTreeView <- theWidget("timeperiod_summary_treeview")
-	insertTreeViewTextColumns(timeperiodTreeView, 
-		colNames=c("Name", "Min", "Q25", "Median", "Q75", "Max", "Missing", ""))
-	#timeperiodTreeView$getSelection()$setMode("multiple")
-	
-	hsp$defaultImportOptions <- theWidget("import_options_entry")$getText()
 	theWidget("import_file_radio_options_notebook")$setShowTabs(FALSE)
 	theWidget("import_options_expander")$setExpanded(FALSE)
 	theWidget("import_makechanges_expander")$setExpanded(FALSE)
+	hsp$defaultImportOptions <- theWidget("import_options_entry")$getText()
 	
 	known_format_combo <- theWidget("import_known_format_combobox")
 	known_format_combo$getModel()$clear()
@@ -84,6 +77,22 @@ hydrosanity <- function() {
 	theWidget("import_time_step_comboboxentry")$setActive(4)
 	theWidget("import_makefactor_comboboxentry")$setActive(0)
 	
+	# set up table format on import page
+	importTreeView <- theWidget("import_summary_treeview")
+	insertTreeViewTextColumns(importTreeView, 
+		colNames=c("Name", "Start", "End", "Length", "Avg_Freq", "Data", "Qual", "Extra_columns", "Role"),
+		editors=list(Name=on_import_summary_treeview_name_edited,
+			Role=on_import_summary_treeview_role_edited),
+		combo=list(Role=data.frame(c("RAIN","FLOW","OTHER"))) )
+	importTreeView$getSelection()$setMode("multiple")
+	#myTreeView$setHeadersClickable(TRUE)
+	
+	# set up table format on timeperiod page
+	timeperiodTreeView <- theWidget("timeperiod_summary_treeview")
+	insertTreeViewTextColumns(timeperiodTreeView, 
+		colNames=c("Name", "Min", "Q25", "Median", "Q75", "Max", "Missing", ""))
+	
+	# set up log page
 	setTextviewMonospace("log_textview")
 	addInitialLogMessage()
 	
