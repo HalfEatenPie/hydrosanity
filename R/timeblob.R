@@ -47,7 +47,13 @@ redistributeAccumulatedRainfall <- function() {
 read.timeblob <- function(dataFile, skip=1, sep=",", dataName="Data", dataCol=2, qualCol=3, extraCols=c(), extraNames=paste("Extra",extraCols), readTimesFromFile=T, timeCol=1, timeFormat="%d %b %Y", startTime=NA, timeSeqBy="DSTday", ...) {
 	# check types
 	if (!is.numeric(dataCol)) { stop("dataCol must be numeric (column number)") }
-	if (readTimesFromFile && !is.numeric(timeCol)) { stop("timeCol must be numeric (column number)") }
+	if (readTimesFromFile) {
+		if (!is.numeric(timeCol)) { stop("timeCol must be numeric (column number)") }
+	} else {
+		if (!is.list(startTime)) {
+			startTime <- as.POSIXct(startTime)
+		}
+	}
 	# make sure extra column names correspond to given columns
 	length(extraNames) <- length(extraCols)
 	extraNames[is.na(extraNames)] <- paste("Extra", which(is.na(extraNames)))
@@ -86,6 +92,11 @@ read.timeblob <- function(dataFile, skip=1, sep=",", dataName="Data", dataCol=2,
 	if (readTimesFromFile) {
 		timeIndex <- timeCol - sum(dataFileColClasses[1:timeCol]=="NULL", na.rm=T)
 		myTime <- strptime(rawData[,timeIndex], format=timeFormat)
+		if (any(is.na(myTime))) {
+			firstNA <- which(is.na(myTime))[1]
+			stop('could not convert "', rawData[firstNA,timeIndex],
+			'" to time with format string ', timeFormat)
+		}
 	} else {
 		if ("list" %in% class(startTime)) {
 			timeBits <- lapply(startTime, function(i) {
