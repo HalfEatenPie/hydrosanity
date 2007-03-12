@@ -9,7 +9,6 @@
 MAJOR <- "0"
 MINOR <- "3"
 REVIS <- "2"
-REVISION <- unlist(strsplit("$Revision$", split=" "))[2]
 VERSION <- paste(MAJOR, MINOR, REVIS, sep=".")
 COPYRIGHT <- "(c) 2007 Felix Andrews <felix@nfrac.org>, GPL\n based on Rattle, (c) 2006 Graham.Williams@togaware.com"
 
