@@ -16,10 +16,8 @@ DESCRIPTIN=DESCRIPTION.in
 # Canonical version information from hydrosanity.R
 MAJOR=$(shell egrep '^MAJOR' $(SRC)/hydrosanity.R | cut -d\" -f 2)
 MINOR=$(shell egrep '^MINOR' $(SRC)/hydrosanity.R | cut -d\" -f 2)
-REVIS=$(shell egrep '^REVIS' $(SRC)/hydrosanity.R | cut -d\" -f 2)
-REVISION=$(shell svn info | egrep 'Revision:' |  cut -d" " -f 2\
-            | awk '{print $$1-137}')
-VERSION=$(MAJOR).$(MINOR).$(REVIS)
+REVISION=$(shell svn info | egrep 'Revision:' |  cut -d" " -f 2)
+VERSION=$(MAJOR).$(MINOR).$(REVISION)
 
 DATE=$(shell date +%F)
 
