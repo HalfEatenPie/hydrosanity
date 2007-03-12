@@ -4,31 +4,6 @@
 ##
 ## Copyright (c) 2007 Felix Andrews <felix@nfrac.org>, GPL
 
-## SAVE FILE DIALOG
-
-# returns character string, or NA if cancelled
-choose.file.save <- function(default="", caption="Save File") {
-	dialog <- gtkFileChooserDialog(caption, NULL, "save",
-		"gtk-cancel", GtkResponseType["cancel"],
-		"gtk-save", GtkResponseType["accept"])
-	dialog$setCurrentName(default)
-	
-	ff <- gtkFileFilterNew()
-	ff$setName("All Files")
-	ff$addPattern("*")
-	dialog$addFilter(ff)
-	
-	if (dialog$run() == GtkResponseType["accept"]) {
-		filename <- dialog$getFilename()
-		dialog$destroy()
-		#TODO: warn about replace?
-		return(filename)
-	} else {
-		dialog$destroy()
-		return(NA)
-	}
-}
-
 
 ## PLOT WINDOW FUNCTIONS
 
@@ -67,6 +42,31 @@ newCairoWindow <- function(name) {
 	myWin$setTitle(paste("Hydrosanity: Plot", dev.cur()))
 }
 
+on_plot_identify_button_clicked <- function(button) {
+	infoDialog("not implemented")
+}
+
+on_plot_centre_button_clicked <- function(button) {
+	infoDialog("not implemented")
+}
+
+on_plot_zoomin_button_clicked <- function(button) {
+	infoDialog("not implemented")
+}
+
+on_plot_zoomout_button_clicked <- function(button) {
+	infoDialog("not implemented")
+}
+
+on_plot_log_togglebutton_clicked <- function(button) {
+	infoDialog("not implemented")
+	#button$getActive()
+}
+
+on_plot_save_button_clicked <- function(button) {
+	infoDialog("not implemented")
+}
+
 on_plot_delete_event <- function(widget, event, user.data) {
 	myWin <- widget
 	myTitle <- myWin$getTitle()
@@ -92,8 +92,6 @@ insertTreeViewTextColumns <- function(treeView, colNames=colnames(treeView$getMo
 			renderer <- gtkCellRendererCombo()
 			renderer$set(model = rGtkDataFrame(data.frame(combo[[ colNames[i] ]])), text_column = 0, has_entry = F)
 		}
-		#renderer <- gtkCellRendererCombo()
-		#renderer$set(model = rGtkDataFrame(empty_data_frame("character")), text_column = 0, has_entry = F)
 		if (!is.null(editors[[ colNames[i] ]])) {
 			renderer$set(editable = T)
 			gSignalConnect(renderer, "edited", editors[[ colNames[i] ]])
@@ -106,12 +104,14 @@ insertTreeViewTextColumns <- function(treeView, colNames=colnames(treeView$getMo
 # note these indices are in the R convention (first element is #1)
 treeViewGetSelectedIndices <- function(treeView) {
 	selPaths <- treeView$getSelection()$getSelectedRows()$retval
+	if (length(selPaths)==0) { return(NULL) }
 	indices <- sapply(selPaths, function(x) x$getIndices()) + 1
 }
 
 # it's not enough to get the item indices since user can re-order them!
 iconViewGetSelectedNames <- function(iconView) {
 	selPaths <- iconView$getSelectedItems()
+	if (length(selPaths)==0) { return(NULL) }
 	# these are returned in reverse order, strangely
 	selPaths <- rev(selPaths)
 	# get names of items
@@ -128,32 +128,91 @@ iconViewGetSelectedNames <- function(iconView) {
 
 guiTryEval <- function(commandText, doFailureDialog=T, doFailureLog=T) {
 	setCursor("watch")
-	result <- try(eval(parse(text=commandText)))
+	if (length(commandText)==0) { commandText <- "" }
+	result <- tryCatch(eval(parse(text=commandText)), error=function(e)e)
 	setCursor()
-	if (inherits(result, "try-error")) {
-		if (doFailureDialog) {
-			setStatusBar("")
-			popTryError(commandText)
-		}
-		if (doFailureLog) { addToLog("# FAILED") }
+	if (inherits(result, "error") && doFailureDialog) {
+		setStatusBar("")
+		msgText <- conditionMessage(result)
+		callText <- deparse(conditionCall(result), width.cutoff=500)[1]
+		if (length(msgText)==0) { msgText <- "" }
+		if (length(callText)==0) { callText <- "" }
+		errorDialog(paste(sep='',
+	"A command has failed. The error was: \n\n<i>", msgText,
+	"</i>\n\n", "The error occurred in: \n\n<tt>", callText, "</tt>\n\n", 
+	"The original command was: \n\n<tt>", commandText, "</tt>\n\n",
+	"If this is not your fault, you might want to select this text and copy it into a bug report."))
 	}
+	if (inherits(result, "error") && doFailureLog) { addToLog("# FAILED") }
 	return(result)
 }
 
 guiTryEvalSink <- function(...) {
 	cmdOutput <- capture.output(result <- guiTryEval(...))
-	if (inherits(result, "try-error")) {
+	if (inherits(result, "error")) {
 		return("FAILED")
 	}
 	return(cmdOutput)
 }
 
-popTryError <- function(commandText) {
-	errorDialog(paste(sep="",
-		"A command has failed: \n\n", commandText, "\n\n",
-		"The action you requested has not been completed. ",
-		"Refer to the R Console for details."))
+
+## COMMON DIALOGS
+
+errorDialog <- function(...) {
+	guiMessageDialog(type="error", ...)
 }
 
+infoDialog <- function(...) {
+	guiMessageDialog(type="info", ...)
+}
 
+questionDialog <- function(...) {
+	guiMessageDialog(type="question", ...)
+}
+
+guiMessageDialog <- function(type="info", ...) {
+	myString <- paste(sep='', ...)
+	myString <- gsub('%', '%%', myString)
+	myString <- gsub('&&', '&amp;&amp;', myString)
+	myString <- gsub('& ', '&amp; ', myString)
+	myString <- gsub('<<', '&lt;&lt;', myString)
+	myString <- gsub('<-', '&lt;-', myString)
+	myString <- gsub('< ', '&lt; ', myString)
+	myButtons <- switch(type,
+		error="close",
+		info="ok",
+		question="yes-no"
+	)
+	dialog <- gtkMessageDialogNewWithMarkup(theWidget("hs_window"), 
+		"destroy-with-parent", type, myButtons, myString)
+	result <- dialog$run() # make it modal
+	dialog$destroy()
+	theWidget("hs_window")$present()
+	return(if (result == GtkResponseType["yes"]) { "yes" } else { NULL })
+}
+
+## SAVE FILE DIALOG
+
+# returns character string, or NA if cancelled
+choose.file.save <- function(default="", caption="Save File") {
+	dialog <- gtkFileChooserDialog(caption, NULL, "save",
+		"gtk-cancel", GtkResponseType["cancel"],
+		"gtk-save", GtkResponseType["accept"])
+	dialog$setCurrentName(default)
+	
+	ff <- gtkFileFilterNew()
+	ff$setName("All Files")
+	ff$addPattern("*")
+	dialog$addFilter(ff)
+	
+	if (dialog$run() == GtkResponseType["accept"]) {
+		filename <- dialog$getFilename()
+		dialog$destroy()
+		#TODO: warn about replace?
+		return(filename)
+	} else {
+		dialog$destroy()
+		return(NA)
+	}
+}
 

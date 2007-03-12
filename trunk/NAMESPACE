@@ -8,12 +8,15 @@ export(
 	sanitycheck.rain,
 	sanitycheck.flow,
 	is.timeblob,
+	as.timeblob,
 	read.timeblob,
 	start.timeblob,
 	end.timeblob,
 	window.timeblob,
 	aggregate.timeblob,
 	smooth.timeblob,
+	matchperiod.timeblob,
+	summary.missing.timeblob.list,
 	floor.year
 )
 

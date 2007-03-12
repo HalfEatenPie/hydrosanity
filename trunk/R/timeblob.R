@@ -6,7 +6,8 @@
 
 
 is.timeblob <- function(x) {
-	return ((is.data.frame(x)) &&
+	return (!is.null(x) &&
+		(is.data.frame(x)) &&
 		(ncol(x) >= 3) &&
 		inherits(x[1,1], "POSIXct") &&
 		inherits(x[1,2], "numeric") &&
@@ -52,17 +53,19 @@ read.timeblob <- function(dataFile, skip=1, sep=",", dataName="Data", dataCol=2,
 	} else {
 		if (!is.list(startTime)) {
 			startTime <- as.POSIXct(startTime)
+			if (is.na(startTime)) { stop("could not convert startTime to a time") }
 		}
 	}
 	# make sure extra column names correspond to given columns
 	length(extraNames) <- length(extraCols)
 	extraNames[is.na(extraNames)] <- paste("Extra", which(is.na(extraNames)))
 	# number of columns in file
-	firstLine <- read.table(dataFile, header=F, skip=skip, sep=sep, strip.white=T, nrows=1)
+	firstLine <- read.table(dataFile, header=F, skip=skip, sep=sep, strip.white=T, nrows=1, ...)
 	dataFileCols <- ncol(firstLine)
-	#dataFileCols <- length(gregexpr(sep, readLines(dataFile, n=skip+1)[skip+1])[[1]]) + 1
-	if (dataCol > dataFileCols) { stop("Column ", dataCol, " (dataCol) not found on line ", 
-		skip+1, "; maybe the column separator \"", sep, "\" is wrong?") }
+	if (dataCol > dataFileCols) {
+		stop("Column ", dataCol, " (dataCol) not found on line ", 
+		skip+1, "; maybe the column separator \"", sep, "\" is wrong?")
+	}
 	# drop variables for which column does not exist in file
 	if (qualCol > dataFileCols) { qualCol <- NULL }
 	extraNames <- extraNames[!(extraCols > dataFileCols)]
@@ -70,7 +73,7 @@ read.timeblob <- function(dataFile, skip=1, sep=",", dataName="Data", dataCol=2,
 	# define which columns to import and which to ignore
 	dataFileColClasses <- rep("NULL", dataFileCols)
 	if (readTimesFromFile) { dataFileColClasses[timeCol] <- "character" }
-	dataFileColClasses[dataCol] <- "numeric"
+	dataFileColClasses[dataCol] <- "numeric" #, but then "" gives error
 	dataFileColClasses[qualCol] <- NA # qualCol may be NULL
 	dataFileColClasses[extraCols] <- NA # extraCols may be NULL
 	# read file
@@ -95,7 +98,7 @@ read.timeblob <- function(dataFile, skip=1, sep=",", dataName="Data", dataCol=2,
 		if (any(is.na(myTime))) {
 			firstNA <- which(is.na(myTime))[1]
 			stop('could not convert "', rawData[firstNA,timeIndex],
-			'" to time with format string ', timeFormat)
+			'" to time with format string "', timeFormat, '"')
 		}
 	} else {
 		if ("list" %in% class(startTime)) {
@@ -106,6 +109,10 @@ read.timeblob <- function(dataFile, skip=1, sep=",", dataName="Data", dataCol=2,
 			if (is.null(timeBits$min)) { timeBits$min <- 0 }
 			if (is.null(timeBits$sec)) { timeBits$sec <- 0 }
 			startTime <- do.call(ISOdatetime, timeBits)
+			if (is.na(startTime)) {
+				myBits <- paste(paste(names(unlist(timeBits)), '=', unlist(timeBits)), collapse=', ')
+				stop('could not construct starting time from columns given in startTime: ', myBits)
+			}
 		}
 		myTime <- seq.POSIXt(from=startTime, by=timeSeqBy, length.out=nrow(rawData))
 	}
@@ -165,7 +172,7 @@ window.timeblob <- function(myBlob, start, end, inclusive=F) {
 
 
 # invisibly returns missing fraction for each series
-summary.missing.timeblobList <- function(blobs, startTime=start.timeblob(blobs), endTime=end.timeblob(blobs), timeStep=hsp$timeStep) {
+summary.missing.timeblob.list <- function(blobs, startTime=start.timeblob(blobs), endTime=end.timeblob(blobs), timeStep=hsp$timeStep) {
 	startTime <- as.POSIXct(startTime)
 	endTime <- as.POSIXct(endTime)
 	subBlobs <- lapply(blobs, window.timeblob, startTime, endTime)
@@ -220,6 +227,7 @@ summary.missing.timeblobList <- function(blobs, startTime=start.timeblob(blobs),
 # it resamples x$Time to correspond to each time in myPeriod
 #
 matchperiod.timeblob <- function(x, myPeriod) {
+	# check types
 	x <- as.timeblob(x)
 	# default for indices is NA
 	periodIndices <- rep(as.integer(NA), length(myPeriod))
