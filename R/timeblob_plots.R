@@ -11,25 +11,34 @@
 
 # if plotQualCodes is TRUE, then quality codes (as factor) are taken from column "Qual"
 # and colMap must be a named list specifying the colours to plot for each code (factor level) in "Qual"
-timelineplot <- function(timeblobList, timeStart=start.timeblob(timeblobList), timeEnd=end.timeblob(timeblobList), plotQualCodes=F, colMap=list(good="black",maybe="orange",poor="red"), verticalGrid=T, ...) {
-	if (is.data.frame(timeblobList)) { timeblobList <- list(timeblobList) }
-	n_ts <- length(timeblobList)
-	timeStart <- as.POSIXct(timeStart)
-	timeEnd <- as.POSIXct(timeEnd)
+timelineplot <- function(xylist, xlim=NULL, plotQualCodes=F, colMap=list(good="black",maybe="orange",poor="red"), verticalGrid=T, ...) {
+	# check types
+	if (!identical(class(xylist),"list")) { xylist <- list(xylist) }
+	if (any(sapply(xylist, is.timeblob)==F)) { stop("xylist must be a list of timeblobs") }
+	if (is.null(xlim)) {
+		xlim <- c(start.timeblob(xylist), end.timeblob(xylist))
+	}
+	if (length(xlim) != 2) { stop("xlim must be like c(start, end)") }
+	xlim <- c(as.POSIXct(xlim[1]), as.POSIXct(xlim[2]))
+	n_ts <- length(xylist)
+	# set margins
 	opar <- par(mar=c(3,4,1,1))
 	on.exit(par(opar))
-	plot(0, type="n", xlim=c(timeStart, timeEnd), ylim=c(length(timeblobList)+0.5, 0.5), axes=F, ann=F, ...)
-	axisTicks <- axis.POSIXct(1, timeStart)
+	# blank plot
+	plot.new()
+	plot.window(xlim, ylim=c(n_ts+0.5, 0.5), ...)
+	#plot(0, type="n", xlim=xlim, ylim=c(n_ts+0.5, 0.5), axes=F, ann=F, ...)
+	axisTicks <- axis.POSIXct(1, xlim[1])
 	if (verticalGrid) {
 		abline(v=axisTicks, col="grey", lty=2)
 	}
 	# draw series labels
 	tmp_par <- par(xpd=T)
-	text(timeStart, y=seq(1,length(timeblobList)), labels=names(timeblobList), adj=c(1,0.5))
+	text(xlim[1], y=seq(1,length(xylist)), labels=names(xylist), adj=c(1,0.5))
 	par(tmp_par)
 	# calculate the data time lines
-	for (k in seq(along=timeblobList)) {
-		subBlob <- window.timeblob(timeblobList[[k]], timeStart, timeEnd, inclusive=T)
+	for (k in seq(along=xylist)) {
+		subBlob <- window.timeblob(xylist[[k]], xlim[1], xlim[2], inclusive=T)
 		if (nrow(subBlob)==0) { next }
 		
 		thisNA <- is.na(subBlob[,2])
@@ -66,18 +75,22 @@ timelineplot <- function(timeblobList, timeStart=start.timeblob(timeblobList), t
 
 # TODO: allow plotting multiple series on each plot (specify lty/col for each plot?) -- eg smoothed
 # TODO: quality codes?
-timeseriesplot <- function(timeblobList, timeStart=start.timeblob(timeblobList), timeEnd=end.timeblob(timeblobList), focusTime=NA, windowDays=365*2, interactiveMode=F, showTimeline=interactiveMode, scrollSteps=3, dataType=c("mean","inst"), type="l", ...) {
-	if (is.data.frame(timeblobList)) { timeblobList <- list(timeblobList) }
-	n_ts <- length(timeblobList)
-	plotRanges <- lapply(timeblobList, range.timeblob, na.rm=T)
-	timeStart <- as.POSIXct(timeStart)
-	timeEnd <- as.POSIXct(timeEnd)
-	timeRange <- as.numeric(timeEnd) - as.numeric(timeStart)
+timeseriesplot <- function(xylist, xlim=NULL, interactiveMode=F, showTimeline=interactiveMode, scrollSteps=3, ...) {
+	# check types
+	if (!identical(class(xylist),"list")) { xylist <- list(xylist) }
+	if (any(sapply(xylist, is.timeblob)==F)) { stop("xylist must be a list of timeblobs") }
+	if (is.null(xlim)) {
+		xlim <- c(start.timeblob(xylist), end.timeblob(xylist))
+	}
+	if (length(xlim) != 2) { stop("xlim must be like c(start, end)") }
+	xlim <- c(as.POSIXct(xlim[1]), as.POSIXct(xlim[2]))
+	# setup
+	n_ts <- length(xylist)
+	plotRanges <- lapply(xylist, range.timeblob, na.rm=T)
+	timeRange <- as.numeric(xlim[2]) - as.numeric(xlim[1])
 	halfWin <- round(timeRange/2)
-	currFocus <- as.numeric(timeStart) + halfWin
+	currFocus <- as.numeric(xlim[1]) + halfWin
 	halfWin <- halfWin * 1.04 # pretty padding
-	if (!is.na(focusTime)) { halfWin <- (windowDays * 24 * 60 * 60) / 2 }
-	if (!is.na(focusTime)) { currFocus <- as.numeric(as.POSIXct(focusTime)) }
 	prevFocus <- currFocus
 	old_par <- par(mar=c(3,4,0,1),oma=c(0,0,1,0),xpd=F)
 	on.exit(par(old_par))
@@ -95,17 +108,19 @@ timeseriesplot <- function(timeblobList, timeStart=start.timeblob(timeblobList),
 		}
 		if (showTimeline) {
 			# place the timeline below the other plots, but draw it before them
-			layout(matrix(c(seq(2,n_ts+1),1)),heights=c(rep(1,n_ts),0.2))
+			layout(matrix(c(seq(n_ts+1,2),1)),heights=c(rep(1,n_ts),lcm(2)))
 			tmp_par <- par(mar=c(1,4,0,4),xpd=NA)
-			plot(0, type="n", axes=F, xlim=c(timeStart,timeEnd), xaxs="i", xlab=" ", ylim=c(0,1), ylab=" ")
-			rect(timeStart, 0, timeEnd, 1, col=grey(0.9))
-			rect(max(as.numeric(timeStart),plotFocus-halfWin), 0, min(as.numeric(timeEnd),plotFocus+halfWin), 1, col="grey")
-			text(timeStart, 0.5, get.year(timeStart), pos=4)
-			text(timeEnd, 0.5, get.year(timeEnd), pos=2)
+			# blank plot
+			plot.new()
+			plot.window(xlim, ylim=c(0,1), xaxs="i")
+			rect(xlim[1], 0, xlim[2], 1, col=grey(0.9))
+			rect(max(as.numeric(xlim[1]),plotFocus-halfWin), 0, min(as.numeric(xlim[2]),plotFocus+halfWin), 1, col="grey")
+			text(xlim[1], 0.5, get.year(xlim[1]), pos=4)
+			text(xlim[2], 0.5, get.year(xlim[2]), pos=2)
 			if (interactiveMode) {
-				text(as.numeric(timeStart) + timeRange/2, 0.5, "Click on the plot (or here) to scroll through time.")
-				text(timeStart, 0.5, "zoom\nout", pos=2, offset=1, cex=1, font=2, family="mono", col=grey(0.25))
-				text(timeEnd, 0.5, "zoom\n in", pos=4, offset=1, cex=1, font=2, family="mono", col=grey(0.25))
+				text(as.numeric(xlim[1]) + timeRange/2, 0.5, "Click on the plot (or here) to scroll through time.")
+				text(xlim[1], 0.5, "zoom\nout", pos=2, offset=1, cex=1, font=2, family="mono", col=grey(0.25))
+				text(xlim[2], 0.5, "zoom\n in", pos=4, offset=1, cex=1, font=2, family="mono", col=grey(0.25))
 			}
 			par(tmp_par)
 		} else {
@@ -114,16 +129,16 @@ timeseriesplot <- function(timeblobList, timeStart=start.timeblob(timeblobList),
 		for (k in 1:n_ts) {
 			plotStart <- as.POSIXct.raw(plotFocus-halfWin)
 			plotEnd <- as.POSIXct.raw(plotFocus+halfWin)
-			plotData <- window.timeblob(timeblobList[[k]], plotStart, plotEnd, inclusive=T)
+			plotData <- window.timeblob(xylist[[k]], plotStart, plotEnd, inclusive=T)
 			iDates <- seq(1,nrow(plotData))
 			iVals <- iDates
-			if (dataType[1] == "mean") {
+			#if (dataType[1] == "mean") {
 				# draw as steps (note: plot type="s" fails to draw horiz line preceding NA points)
 				iDates <- c(rep(iDates,each=2)[-1],NA)
 				iVals <- rep(iVals,each=2)
 				type <- "l"
-			}
-			plot.default(plotData$Time[iDates], plotData[iVals,2], xlim=c(plotFocus-halfWin,plotFocus+halfWin), xaxs="i", xaxt="n", xlab=" ", ylim=plotRanges[[k]], ylab=names(timeblobList)[k], type=type, ...)
+			#}
+			plot.default(plotData$Time[iDates], plotData[iVals,2], xlim=c(plotFocus-halfWin,plotFocus+halfWin), xaxs="i", xaxt="n", xlab=" ", ylim=plotRanges[[k]], ylab=names(xylist)[k], type="l", ...)
 			axis.POSIXct(1, as.POSIXct.raw(plotFocus))
 		}
 		if (interactiveMode && (currFocus == prevFocus)) {
@@ -145,7 +160,7 @@ timeseriesplot <- function(timeblobList, timeStart=start.timeblob(timeblobList),
 					halfWin <- halfWin * 2
 					if (halfWin > timeRange/2) {
 						halfWin <- round(timeRange/2)
-						currFocus <- as.numeric(timeStart) + halfWin
+						currFocus <- as.numeric(xlim[1]) + halfWin
 						prevFocus <- currFocus
 					}
 				} else if (relX > 1) {
@@ -180,7 +195,7 @@ timeseriesplot <- function(timeblobList, timeStart=start.timeblob(timeblobList),
 					# user clicked timeline to scroll
 					if (halfWin == round(timeRange/2)) { next }
 					# convert into timeline coordinates
-					currFocus <- as.numeric(timeStart) + round(relX * timeRange)
+					currFocus <- as.numeric(xlim[1]) + round(relX * timeRange)
 					prevFocus <- currFocus
 				}
 			} else {
@@ -194,23 +209,36 @@ timeseriesplot <- function(timeblobList, timeStart=start.timeblob(timeblobList),
 	}
 }
 
-fdcplot <- function(timeblobList, timeStart=start.timeblob(timeblobList), timeEnd=end.timeblob(timeblobList), zeroLevel=0.1, normalScale=T, pMin=0.001, pMax=0.999, plotQualCodes=F, colMap=list(good="black",maybe="orange",poor="red"), plotPoints=1000, lwd=2, ...) {
-	if (is.data.frame(timeblobList)) { timeblobList <- list(timeblobList) }
-	n_ts <- length(timeblobList)
-	timeStart <- as.POSIXct(timeStart)
-	timeEnd <- as.POSIXct(timeEnd)
-	plotRanges <- lapply(timeblobList, range.timeblob, na.rm=T)
+fdcplot <- function(xylist, xlim=NULL, timelim=NULL, log="y", zeroLevel=0.1, normalScale=T, plotQualCodes=F, colMap=list(good="black",maybe="orange",poor="red"), plotPoints=1000, lwd=2, ...) {
+	# check types
+	if (!identical(class(xylist),"list")) { xylist <- list(xylist) }
+	if (any(sapply(xylist, is.timeblob)==F)) { stop("xylist must be a list of timeblobs") }
+	if (is.null(timelim)) {
+		timelim <- c(start.timeblob(xylist), end.timeblob(xylist))
+	}
+	if (length(timelim) != 2) { stop("timelim must be like c(start, end)") }
+	timelim <- c(as.POSIXct(timelim[1]), as.POSIXct(timelim[2]))
+	if (is.null(xlim)) {
+		xlim <- c(0.001, 0.999)
+	}
+	if (length(xlim) != 2) { stop("xlim must be like c(p1, p2)") }
+	# setup
+	n_ts <- length(xylist)
+	plotRanges <- lapply(xylist, range.timeblob, na.rm=T)
 	globalRange <- range(unlist(plotRanges))
 	globalRange[1] <- max(zeroLevel, globalRange[1])
 	probFn <- qunif; invProbFn <- punif
 	if (normalScale) { probFn <- qnorm; invProbFn <- pnorm }
-	# set up plot
-	plot(0, type="n", log="y", xlim=probFn(c(pMin, pMax)), ylim=globalRange, yaxt="n", xaxt="n", xlab="Probability of exceedence (%)", ...)
+	# blank plot
+	plot.new()
+	plot.window(xlim=probFn(xlim), ylim=globalRange, log=log, ...)
+	title(xlab="Probability of exceedence (%)")
+	#plot(0, type="n", log=log, xlim=probFn(xlim), ylim=globalRange, yaxt="n", xaxt="n", xlab="Probability of exceedence (%)", ...)
 	axis(2, las=2, at = c(0.1, 1, 10, 100, 1000, 10^4, 10^5, 10^6), labels = c("0.1", "1", "10", "100", "1000", "10^4", "10^5", "10^6"))
 	axis(1, at=probFn(c(0.001, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99, 0.999)), 
 		labels=c("0.1", "1", "10", "20", "30", "40", "50", "60", "70", "80", "90", "99", "99.9"))
 	for (k in 1:n_ts) {
-		thisCDF <- window.timeblob(timeblobList[[k]], timeStart, timeEnd)
+		thisCDF <- window.timeblob(xylist[[k]], timelim[1], timelim[2])
 		if (nrow(thisCDF)==0) { next }
 		thisCDF <- thisCDF[order(thisCDF[,2], decreasing=T, na.last=NA),]
 		thisProb <- seq(0, by=1/nrow(thisCDF), length.out=nrow(thisCDF))
@@ -220,7 +248,7 @@ fdcplot <- function(timeblobList, timeStart=start.timeblob(timeblobList), timeEn
 		# always include first 10 and last 10 points
 		rowSet[c(1:10, nrow(thisCDF)-0:9)] <- TRUE
 		# sample points uniformly along quantiles of prob distribution
-		probSet <- seq(probFn(pMin), probFn(pMax), length.out=plotPoints)
+		probSet <- seq(probFn(xlim[1]), probFn(xlim[2]), length.out=plotPoints)
 		rowSet[round(invProbFn(probSet) * nrow(thisCDF))] <- TRUE
 		thisCol <- "black"
 		if (plotQualCodes) {

@@ -39,9 +39,19 @@ on_explore_timeseries_button_clicked <- function(button) {
 	setStatusBar("")
 	
 	selNames <- iconViewGetSelectedNames(theWidget("explore_iconview"))
+	if (length(selNames) == 0) { return() }
+	mySelNames <- paste('c("', paste(selNames, collapse='", "'), '")', sep='')
+	myLog <- if (theWidget("explore_timeseries_log_checkbutton")$getActive())
+	{ ', log="y"' } else { '' }
 	
 	setPlotDevice("explore")
-	timeseriesplot(hsp$data[selNames], timeStart=hsp$timePeriod[1], timeEnd=hsp$timePeriod[2]) #, interactive=T)
+	plot.cmd <- sprintf('timeseriesplot(hsp$data[%s], xlim=hsp$timePeriod%s)',
+		mySelNames, myLog)
+	
+	addLogItem("View timeseries plot", plot.cmd)
+	result <- guiTryEval(plot.cmd)
+	if (inherits(result, "error")) { return() }
+	setStatusBar("Generated timeseries plot")
 }
 
 on_explore_cdf_button_clicked <- function(button) {
@@ -50,9 +60,17 @@ on_explore_cdf_button_clicked <- function(button) {
 	setStatusBar("")
 	
 	selNames <- iconViewGetSelectedNames(theWidget("explore_iconview"))
+	if (length(selNames) == 0) { return() }
+	mySelNames <- paste('c("', paste(selNames, collapse='", "'), '")', sep='')
 	
 	setPlotDevice("explore")
-	fdcplot(hsp$data[selNames], timeStart=hsp$timePeriod[1], timeEnd=hsp$timePeriod[2], plotQualCodes=T)
+	plot.cmd <- sprintf('fdcplot(hsp$data[%s], timelim=hsp$timePeriod, plotQualCodes=T)',
+		mySelNames)
+	
+	addLogItem("View CDF plot", plot.cmd)
+	result <- guiTryEval(plot.cmd)
+	if (inherits(result, "error")) { return() }
+	setStatusBar("Generated CDF plot")
 }
 
 on_explore_seasonal_button_clicked <- function(button) {

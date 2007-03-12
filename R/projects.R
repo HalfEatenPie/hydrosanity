@@ -4,6 +4,7 @@
 ##
 ## Copyright (c) 2007 Felix Andrews <felix@nfrac.org>, GPL
 
+on_menu_new_activate <- function(action, window) {hydrosanity()}
 on_menu_open_activate <- function(action, window) {openProject()}
 on_menu_save_activate <- function(action, window) {saveProject()}
 on_menu_saveas_activate <- function(action, window) {saveProject(saveAs=T)}

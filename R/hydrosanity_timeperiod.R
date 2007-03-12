@@ -33,7 +33,7 @@ updateTimePeriodPage <- function() {
 	setTextview(TV, "")
 	
 	missingSummary <- capture.output(
-		missingFrac <- summary.missing.timeblobList(hsp$data, 
+		missingFrac <- summary.missing.timeblob.list(hsp$data, 
 			hsp$timePeriod[1], hsp$timePeriod[2]) )
 	addTextview(TV, paste(missingSummary, collapse="\n"), "\n")
 	
@@ -49,7 +49,7 @@ updateTimePeriodPage <- function() {
 		dfQ75[i] <- myQuantiles[4]
 		dfMax[i] <- myQuantiles[5]
 		dfMissing[i] <- sprintf('%.0f%%', missingFrac[i]*100)
-		#sprintf('%.2f%%', sum(is.na(subBlob[,2])) / nrow(subBlob))
+		#sprintf('%.2f%%', sum(is.na(subBlob[,2])) / nrow(subBlob)) i.e. gaps
 	}
 	
 	dfModel <- rGtkDataFrame(data.frame(
@@ -85,11 +85,11 @@ on_timeperiod_updateperiod_button_clicked <- function(button) {
 	
 	addLogItem("Set time period for analysis", update.cmd)
 	result <- guiTryEval(update.cmd)
-	if (inherits(result, "try-error")) { return() }
+	if (inherits(result, "error")) { return() }
 	setStatusBar("Set time period for analysis:", 
 		myTimeStrings[1], "to", myTimeStrings[2])
 		
-#	sprintf('summary.missing.timeblobList(hsp$data, "%s", "%s")', 
+#	sprintf('summary.missing.timeblob.list(hsp$data, "%s", "%s")', 
 #		format(hsp$timePeriod[1]), format(hsp$timePeriod[2]))
 	
 	updateTimePeriodPage()
@@ -116,15 +116,14 @@ on_timeperiod_viewtimeline_button_clicked <- function(button) {
 	
 	plotQualCodes <- theWidget("timeperiod_plotqualitycodes_checkbutton")$getActive()
 	colMapText <- theWidget("timeperiod_colmap_entry")$getText()
-	plot.cmd <- sprintf('timelineplot(hsp$data, timeStart="%s", timeEnd="%s", plotQualCodes=%s%s)',
-		format(hsp$timePeriod[1]), format(hsp$timePeriod[2]),
+	plot.cmd <- sprintf('timelineplot(hsp$data, xlim=hsp$timePeriod, plotQualCodes=%s%s)',
 		ifelse(plotQualCodes,'T','F'),
 		ifelse(plotQualCodes, paste(', colMap=', colMapText, sep=''), '')
 	)
 	
 	addLogItem("View timeline plot", plot.cmd)
 	result <- guiTryEval(plot.cmd)
-	if (inherits(result, "try-error")) { return() }
+	if (inherits(result, "error")) { return() }
 	setStatusBar("Generated timeline plot")
 }
 

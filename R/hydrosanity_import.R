@@ -24,24 +24,24 @@ updateImportPage <- function() {
 		dfData[i] <- names(hsp$data[[i]])[2]
 		dfQual[i] <- class(hsp$data[[i]]$Qual[1])[1]
 		if (dfQual[i] == "factor") {
-			dfQual[i] <- paste(' (',
+			dfQual[i] <- paste(' (', toString(
 				paste(levels(hsp$data[[i]]$Qual[1]),collapse="/"),
-			')', sep='')
+			width=30), ')', sep='')
 		}
 		dfExtra[i] <- ""
 		if (ncol(hsp$data[[i]]) >= 4) {
-			for (xcol in seq(4, ncol(hsp$data[[i]]))) {
-				dfExtra[i] <- paste(dfExtra[i],
-					if(xcol > 4)', ',
-					names(hsp$data[[i]])[xcol],
-					if (is.factor(hsp$data[[i]][1,xcol])) {
-						paste(' (',
-						paste(levels(hsp$data[[i]][1,xcol]),collapse="/"),
-						')', sep='')
-					},
-					sep=''
-				)
-			}
+		for (xcol in seq(4, ncol(hsp$data[[i]]))) {
+			dfExtra[i] <- paste(dfExtra[i],
+				if(xcol > 4)', ',
+				names(hsp$data[[i]])[xcol],
+				if (is.factor(hsp$data[[i]][1,xcol])) {
+					paste(' (', toString(
+					paste(levels(hsp$data[[i]][1,xcol]),collapse="/"),
+					width=30), ')', sep='')
+				},
+				sep=''
+			)
+		}
 		}
 		
 		dfRole[i] <- attr(hsp$data[[i]], "role")
@@ -75,11 +75,10 @@ on_import_robj_button_clicked <- function(button) {
 	
 	data.cmd <- theWidget("import_robj_entry")$getText()
 	dataName <- make.names(data.cmd)
-	addLogSeparator()
 	addLogComment("Import data from R object ", data.cmd)
 	# first set a local variable x and do checks
 	x <- guiTryEval(data.cmd)
-	if (inherits(x, "try-error")) { return() }
+	if (inherits(x, "error")) { return() }
 	# check the user-defined object
 	if (is.list(x) && !is.data.frame(x)) {
 		# it should be a list of timeblobs
@@ -176,12 +175,11 @@ on_import_file_button_clicked <- function(button) {
 		}
 	}
 	
-	addLogSeparator()
 	addLogComment("Import data from file")
 	for (i in seq(along=filenames)) {
 		addToLog(import.cmd[i])
 		result <- guiTryEval(import.cmd[i])
-		if (inherits(result, "try-error")) { return() }
+		if (inherits(result, "error")) { return() }
 		setStatusBar(sprintf('Imported file "%s" to hsp$data[["%s"]]', basename(filenames[i]), dataName[i]))
 		# mark as rain/flow/etc
 		setDataRole(dataName[i], doLogComment=F)
@@ -207,7 +205,7 @@ setDataRole <- function(blobName, role=NULL, doLogComment=T) {
 	if (doLogComment) { addLogComment("Set data role") }
 	addToLog(mv.cmd)
 	result <- guiTryEval(mv.cmd)
-	if (inherits(result, "try-error")) { return() }
+	if (inherits(result, "error")) { return() }
 	setStatusBar(sprintf('Set data role for object "%s" to "%s"', blobName, role))
 }
 
@@ -218,7 +216,7 @@ on_import_summary_treeview_name_edited <- function(cell, path.string, new.text, 
 	mv.cmd <- sprintf('names(hsp$data)[%i] <<- "%s"', blobIndex, new.text)
 	addLogItem(paste("Rename data object", blobName), mv.cmd)
 	result <- guiTryEval(mv.cmd)
-	if (inherits(result, "try-error")) { return() }
+	if (inherits(result, "error")) { return() }
 	setStatusBar(sprintf('Renamed data object "%s" to "%s"', blobName, new.text))
 	
 	updateImportPage()
@@ -243,13 +241,13 @@ on_import_remove_blob_button_clicked <- function(button) {
 	if (length(blobIndices)==0) { return() }
 	
 	blobNames <- names(hsp$data)[blobIndices]
-	if (is.null(questionDialog("Remove item(s)", paste(blobNames,collapse=', '), "?"))) {
+	if (is.null(questionDialog("Remove item(s) ", paste(blobNames,collapse=', '), "?"))) {
 		return()
 	}
 	rm.cmd <- sprintf('hsp$data[c(%s)] <<- NULL', paste(blobIndices,collapse=','))
 	addLogItem("Remove data object(s)", rm.cmd)
 	result <- guiTryEval(rm.cmd)
-	if (inherits(result, "try-error")) { return() }
+	if (inherits(result, "error")) { return() }
 	setStatusBar(sprintf('Removed data object(s) %s', paste(blobNames,collapse=', ')))
 	
 	updateImportPage()
@@ -268,7 +266,7 @@ on_import_makefactor_button_clicked <- function(button) {
 	factor_fn.cmd <- sprintf("tmp.factor <<- function(x){ %s }", factorCmdRaw)
 	addToLog(factor_fn.cmd)
 	result <- guiTryEval(factor_fn.cmd)
-	if (inherits(result, "try-error")) { return() }
+	if (inherits(result, "error")) { return() }
 	
 	for (blobIndex in blobIndices) {
 		blobName <- names(hsp$data)[blobIndex]
@@ -276,7 +274,7 @@ on_import_makefactor_button_clicked <- function(button) {
 		factor.cmd <- sprintf("%s <<- factor(tmp.factor(%s), exclude=NULL)", data.cmd, data.cmd)
 		addToLog(factor.cmd)
 		result <- guiTryEval(factor.cmd)
-		if (inherits(result, "try-error")) { return() }
+		if (inherits(result, "error")) { return() }
 		setStatusBar(sprintf('Converted quality codes of object "%s" to factor.', blobName))
 	}
 	addToLog('rm(tmp.factor)')

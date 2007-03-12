@@ -8,7 +8,7 @@
 
 MAJOR <- "0"
 MINOR <- "3"
-REVIS <- "1"
+REVIS <- "2"
 REVISION <- unlist(strsplit("$Revision$", split=" "))[2]
 VERSION <- paste(MAJOR, MINOR, REVIS, sep=".")
 COPYRIGHT <- "(c) 2007 Felix Andrews <felix@nfrac.org>, GPL\n based on Rattle, (c) 2006 Graham.Williams@togaware.com"
@@ -35,7 +35,7 @@ COPYRIGHT <- "(c) 2007 Felix Andrews <felix@nfrac.org>, GPL\n based on Rattle, (
 		  'skip=1, sep=",", dataName="Rain (mm)", dataCol=6, qualCol=7, extraCols=c(9), extraNames=c("AccumSteps"), readTimesFromFile=F, startTime=list(year=3,month=4,day=5), timeSeqBy="DSTday"'),
 	".au NSW Pinneena v8 streamflow (ML/day, default time format)"=
 		c('read.timeblob',
-		  'skip=3, sep=",", dataName="Flow (ML/day)", timeFormat="%H:%M_%d/%m/%Y"')
+		  'skip=3, sep=",", dataName="Flow (ML/day)", timeFormat="%H:%M_%d/%m/%Y", na.strings=c(\'""\')')
 )
 
 hydrosanity <- function() {
@@ -62,9 +62,8 @@ hydrosanity <- function() {
 	theWidget("notebook")$setCurrentPage(0)
 	
 	theWidget("import_file_radio_options_notebook")$setShowTabs(FALSE)
-	theWidget("import_options_expander")$setExpanded(FALSE)
+	#theWidget("import_options_expander")$setExpanded(FALSE)
 	theWidget("import_makechanges_expander")$setExpanded(FALSE)
-	hsp$defaultImportOptions <- theWidget("import_options_entry")$getText()
 	
 	known_format_combo <- theWidget("import_known_format_combobox")
 	known_format_combo$getModel()$clear()
@@ -133,6 +132,7 @@ library(hydrosanity)
 
 hsp <- blankStateHSP()
 ")
+	addLogSeparator()
 }
 
 
@@ -163,7 +163,7 @@ on_menu_quit_activate <- function(action, window) {
 	}
 	for (i in dev.list()) { dev.off(i) }
 	for (x in .hydrosanity$win) {
-		try(x$destroy())
+		try(x$destroy(), silent=TRUE)
 	}
 	theWidget("hs_window")$destroy()
 	.hydrosanity$GUI <<- NULL
