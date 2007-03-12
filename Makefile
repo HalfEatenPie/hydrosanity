@@ -16,26 +16,19 @@ DESCRIPTIN=DESCRIPTION.in
 # Canonical version information from hydrosanity.R
 MAJOR=$(shell egrep '^MAJOR' $(SRC)/hydrosanity.R | cut -d\" -f 2)
 MINOR=$(shell egrep '^MINOR' $(SRC)/hydrosanity.R | cut -d\" -f 2)
-REVISION=$(shell svn info | egrep 'Revision:' |  cut -d" " -f 2\
-            | awk '{print $$1-137}')
-VERSION=$(MAJOR).$(MINOR).$(REVISION)
+REVIS=$(shell egrep '^REVIS' $(SRC)/hydrosanity.R | cut -d\" -f 2)
+VERSION=$(MAJOR).$(MINOR).$(REVIS)
 
 DATE=$(shell date +%F)
 
-temp:
-	@echo hydrosanity_$(VERSION).tar.gz $(VERSION) $(REVISION)
-
 default: local
-
-revision:
-	perl -pi -e "s|Revision: \d* |Revision: $(REVISION) |" $(SRC)/hydrosanity.R
 
 check: build
 	R CMD check $(PACKAGE)
 
 build: hydrosanity_$(VERSION).tar.gz
 
-hydrosanity_$(VERSION).tar.gz: revision $(SRC)
+hydrosanity_$(VERSION).tar.gz: $(SRC)
 	perl -p -e "s|^Version: .*$$|Version: $(VERSION)|" < $(DESCRIPTIN) |\
 	perl -p -e "s|^Date: .*$$|Date: $(DATE)|" > $(DESCRIPTION)
 	R CMD build $(PACKAGE)
