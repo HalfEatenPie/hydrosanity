@@ -116,9 +116,8 @@ on_timeperiod_viewtimeline_button_clicked <- function(button) {
 	
 	plotQualCodes <- theWidget("timeperiod_plotqualitycodes_checkbutton")$getActive()
 	colMapText <- theWidget("timeperiod_colmap_entry")$getText()
-	plot.cmd <- sprintf('timelineplot(hsp$data, xlim=hsp$timePeriod, plotQualCodes=%s%s)',
-		ifelse(plotQualCodes,'T','F'),
-		ifelse(plotQualCodes, paste(', colMap=', colMapText, sep=''), '')
+	plot.cmd <- sprintf('grid.timeline.plot(hsp$data, xscale=hsp$timePeriod, colMap=%s)',
+		ifelse(plotQualCodes, colMapText, 'NULL')
 	)
 	
 	addLogItem("View timeline plot", plot.cmd)

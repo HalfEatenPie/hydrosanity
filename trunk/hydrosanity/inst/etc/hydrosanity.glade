@@ -3732,7 +3732,7 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 <widget class="GtkAboutDialog" id="aboutdialog">
   <property name="visible">True</property>
   <property name="destroy_with_parent">True</property>
-  <property name="name" translatable="yes">HydroSanity</property>
+  <property name="name" translatable="yes">Hydrosanity</property>
   <property name="copyright" translatable="yes">Copyright (c) 2007 Felix Andrews &lt;felix@nfrac.org&gt;</property>
   <property name="comments" translatable="yes">An interface for exploring hydrological time series in R.</property>
   <property name="license" translatable="yes">This program is copyright free software; you can redistribute it and/or modify
@@ -3750,8 +3750,8 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA</property>
   <property name="wrap_license">False</property>
-  <property name="website">http://www.blahblah.com/</property>
-  <property name="website_label" translatable="yes">http://www.blahblah.com/</property>
+  <property name="website">http://code.google.com/p/hydrosanity/</property>
+  <property name="website_label" translatable="yes">http://code.google.com/p/hydrosanity/</property>
   <property name="translator_credits" translatable="yes" comments="TRANSLATORS: Replace this string with your names, one name per line.">translator-credits</property>
 </widget>
 

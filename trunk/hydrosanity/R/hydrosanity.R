@@ -8,7 +8,7 @@
 
 MAJOR <- "0"
 MINOR <- "3"
-REVISION <- unlist(strsplit("$Revision: 0$", split=" "))[2]
+REVISION <- unlist(strsplit("$Revision: 0 $", split=" "))[2]
 VERSION <- paste(MAJOR, MINOR, REVISION, sep=".")
 COPYRIGHT <- "(c) 2007 Felix Andrews <felix@nfrac.org>, GPL\n based on Rattle, (c) 2006 Graham.Williams@togaware.com"
 
@@ -38,6 +38,7 @@ COPYRIGHT <- "(c) 2007 Felix Andrews <felix@nfrac.org>, GPL\n based on Rattle, (
 )
 
 hydrosanity <- function() {
+	require(grid)
 	require(RGtk2, quietly=TRUE) # From http://www.ggobi.org/rgtk2/
 	require(cairoDevice, quietly=TRUE)
 	
