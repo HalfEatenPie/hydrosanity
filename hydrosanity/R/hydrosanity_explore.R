@@ -42,10 +42,10 @@ on_explore_timeseries_button_clicked <- function(button) {
 	if (length(selNames) == 0) { return() }
 	mySelNames <- paste('c("', paste(selNames, collapse='", "'), '")', sep='')
 	myLog <- if (theWidget("explore_timeseries_log_checkbutton")$getActive())
-	{ ', log="y"' } else { '' }
+	{ ', logScale=T' } else { '' }
 	
 	setPlotDevice("explore")
-	plot.cmd <- sprintf('timeseriesplot(hsp$data[%s], xlim=hsp$timePeriod%s)',
+	plot.cmd <- sprintf('grid.timeseries.plot(hsp$data[%s], xscale=hsp$timePeriod%s)',
 		mySelNames, myLog)
 	
 	addLogItem("View timeseries plot", plot.cmd)

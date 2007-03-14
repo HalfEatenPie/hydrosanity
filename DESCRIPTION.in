@@ -6,7 +6,7 @@ Date: DATE
 Author: Felix Andrews <felix@nfrac.org>, based on code by Graham Williams 
   <Graham.Williams@togaware.com>
 Maintainer: Felix Andrews <felix@nfrac.org>
-Depends: R (>= 2.2.0)
+Depends: R (>= 2.2.0), grid
 Suggests: RGtk2, cairoDevice
 Description: Hydrosanity provides a graphical user interface for exploring hydrological
   time series. It is designed to work with catchment surface hydrology data 
