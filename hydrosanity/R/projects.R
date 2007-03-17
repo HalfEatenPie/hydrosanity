@@ -19,13 +19,16 @@ openProject <- function() {
 	theWidget("hs_window")$present()
 	if (filename=="") { return() }
 	
+	hydrosanity()
 	load(filename, .GlobalEnv)
 	#if (hsp$version < x) stop...
 	hsp$projectFile <<- filename
+	.hydrosanity$modified <<- F
 	
 	setTextview("log_textview", hsp$log)
 	addLogSeparator()
 	
+	# switch to first page and trigger update
 	theWidget("notebook")$setCurrentPage(0)
 	on_notebook_switch_page(theWidget("notebook"), theWidget("hs_window"), 0)
 	
@@ -52,6 +55,7 @@ saveProject <- function(saveAs=F) {
 	hsp$version <<- VERSION
 	save(hsp, file=filename, compress=TRUE)
 	hsp$projectFile <<- filename
+	.hydrosanity$modified <<- F
 	
 	setStatusBar("Project saved to", filename)
 }

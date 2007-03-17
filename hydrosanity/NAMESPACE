@@ -13,6 +13,7 @@ export(
 	start.timeblob,
 	end.timeblob,
 	window.timeblob,
+	range.timeblob,
 	aggregate.timeblob,
 	smooth.timeblob,
 	matchperiod.timeblob,

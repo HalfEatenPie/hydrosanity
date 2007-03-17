@@ -7,12 +7,12 @@
 
 is.timeblob <- function(x) {
 	return (!is.null(x) &&
-		(is.data.frame(x)) &&
-		(ncol(x) >= 3) &&
+		is.data.frame(x) &&
+		(ncol(x) >= 2) &&
 		inherits(x[1,1], "POSIXct") &&
 		inherits(x[1,2], "numeric") &&
-		(!is.null(x$Time)) &&
-		(!is.null(x$Qual)))
+		!is.null(x$Time) &&
+		!is.null(attr(x, "timestep")))
 }
 
 as.timeblob <- function(x) {
@@ -44,48 +44,48 @@ redistributeAccumulatedRainfall <- function() {
 
 # if readTimesFromFile == FALSE then
 # startTime should be able to be interpreted as a POSIXt, or else be a list like
-# startTime=list(year=1,month=2,day=3,etc) where these give column numbers to read the start time from the first line in dataFile
-read.timeblob <- function(dataFile, skip=1, sep=",", dataName="Data", dataCol=2, qualCol=3, extraCols=c(), extraNames=paste("Extra",extraCols), readTimesFromFile=T, timeCol=1, timeFormat="%d %b %Y", startTime=NA, timeSeqBy="DSTday", ...) {
+# startTime=list(year=1,month=2,day=3,etc) where these give column numbers to read the start time from the first line in file
+read.timeblob <- function(file, skip=1, sep=",", dataName="Data", dataCol=2, qualCol=3, extraCols=c(), extraNames=paste("Extra",extraCols), readTimesFromFile=T, timeCol=1, timeFormat="%d %b %Y", startTime=NA, timeSeqBy="DSTday", ...) {
 	# check types
-	if (!is.numeric(dataCol)) { stop("dataCol must be numeric (column number)") }
+	if (!is.numeric(dataCol)) { stop("'dataCol' must be numeric (column number)") }
 	if (readTimesFromFile) {
-		if (!is.numeric(timeCol)) { stop("timeCol must be numeric (column number)") }
+		if (!is.numeric(timeCol)) { stop("'timeCol' must be numeric (column number)") }
 	} else {
 		if (!is.list(startTime)) {
 			startTime <- as.POSIXct(startTime)
-			if (is.na(startTime)) { stop("could not convert startTime to a time") }
+			if (is.na(startTime)) { stop("could not convert 'startTime' to a time") }
 		}
 	}
 	# make sure extra column names correspond to given columns
 	length(extraNames) <- length(extraCols)
 	extraNames[is.na(extraNames)] <- paste("Extra", which(is.na(extraNames)))
 	# number of columns in file
-	firstLine <- read.table(dataFile, header=F, skip=skip, sep=sep, strip.white=T, nrows=1, ...)
-	dataFileCols <- ncol(firstLine)
-	if (dataCol > dataFileCols) {
-		stop("Column ", dataCol, " (dataCol) not found on line ", 
+	firstLine <- read.table(file, header=F, skip=skip, sep=sep, strip.white=T, nrows=1, ...)
+	fileCols <- ncol(firstLine)
+	if (dataCol > fileCols) {
+		stop("Column ", dataCol, " ('dataCol') not found on line ", 
 		skip+1, "; maybe the column separator \"", sep, "\" is wrong?")
 	}
 	# drop variables for which column does not exist in file
-	if (qualCol > dataFileCols) { qualCol <- NULL }
-	extraNames <- extraNames[!(extraCols > dataFileCols)]
-	extraCols <- extraCols[!(extraCols > dataFileCols)]
+	if (qualCol > fileCols) { qualCol <- NULL }
+	extraNames <- extraNames[!(extraCols > fileCols)]
+	extraCols <- extraCols[!(extraCols > fileCols)]
 	# define which columns to import and which to ignore
-	dataFileColClasses <- rep("NULL", dataFileCols)
-	if (readTimesFromFile) { dataFileColClasses[timeCol] <- "character" }
-	dataFileColClasses[dataCol] <- "numeric" #, but then "" gives error
-	dataFileColClasses[qualCol] <- NA # qualCol may be NULL
-	dataFileColClasses[extraCols] <- NA # extraCols may be NULL
+	fileColClasses <- rep("NULL", fileCols)
+	if (readTimesFromFile) { fileColClasses[timeCol] <- "character" }
+	fileColClasses[dataCol] <- "numeric" #, but then "" gives error
+	fileColClasses[qualCol] <- NA # qualCol may be NULL
+	fileColClasses[extraCols] <- NA # extraCols may be NULL
 	# read file
-	rawData <- read.table(dataFile, header=F, skip=skip, sep=sep, colClasses=dataFileColClasses, strip.white=T, ...)
+	rawData <- read.table(file, header=F, skip=skip, sep=sep, colClasses=fileColClasses, strip.white=T, ...)
 	# work out which column of rawData has the data (from dataCol)
-	dataIndex <- dataCol - sum(dataFileColClasses[1:dataCol]=="NULL", na.rm=T)
+	dataIndex <- dataCol - sum(fileColClasses[1:dataCol]=="NULL", na.rm=T)
 	qualIndex <- NULL
 	timeIndex <- NULL
 	# extract quality codes or set to default (factor("NA"))
 	myQual <- NA
 	if (!is.null(qualCol) && !is.na(qualCol)) {
-		qualIndex <- qualCol - sum(dataFileColClasses[1:qualCol]=="NULL", na.rm=T)
+		qualIndex <- qualCol - sum(fileColClasses[1:qualCol]=="NULL", na.rm=T)
 		myQual <- factor(rawData[,qualIndex], exclude=NULL)
 	} else {
 		myQual <- rep(factor(NA, exclude=NULL), nrow(rawData))
@@ -93,7 +93,7 @@ read.timeblob <- function(dataFile, skip=1, sep=",", dataName="Data", dataCol=2,
 	# convert or construct the time sequence
 	myTime <- NA
 	if (readTimesFromFile) {
-		timeIndex <- timeCol - sum(dataFileColClasses[1:timeCol]=="NULL", na.rm=T)
+		timeIndex <- timeCol - sum(fileColClasses[1:timeCol]=="NULL", na.rm=T)
 		myTime <- strptime(rawData[,timeIndex], format=timeFormat)
 		if (any(is.na(myTime))) {
 			firstNA <- which(is.na(myTime))[1]
@@ -111,73 +111,96 @@ read.timeblob <- function(dataFile, skip=1, sep=",", dataName="Data", dataCol=2,
 			startTime <- do.call(ISOdatetime, timeBits)
 			if (is.na(startTime)) {
 				myBits <- paste(paste(names(unlist(timeBits)), '=', unlist(timeBits)), collapse=', ')
-				stop('could not construct starting time from columns given in startTime: ', myBits)
+				stop("could not construct starting time from columns given in 'startTime': ", myBits)
 			}
 		}
 		myTime <- seq.POSIXt(from=startTime, by=timeSeqBy, length.out=nrow(rawData))
 	}
 	# make sure first three columns are Time, Data, Qual (in that order)
-	myBlob <- data.frame(Time=myTime, Data=rawData[,dataIndex], Qual=myQual, 
+	blob <- data.frame(Time=myTime, Data=rawData[,dataIndex], Qual=myQual, 
 		rawData[,-c(timeIndex, dataIndex, qualIndex)])
-	names(myBlob) <- c("Time", dataName, "Qual", extraNames)
-	attr(myBlob, "timestep") <- difftimeString(myBlob$Time[2] - myBlob$Time[1], digits=1)
-	return(myBlob)
+	names(blob) <- c("Time", dataName, "Qual", extraNames)
+	attr(blob, "timestep") <- difftimeString(blob$Time[2] - blob$Time[1], digits=1)
+	return(blob)
 }
 
 
-start.timeblob <- function(myBlob) {
-	if (is.data.frame(myBlob)) { myBlob <- list(myBlob) }
-	globalStart <- as.POSIXct.raw(min(sapply(myBlob, function(x) {return(x$Time[1])})))
+start.timeblob <- function(blob) {
+	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
+	blob$Time[1]
+}
+
+end.timeblob <- function(blob) {
+	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
+	blob$Time[nrow(blob)]
+}
+
+start.timeblobs <- function(blob.list) {
+	# check types
+	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
+	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
+	globalStart <- as.POSIXct.raw(min(sapply(blob.list, start.timeblob)))
 	return(globalStart)
 }
 
-
-end.timeblob <- function(myBlob) {
-	if (is.data.frame(myBlob)) { myBlob <- list(myBlob) }
-	globalEnd <- as.POSIXct.raw(max(sapply(myBlob, function(x) {return(x$Time[nrow(x)])})))
+end.timeblobs <- function(blob.list) {
+	# check types
+	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
+	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
+	globalEnd <- as.POSIXct.raw(max(sapply(blob.list, end.timeblob)))
 	return(globalEnd)
 }
 
 
-window.timeblob <- function(myBlob, start, end, inclusive=F) {
+window.timeblob <- function(blob, start, end, inclusive=F) {
+	# check types
+	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
 	start <- as.POSIXct(start)
 	end <- as.POSIXct(end)
+	if (any(is.na(c(start, end)))) { stop("'start' and 'end' must be valid times (POSIXt)") }
 	
-	if (start > end.timeblob(myBlob)) {
+	if (start > end.timeblob(blob)) {
 		# entire window is after end
-		return(myBlob[0,])
+		return(blob[0,])
 	}
-	if (end < start.timeblob(myBlob)) {
+	if (end < start.timeblob(blob)) {
 		# entire window is before start
-		return(myBlob[0,])
+		return(blob[0,])
 	}
 	
-	windowIdx <- findInterval(c(start,end), myBlob$Time)
+	windowIdx <- findInterval(c(start,end), blob$Time)
 	
 	if (inclusive == F) {
-		testDate <- myBlob$Time[windowIdx[1]]
-		if ((length(testDate) > 0) && (testDate != start) && (windowIdx[1] < nrow(myBlob))) {
+		testDate <- blob$Time[windowIdx[1]]
+		if ((length(testDate) > 0) && (testDate != start) && (windowIdx[1] < nrow(blob))) {
 			# round up at start (findInterval rounds down)
 			windowIdx[1] <- windowIdx[1] + 1
 		}
 	} else {
-		testDate <- myBlob$Time[windowIdx[2]]
-		if ((length(testDate) > 0) && (testDate != end) && (windowIdx[2] < nrow(myBlob))) {
+		testDate <- blob$Time[windowIdx[2]]
+		if ((length(testDate) > 0) && (testDate != end) && (windowIdx[2] < nrow(blob))) {
 			# round up at end (findInterval rounds down)
 			windowIdx[2] <- windowIdx[2] + 1
 		}
 	}
-	return(myBlob[seq(windowIdx[1],windowIdx[2]),])
+	return(blob[seq(windowIdx[1],windowIdx[2]),])
 }
 
 
 # invisibly returns missing fraction for each series
-summary.missing.timeblob.list <- function(blobs, startTime=start.timeblob(blobs), endTime=end.timeblob(blobs), timeStep=hsp$timeStep) {
-	startTime <- as.POSIXct(startTime)
-	endTime <- as.POSIXct(endTime)
-	subBlobs <- lapply(blobs, window.timeblob, startTime, endTime)
-	myN <- length(subBlobs)
-	myPeriod <- seq.POSIXt(startTime, endTime, by=timeStep)
+summary.missing.timeblob.list <- function(blob.list, timelim=NULL, timeStep=hsp$timeStep) {
+	# check types
+	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
+	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
+	if (is.null(timelim)) {
+		timelim <- c(start.timeblobs(blob.list), end.timeblobs(blob.list))
+	}
+	timelim <- as.POSIXct(timelim)
+	if (any(is.na(timelim))) { stop("'timelim' must be a pair of valid times (POSIXt)") }
+	# setup
+	n <- length(blob.list)
+	subBlobs <- lapply(blob.list, window.timeblob, timelim[1], timelim[2])
+	myPeriod <- seq.POSIXt(timelim[1], timelim[2], by=timeStep)
 	myLengths <- sapply(subBlobs, nrow)
 	myNAs <- lapply(subBlobs, function(x) { is.na(x[,2]) })
 	myDataPoints <- myLengths - sapply(myNAs, sum)
@@ -195,14 +218,14 @@ summary.missing.timeblob.list <- function(blobs, startTime=start.timeblob(blobs)
 	})
 	
 	activeNs <- apply(dataExistsMatrix, 1, sum)
-	allActiveSteps <- sum(activeNs == myN)
+	allActiveSteps <- sum(activeNs == n)
 	allActiveFrac <- allActiveSteps / length(myPeriod)
 	activeNQ <- quantile(activeNs, probs=c(0.25, 0.5, 0.75))
-	activeNQFrac <- activeNQ / myN
+	activeNQFrac <- activeNQ / n
 	
-	cat(sprintf('Overall, %.0f%% of data is missing.\n', overallDataFrac*100))
+	cat(sprintf('Overall, %.0f%% of data is missing.\n', (1-overallDataFrac)*100))
 	cat(sprintf('There are %i time series, of which %i %s complete.\n', 
-		myN, myCompleteN, ifelse(myCompleteN==1,'is','are')))
+		n, myCompleteN, ifelse(myCompleteN==1,'is','are')))
 	cat(sprintf('...%i %s > 95%% complete and %i %s > 75%% complete.\n', 
 		my95PctN, ifelse(my95PctN==1,'is','are'), my75PctN, ifelse(my75PctN==1,'is','are')))
 	cat('\n')
@@ -221,27 +244,29 @@ summary.missing.timeblob.list <- function(blobs, startTime=start.timeblob(blobs)
 	invisible(missingFrac)
 }
 
-# find indices into timeblob x for each time in myPeriod
-# values of NA are used for times outside the timeblob
+# find indices into timeblob 'blob' for each time in refPeriod
+# values of NA are used for times outside 'blob'
 #
-# it resamples x$Time to correspond to each time in myPeriod
+# it resamples blob$Time to correspond to each time in refPeriod
 #
-matchperiod.timeblob <- function(x, myPeriod) {
+matchperiod.timeblob <- function(blob, refPeriod) {
 	# check types
-	x <- as.timeblob(x)
+	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
+	refPeriod <- as.POSIXct(refPeriod)
+	if (any(is.na(refPeriod))) { stop("'refPeriod' must be a pair of valid times (POSIXt)") }
 	# default for indices is NA
-	periodIndices <- rep(as.integer(NA), length(myPeriod))
-	# each blob here may be outside myPeriod, and may be empty
-	if ((nrow(x)==0)
-	  || (start.timeblob(x) > myPeriod[length(myPeriod)])
-	  || (end.timeblob(x) < myPeriod[1])) {
+	periodIndices <- rep(as.integer(NA), length(refPeriod))
+	# each blob here may be outside refPeriod, and may be empty
+	if ((nrow(blob)==0)
+	  || (start.timeblob(blob) > refPeriod[length(refPeriod)])
+	  || (end.timeblob(blob) < refPeriod[1])) {
 		return(periodIndices)
 	}
-	# each blob here is not entirely outside myPeriod
-	blobBounds <- findInterval(c(start.timeblob(x), end.timeblob(x)), myPeriod)
+	# each blob here is not entirely outside refPeriod
+	blobBounds <- findInterval(c(start.timeblob(blob), end.timeblob(blob)), refPeriod)
 	blobWindowIndices <- seq(blobBounds[1], blobBounds[2])
-	# now myPeriod[blobWindowIdx] is not outside x$Time
-	periodIndices[blobWindowIndices] <- findInterval(myPeriod[blobWindowIndices], x$Time)
+	# now refPeriod[blobWindowIdblob] is not outside blob$Time
+	periodIndices[blobWindowIndices] <- findInterval(refPeriod[blobWindowIndices], blob$Time)
 	return(periodIndices)
 }
 
@@ -251,80 +276,66 @@ gaps <- function() {
 }
 
 
-# TODO: how to handle other columns, e.g. quality codes?
 # this only handles regular series (the calculation of NA proportion requires it)
-# note that "from" and "to" refer to when the aggregated periods begin (e.g. for annual aggregation, the 1st day of each year)
-
 # column 3 = "Quality (mode)"; cols 4+ = "%good", "%maybe", "%poor", "%disaccumulated", "%imputed"
-aggregate.timeblob <- function(myBlob, by="1 year", from=floor.year(start.timeblob(myBlob)), to=end.timeblob(myBlob), max.na.proportion=0.05, aggrFun=mean) {
-	from <- as.POSIXct(from)
-	to <- as.POSIXct(to)
-	fromPlusOne <- seq.POSIXt(from, by=by, length=2)[2]
-	newDelta <- as.numeric(fromPlusOne) - as.numeric(from)
-	oldDelta <- as.numeric(myBlob$Time[2]) - as.numeric(myBlob$Time[1])
-	freqN <- trunc(newDelta / oldDelta)
-	
-	subBlob <- window.timeblob(myBlob, from, to)
-	dateGroups <- cut.POSIXt(subBlob$Time, breaks=by)
+aggregate.timeblob <- function(blob, by="1 year", FUN=mean, max.na.proportion=0.05) {
+	# check types
+	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
+	# find expected number of old timesteps in each new timestep
+	oldDelta <- as.numeric.difftimeString(attr(blob, "timestep"))
+	newDelta <- as.numeric.difftimeString(by)
+	freqN <- floor(newDelta / oldDelta)
+	# construct groups
+	dateGroups <- cut.POSIXt(blob$Time, breaks=by)
 	newDates <- as.POSIXct(levels(dateGroups))
-	
-	newVals <- aggregate(subBlob[,2], by=list(dateGroups), FUN=aggrFun, na.rm=T)[,2]
-	eachNA <- aggregate(subBlob[,2], by=list(dateGroups), FUN=function(x) {sum(is.na(x))})[,2]
+	# aggregate
+	newVals <- aggregate(blob[,2], by=list(dateGroups), FUN=FUN, na.rm=T)[,2]
+	# set NA values
+	eachNA <- aggregate(blob[,2], by=list(dateGroups), FUN=function(x) {sum(is.na(x))})[,2]
 	newVals[eachNA > freqN * max.na.proportion] <- NA
-	firstN <- sum(unclass(dateGroups)==1, na.rm=T)
+	firstN <- sum(as.integer(dateGroups)==1, na.rm=T)
 	if (firstN < freqN * (1-max.na.proportion)) {
 		newVals[1] <- NA
 	}
-
-	#newVals[eachN < freqN * (1-max.na.proportion)] <- NA
-	
-	#newDates <- seq.POSIXt(from, to, by=by)
-	#newN <- length(newDates)
-	#newVals <- rep(as.numeric(NA), newN)
-	#dateGroups <- cut.POSIXt(myBlob$Time, breaks=by)
-	
-	#breaksIdx <- findInterval(newDates, myBlob$Time)
-	# forget about new dates preceding data (before Time[1]), where breaksIdx == 0
-	#preTimes <- sum(breaksIdx==0)
-
-	#dateGroups <- cut.POSIXt(myBlob$Time, breaks=myBlob$Time[breaksIdx])
-	
-	
-	
-	#breaksEachN <- diff(breaksIdx)
-	#breaksEachN[newN] <- nrow(myBlob) - breaksEachN[newN-1]
-	#dateGroups <- rep(seq(1,newN), times=breaksEachN)
-	
+	# construct new blob
 	newBlob <- data.frame(newDates, newVals)
-	names(newBlob) <- names(myBlob)[1:2]
+	names(newBlob) <- names(blob)[1:2]
+	attr(newBlob, "timestep") <- by
 	return(newBlob)
 }
 
 
-smooth.timeblob <- function(myBlob, by="1 year", max.na.proportion=0.05) {
-	periodSeq <- seq.POSIXt(start.timeblob(myBlob), by=by, length=2)
-	sampleWindow <- window.timeblob(myBlob, periodSeq[1], periodSeq[2])
-	winSize <- nrow(sampleWindow)
+smooth.timeblob <- function(blob, by="1 year", max.na.proportion=0.05) {
+	# check types
+	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
+	# find expected number of timesteps in smoothing kernel window
+	delta <- as.numeric.difftimeString(attr(blob, "timestep"))
+	smoothDelta <- as.numeric.difftimeString(by)
+	winSize <- round(smoothDelta / delta)
 	winRear <- ceiling(winSize/2)
 	winFore <- floor(winSize/2)
-	cumSum <- myBlob[,2]
+	# do smoothing
+	cumSum <- blob[,2]
 	cumSum[is.na(cumSum)] <- 0
 	cumSum <- cumsum(cumSum)
-	cumNAs <- cumsum(is.na(myBlob[,2]))
-	newBlob <- myBlob[,c(1,2)]
+	cumNAs <- cumsum(is.na(blob[,2]))
+	newBlob <- blob[,1:2]
 	newBlob[,2] <- NA
-	winNAs <- cumNAs[seq(1+winSize,nrow(myBlob))] - cumNAs[seq(1,nrow(myBlob)-winSize)]
-	winSum <- cumSum[seq(1+winSize,nrow(myBlob))] - cumSum[seq(1,nrow(myBlob)-winSize)]
+	winNAs <- cumNAs[seq(1+winSize,nrow(blob))] - cumNAs[seq(1,nrow(blob)-winSize)]
+	winSum <- cumSum[seq(1+winSize,nrow(blob))] - cumSum[seq(1,nrow(blob)-winSize)]
 	winSum[winNAs > max.na.proportion * winSize] <- NA
-	newBlob[seq(1+winRear,nrow(myBlob)-winFore)] <- winSum / (winSize - winNAs)
+	newBlob[seq(1+winRear,nrow(blob)-winFore)] <- winSum / (winSize - winNAs)
 	return(newBlob)
 }
 
 
-range.timeblob <- function(myBlob, ...) {
-	return(range(myBlob[,2], ...))
+range.timeblob <- function(blob, ...) {
+	return(range(blob[,2], ...))
 }
 
+## other useful functions not specific to timeblobs
+
+nonzeromin <- function(x, ...) { min(x[x>0], ...) }
 
 get.year <- function(thisPOSIXt) {
 	return(as.POSIXlt(thisPOSIXt)$year + 1900)
@@ -358,8 +369,16 @@ difftimeString <- function(x, digits=getOption("digits")) {
 	paste(format(unclass(x), digits=digits), attr(x, "units"))
 }
 
+as.numeric.difftimeString <- function(x) {
+	timeseq <- seq.POSIXt(from=ISOdate(1970,1,1), by=x, length=2)
+	return(as.numeric(timeseq[2]) - as.numeric(timeseq[1]))
+}
+
 
 as.POSIXct.raw <- function(secs_since_1970, tz="") {
+	if (!is.numeric(secs_since_1970)) {
+		stop("'secs_since_1970' must be numeric")
+	}
 	class(secs_since_1970) <- c("POSIXt", "POSIXct")
 	attr(secs_since_1970, "tzone") <- tz
 	return(secs_since_1970)

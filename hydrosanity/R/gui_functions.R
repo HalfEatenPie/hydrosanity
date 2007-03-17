@@ -126,9 +126,10 @@ iconViewGetSelectedNames <- function(iconView) {
 
 ## ERROR CATCHING STUFF
 
-guiTryEval <- function(commandText, doFailureDialog=T, doFailureLog=T) {
+guiTryEval <- function(commandText, doLog=T, doFailureDialog=T, doFailureLog=T) {
 	setCursor("watch")
 	if (length(commandText)==0) { commandText <- "" }
+	if (doLog) { addToLog(commandText) }
 	result <- tryCatch(eval(parse(text=commandText)), error=function(e)e)
 	setCursor()
 	if (inherits(result, "error") && doFailureDialog) {

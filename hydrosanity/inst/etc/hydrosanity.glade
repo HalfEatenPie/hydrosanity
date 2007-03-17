@@ -168,96 +168,10 @@
 			  <property name="spacing">2</property>
 
 			  <child>
-			    <widget class="GtkHBox" id="hbox1">
+			    <widget class="GtkHBox" id="hbox21">
 			      <property name="visible">True</property>
 			      <property name="homogeneous">False</property>
 			      <property name="spacing">2</property>
-
-			      <child>
-				<widget class="GtkLabel" id="label17">
-				  <property name="visible">True</property>
-				  <property name="label" translatable="yes">Load data from an R object:</property>
-				  <property name="use_underline">False</property>
-				  <property name="use_markup">False</property>
-				  <property name="justify">GTK_JUSTIFY_LEFT</property>
-				  <property name="wrap">False</property>
-				  <property name="selectable">False</property>
-				  <property name="xalign">0.5</property>
-				  <property name="yalign">0.5</property>
-				  <property name="xpad">0</property>
-				  <property name="ypad">0</property>
-				  <property name="ellipsize">PANGO_ELLIPSIZE_NONE</property>
-				  <property name="width_chars">-1</property>
-				  <property name="single_line_mode">False</property>
-				  <property name="angle">0</property>
-				</widget>
-				<packing>
-				  <property name="padding">0</property>
-				  <property name="expand">False</property>
-				  <property name="fill">False</property>
-				</packing>
-			      </child>
-
-			      <child>
-				<widget class="GtkEntry" id="import_robj_entry">
-				  <property name="visible">True</property>
-				  <property name="can_focus">True</property>
-				  <property name="editable">True</property>
-				  <property name="visibility">True</property>
-				  <property name="max_length">0</property>
-				  <property name="text" translatable="yes"></property>
-				  <property name="has_frame">True</property>
-				  <property name="invisible_char">*</property>
-				  <property name="activates_default">False</property>
-				  <property name="width_chars">16</property>
-				</widget>
-				<packing>
-				  <property name="padding">0</property>
-				  <property name="expand">False</property>
-				  <property name="fill">True</property>
-				</packing>
-			      </child>
-
-			      <child>
-				<widget class="GtkButton" id="import_robj_button">
-				  <property name="visible">True</property>
-				  <property name="can_focus">True</property>
-				  <property name="label" translatable="yes">Load data from R</property>
-				  <property name="use_underline">True</property>
-				  <property name="relief">GTK_RELIEF_NORMAL</property>
-				  <property name="focus_on_click">True</property>
-				  <signal name="clicked" handler="on_import_robj_button_clicked" last_modification_time="Fri, 16 Feb 2007 06:46:20 GMT"/>
-				</widget>
-				<packing>
-				  <property name="padding">0</property>
-				  <property name="expand">False</property>
-				  <property name="fill">False</property>
-				</packing>
-			      </child>
-			    </widget>
-			    <packing>
-			      <property name="padding">0</property>
-			      <property name="expand">False</property>
-			      <property name="fill">True</property>
-			    </packing>
-			  </child>
-
-			  <child>
-			    <widget class="GtkHSeparator" id="hseparator1">
-			      <property name="visible">True</property>
-			    </widget>
-			    <packing>
-			      <property name="padding">2</property>
-			      <property name="expand">True</property>
-			      <property name="fill">True</property>
-			    </packing>
-			  </child>
-
-			  <child>
-			    <widget class="GtkHBox" id="hbox21">
-			      <property name="visible">True</property>
-			      <property name="homogeneous">True</property>
-			      <property name="spacing">0</property>
 
 			      <child>
 				<widget class="GtkRadioButton" id="import_known_format_radio">
@@ -304,7 +218,7 @@
 				<widget class="GtkRadioButton" id="import_file_seq_radio">
 				  <property name="visible">True</property>
 				  <property name="can_focus">True</property>
-				  <property name="label" translatable="yes">Import data from a file (and specify times)</property>
+				  <property name="label" translatable="yes">Import data from a file (specify times)</property>
 				  <property name="use_underline">True</property>
 				  <property name="relief">GTK_RELIEF_NORMAL</property>
 				  <property name="focus_on_click">True</property>
@@ -320,11 +234,32 @@
 				  <property name="fill">False</property>
 				</packing>
 			      </child>
+
+			      <child>
+				<widget class="GtkRadioButton" id="import_robj_radio">
+				  <property name="visible">True</property>
+				  <property name="can_focus">True</property>
+				  <property name="label" translatable="yes">Import from R</property>
+				  <property name="use_underline">True</property>
+				  <property name="relief">GTK_RELIEF_NORMAL</property>
+				  <property name="focus_on_click">True</property>
+				  <property name="active">False</property>
+				  <property name="inconsistent">False</property>
+				  <property name="draw_indicator">True</property>
+				  <property name="group">import_known_format_radio</property>
+				  <signal name="toggled" handler="on_import_file_radio_options_toggled" last_modification_time="Fri, 16 Mar 2007 07:25:11 GMT"/>
+				</widget>
+				<packing>
+				  <property name="padding">0</property>
+				  <property name="expand">False</property>
+				  <property name="fill">False</property>
+				</packing>
+			      </child>
 			    </widget>
 			    <packing>
 			      <property name="padding">0</property>
-			      <property name="expand">True</property>
-			      <property name="fill">True</property>
+			      <property name="expand">False</property>
+			      <property name="fill">False</property>
 			    </packing>
 			  </child>
 
@@ -692,6 +627,103 @@
 				<widget class="GtkLabel" id="label77">
 				  <property name="visible">True</property>
 				  <property name="label" translatable="yes">label77</property>
+				  <property name="use_underline">False</property>
+				  <property name="use_markup">False</property>
+				  <property name="justify">GTK_JUSTIFY_LEFT</property>
+				  <property name="wrap">False</property>
+				  <property name="selectable">False</property>
+				  <property name="xalign">0.5</property>
+				  <property name="yalign">0.5</property>
+				  <property name="xpad">0</property>
+				  <property name="ypad">0</property>
+				  <property name="ellipsize">PANGO_ELLIPSIZE_NONE</property>
+				  <property name="width_chars">-1</property>
+				  <property name="single_line_mode">False</property>
+				  <property name="angle">0</property>
+				</widget>
+				<packing>
+				  <property name="type">tab</property>
+				</packing>
+			      </child>
+
+			      <child>
+				<widget class="GtkHBox" id="hbox1">
+				  <property name="visible">True</property>
+				  <property name="homogeneous">False</property>
+				  <property name="spacing">2</property>
+
+				  <child>
+				    <widget class="GtkLabel" id="label17">
+				      <property name="visible">True</property>
+				      <property name="label" translatable="yes">Load data from an R object:</property>
+				      <property name="use_underline">False</property>
+				      <property name="use_markup">False</property>
+				      <property name="justify">GTK_JUSTIFY_LEFT</property>
+				      <property name="wrap">False</property>
+				      <property name="selectable">False</property>
+				      <property name="xalign">0.5</property>
+				      <property name="yalign">0.5</property>
+				      <property name="xpad">0</property>
+				      <property name="ypad">0</property>
+				      <property name="ellipsize">PANGO_ELLIPSIZE_NONE</property>
+				      <property name="width_chars">-1</property>
+				      <property name="single_line_mode">False</property>
+				      <property name="angle">0</property>
+				    </widget>
+				    <packing>
+				      <property name="padding">0</property>
+				      <property name="expand">False</property>
+				      <property name="fill">False</property>
+				    </packing>
+				  </child>
+
+				  <child>
+				    <widget class="GtkEntry" id="import_robj_entry">
+				      <property name="visible">True</property>
+				      <property name="can_focus">True</property>
+				      <property name="editable">True</property>
+				      <property name="visibility">True</property>
+				      <property name="max_length">0</property>
+				      <property name="text" translatable="yes"></property>
+				      <property name="has_frame">True</property>
+				      <property name="invisible_char">*</property>
+				      <property name="activates_default">False</property>
+				      <property name="width_chars">16</property>
+				    </widget>
+				    <packing>
+				      <property name="padding">0</property>
+				      <property name="expand">False</property>
+				      <property name="fill">True</property>
+				    </packing>
+				  </child>
+
+				  <child>
+				    <widget class="GtkButton" id="import_robj_button">
+				      <property name="visible">True</property>
+				      <property name="can_focus">True</property>
+				      <property name="label" translatable="yes">Load data from R</property>
+				      <property name="use_underline">True</property>
+				      <property name="relief">GTK_RELIEF_NORMAL</property>
+				      <property name="focus_on_click">True</property>
+				      <signal name="clicked" handler="on_import_robj_button_clicked" last_modification_time="Fri, 16 Feb 2007 06:46:20 GMT"/>
+				    </widget>
+				    <packing>
+				      <property name="padding">0</property>
+				      <property name="expand">False</property>
+				      <property name="fill">False</property>
+				    </packing>
+				  </child>
+				</widget>
+				<packing>
+				  <property name="tab_expand">False</property>
+				  <property name="tab_fill">True</property>
+				</packing>
+			      </child>
+
+			      <child>
+				<widget class="GtkLabel" id="label87">
+				  <property name="visible">True</property>
+				  <property name="label" translatable="yes">label87</property>
 				  <property name="use_underline">False</property>
 				  <property name="use_markup">False</property>
 				  <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -1211,7 +1243,7 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 						  </child>
 
 						  <child>
-						    <widget class="GtkButton" id="button9">
+						    <widget class="GtkButton" id="import_viewtable_button">
 						      <property name="visible">True</property>
 						      <property name="can_focus">True</property>
 						      <property name="label" translatable="yes">View data in table</property>
@@ -2119,7 +2151,7 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 				    <widget class="GtkCheckButton" id="explore_timeseries_caption_checkbutton">
 				      <property name="visible">True</property>
 				      <property name="can_focus">True</property>
-				      <property name="label" translatable="yes">Info caption</property>
+				      <property name="label" translatable="yes">Legend</property>
 				      <property name="use_underline">True</property>
 				      <property name="relief">GTK_RELIEF_NORMAL</property>
 				      <property name="focus_on_click">True</property>
@@ -2144,39 +2176,8 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 			      <child>
 				<widget class="GtkVBox" id="vbox17">
 				  <property name="visible">True</property>
-				  <property name="sensitive">False</property>
 				  <property name="homogeneous">False</property>
 				  <property name="spacing">0</property>
-
-				  <child>
-				    <widget class="GtkCheckButton" id="explore_timeseries_log_checkbutton">
-				      <property name="visible">True</property>
-				      <property name="can_focus">True</property>
-				      <property name="label" translatable="yes">Log scale</property>
-				      <property name="use_underline">True</property>
-				      <property name="relief">GTK_RELIEF_NORMAL</property>
-				      <property name="focus_on_click">True</property>
-				      <property name="active">False</property>
-				      <property name="inconsistent">False</property>
-				      <property name="draw_indicator">True</property>
-				    </widget>
-				    <packing>
-				      <property name="padding">0</property>
-				      <property name="expand">False</property>
-				      <property name="fill">False</property>
-				    </packing>
-				  </child>
-
-				  <child>
-				    <widget class="GtkHSeparator" id="hseparator2">
-				      <property name="visible">True</property>
-				    </widget>
-				    <packing>
-				      <property name="padding">0</property>
-				      <property name="expand">True</property>
-				      <property name="fill">True</property>
-				    </packing>
-				  </child>
 
 				  <child>
 				    <widget class="GtkHBox" id="hbox32">
@@ -2204,7 +2205,7 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 				      </child>
 
 				      <child>
-					<widget class="GtkRadioButton" id="explore_timeseries_singleplot_radiobutton">
+					<widget class="GtkRadioButton" id="explore_timeseries_superpose_radiobutton">
 					  <property name="visible">True</property>
 					  <property name="can_focus">True</property>
 					  <property name="label" translatable="yes">One plot (superposed)</property>
@@ -2248,10 +2249,10 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 				      <property name="spacing">0</property>
 
 				      <child>
-					<widget class="GtkRadioButton" id="radiobutton3">
+					<widget class="GtkRadioButton" id="explore_timeseries_commonscale_radiobutton">
 					  <property name="visible">True</property>
 					  <property name="can_focus">True</property>
-					  <property name="label" translatable="yes">Common scale</property>
+					  <property name="label" translatable="yes">Same scales</property>
 					  <property name="use_underline">True</property>
 					  <property name="relief">GTK_RELIEF_NORMAL</property>
 					  <property name="focus_on_click">True</property>
@@ -2267,17 +2268,17 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 				      </child>
 
 				      <child>
-					<widget class="GtkRadioButton" id="radiobutton4">
+					<widget class="GtkRadioButton" id="explore_timeseries_freescales_radiobutton">
 					  <property name="visible">True</property>
 					  <property name="can_focus">True</property>
-					  <property name="label" translatable="yes">Different scales</property>
+					  <property name="label" translatable="yes">Free scales</property>
 					  <property name="use_underline">True</property>
 					  <property name="relief">GTK_RELIEF_NORMAL</property>
 					  <property name="focus_on_click">True</property>
 					  <property name="active">False</property>
 					  <property name="inconsistent">False</property>
 					  <property name="draw_indicator">True</property>
-					  <property name="group">radiobutton3</property>
+					  <property name="group">explore_timeseries_commonscale_radiobutton</property>
 					</widget>
 					<packing>
 					  <property name="padding">0</property>
@@ -2290,6 +2291,68 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 				      <property name="padding">0</property>
 				      <property name="expand">True</property>
 				      <property name="fill">True</property>
+				    </packing>
+				  </child>
+
+				  <child>
+				    <widget class="GtkHSeparator" id="hseparator2">
+				      <property name="visible">True</property>
+				    </widget>
+				    <packing>
+				      <property name="padding">0</property>
+				      <property name="expand">True</property>
+				      <property name="fill">True</property>
+				    </packing>
+				  </child>
+
+				  <child>
+				    <widget class="GtkHBox" id="hbox41">
+				      <property name="visible">True</property>
+				      <property name="homogeneous">False</property>
+				      <property name="spacing">0</property>
+
+				      <child>
+					<widget class="GtkCheckButton" id="explore_timeseries_log_checkbutton">
+					  <property name="visible">True</property>
+					  <property name="can_focus">True</property>
+					  <property name="label" translatable="yes">Log scale</property>
+					  <property name="use_underline">True</property>
+					  <property name="relief">GTK_RELIEF_NORMAL</property>
+					  <property name="focus_on_click">True</property>
+					  <property name="active">False</property>
+					  <property name="inconsistent">False</property>
+					  <property name="draw_indicator">True</property>
+					</widget>
+					<packing>
+					  <property name="padding">0</property>
+					  <property name="expand">False</property>
+					  <property name="fill">False</property>
+					</packing>
+				      </child>
+
+				      <child>
+					<widget class="GtkCheckButton" id="checkbutton1">
+					  <property name="visible">True</property>
+					  <property name="can_focus">True</property>
+					  <property name="label" translatable="yes">Adjust scales to sub-period</property>
+					  <property name="use_underline">True</property>
+					  <property name="relief">GTK_RELIEF_NORMAL</property>
+					  <property name="focus_on_click">True</property>
+					  <property name="active">True</property>
+					  <property name="inconsistent">False</property>
+					  <property name="draw_indicator">True</property>
+					</widget>
+					<packing>
+					  <property name="padding">0</property>
+					  <property name="expand">False</property>
+					  <property name="fill">False</property>
+					</packing>
+				      </child>
+				    </widget>
+				    <packing>
+				      <property name="padding">0</property>
+				      <property name="expand">False</property>
+				      <property name="fill">False</property>
 				    </packing>
 				  </child>
 				</widget>
@@ -2314,7 +2377,6 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 			      <child>
 				<widget class="GtkVBox" id="vbox18">
 				  <property name="visible">True</property>
-				  <property name="sensitive">False</property>
 				  <property name="homogeneous">False</property>
 				  <property name="spacing">0</property>
 
@@ -2364,14 +2426,20 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 
 				      <child>
 					<widget class="GtkComboBoxEntry" id="explore_timeseries_aggr1_comboboxentry">
+					  <property name="width_request">120</property>
 					  <property name="visible">True</property>
+					  <property name="items" translatable="yes">1 day
+7 days
+1 month
+3 months
+1 year</property>
 					  <property name="add_tearoffs">False</property>
 					  <property name="has_frame">True</property>
 					  <property name="focus_on_click">True</property>
 					</widget>
 					<packing>
 					  <property name="padding">0</property>
-					  <property name="expand">True</property>
+					  <property name="expand">False</property>
 					  <property name="fill">True</property>
 					</packing>
 				      </child>
@@ -2410,14 +2478,20 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 
 				      <child>
 					<widget class="GtkComboBoxEntry" id="explore_timeseries_aggr2_comboboxentry">
+					  <property name="width_request">120</property>
 					  <property name="visible">True</property>
+					  <property name="items" translatable="yes">1 day
+7 days
+1 month
+3 months
+1 year</property>
 					  <property name="add_tearoffs">False</property>
 					  <property name="has_frame">True</property>
 					  <property name="focus_on_click">True</property>
 					</widget>
 					<packing>
 					  <property name="padding">0</property>
-					  <property name="expand">True</property>
+					  <property name="expand">False</property>
 					  <property name="fill">True</property>
 					</packing>
 				      </child>
@@ -2438,7 +2512,7 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 			    </widget>
 			    <packing>
 			      <property name="padding">0</property>
-			      <property name="expand">True</property>
+			      <property name="expand">False</property>
 			      <property name="fill">True</property>
 			    </packing>
 			  </child>
@@ -2475,7 +2549,7 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 			      </child>
 
 			      <child>
-				<widget class="GtkEntry" id="entry1">
+				<widget class="GtkEntry" id="explore_timeseries_options_entry">
 				  <property name="visible">True</property>
 				  <property name="can_focus">True</property>
 				  <property name="editable">True</property>
@@ -3818,6 +3892,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA</prope
 	  <child>
 	    <widget class="GtkToolButton" id="plot_centre_button">
 	      <property name="visible">True</property>
+	      <property name="sensitive">False</property>
 	      <property name="label" translatable="yes"> Re-centre</property>
 	      <property name="use_underline">True</property>
 	      <property name="stock_id">gtk-jump-to</property>
@@ -3869,6 +3944,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA</prope
 	  <child>
 	    <widget class="GtkToggleToolButton" id="plot_log_togglebutton">
 	      <property name="visible">True</property>
+	      <property name="sensitive">False</property>
 	      <property name="label" translatable="yes"> Log</property>
 	      <property name="use_underline">True</property>
 	      <property name="stock_id">gtk-go-up</property>

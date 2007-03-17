@@ -7,7 +7,7 @@
 updateTimePeriodPage <- function() {
 	if (length(hsp$data) == 0) { return() }
 	# overall time period
-	wholePeriod <- c(start.timeblob(hsp$data), end.timeblob(hsp$data))
+	wholePeriod <- c(start.timeblobs(hsp$data), end.timeblobs(hsp$data))
 	wholePeriodString <- sprintf('%s to %s', 
 		format(wholePeriod[1]), format(wholePeriod[2]))
 	theWidget("timeperiod_overallperiod_entry")$setText(wholePeriodString)
@@ -32,9 +32,13 @@ updateTimePeriodPage <- function() {
 	TV <- "timeperiod_summary_textview"
 	setTextview(TV, "")
 	
+	summmary.cmd <- sprintf('summary.missing.timeblob.list(hsp$data, hsp$timePeriod)')
+	addLogComment("View summary of data coverage in selected period")
 	missingSummary <- capture.output(
-		missingFrac <- summary.missing.timeblob.list(hsp$data, 
-			hsp$timePeriod[1], hsp$timePeriod[2]) )
+		missingFrac <- guiTryEval(summmary.cmd)
+	)
+	if (inherits(missingFrac, "error")) { return() }
+	
 	addTextview(TV, paste(missingSummary, collapse="\n"), "\n")
 	
 	dfName <- dfMin <- dfQ25 <- dfMedian <- dfQ75 <- dfMax <- dfMissing <- character(length(hsp$data))
@@ -65,6 +69,7 @@ updateTimePeriodPage <- function() {
 	myTreeView <- theWidget("timeperiod_summary_treeview")
 	myTreeView$setModel(dfModel)
 	
+	.hydrosanity$update$timeperiod <<- F
 	theWidget("hs_window")$present()
 }
 
@@ -80,17 +85,14 @@ on_timeperiod_updateperiod_button_clicked <- function(button) {
 		errorDialog("Give time period in form \"START to END\".")
 		return()
 	}
-	update.cmd <- sprintf('hsp$timePeriod <<- c(as.POSIXct("%s"), as.POSIXct("%s"))',
+	update.cmd <- sprintf('hsp$timePeriod <<- as.POSIXct(c("%s", "%s"))',
 		myTimeStrings[1], myTimeStrings[2])
 	
-	addLogItem("Set time period for analysis", update.cmd)
+	addLogComment("Set time period for analysis")
 	result <- guiTryEval(update.cmd)
 	if (inherits(result, "error")) { return() }
 	setStatusBar("Set time period for analysis:", 
 		myTimeStrings[1], "to", myTimeStrings[2])
-		
-#	sprintf('summary.missing.timeblob.list(hsp$data, "%s", "%s")', 
-#		format(hsp$timePeriod[1]), format(hsp$timePeriod[2]))
 	
 	updateTimePeriodPage()
 }
@@ -117,10 +119,10 @@ on_timeperiod_viewtimeline_button_clicked <- function(button) {
 	plotQualCodes <- theWidget("timeperiod_plotqualitycodes_checkbutton")$getActive()
 	colMapText <- theWidget("timeperiod_colmap_entry")$getText()
 	plot.cmd <- sprintf('grid.timeline.plot(hsp$data, xscale=hsp$timePeriod, colMap=%s)',
-		ifelse(plotQualCodes, colMapText, 'NULL')
+		if (plotQualCodes) { colMapText } else { 'NULL' }
 	)
 	
-	addLogItem("View timeline plot", plot.cmd)
+	addLogComment("Generate timeline plot")
 	result <- guiTryEval(plot.cmd)
 	if (inherits(result, "error")) { return() }
 	setStatusBar("Generated timeline plot")
