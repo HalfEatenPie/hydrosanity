@@ -38,7 +38,7 @@ COPYRIGHT <- "(c) 2007 Felix Andrews <felix@nfrac.org>, GPL\n based on Rattle, (
 )
 
 hydrosanity <- function() {
-	require(grid)
+	require(grid, quietly=TRUE)
 	require(RGtk2, quietly=TRUE) # From http://www.ggobi.org/rgtk2/
 	require(cairoDevice, quietly=TRUE)
 	
@@ -46,10 +46,17 @@ hydrosanity <- function() {
 		on_menu_quit_activate()
 	}
 	
-	hsp <<- blankStateHSP()
-	.hydrosanity <<- list()
-	.hydrosanity$dev <<- list()
-	.hydrosanity$win <<- list()
+	# this global variable stores non-project state information
+	.hydrosanity <<- list(
+		dev=list(),
+		win=list(),
+		modified=F,
+		update=list(
+			import=T,
+			timeperiod=T,
+			explore=T
+		)
+	)
 	
 	.hydrosanity$GUI <<- gladeXMLNew(getpackagefile("hydrosanity.glade"),
 		root="hs_window")
@@ -58,9 +65,15 @@ hydrosanity <- function() {
 	gladeXMLSignalAutoconnect(.hydrosanity$GUI)
 	gSignalConnect(theWidget("hs_window"), "delete-event", on_menu_quit_activate)
 	
+	# set up log page
+	setTextviewMonospace("log_textview")
+	addInitialLogMessage()
+	
+	# create empty project variable
+	guiTryEval('hsp <<- list(data=list())')
+	
 	# set up initial GUI state
 	theWidget("notebook")$setCurrentPage(0)
-	
 	theWidget("import_file_radio_options_notebook")$setShowTabs(FALSE)
 	#theWidget("import_options_expander")$setExpanded(FALSE)
 	theWidget("import_makechanges_expander")$setExpanded(FALSE)
@@ -75,6 +88,8 @@ hydrosanity <- function() {
 	theWidget("import_time_format_codes_combobox")$setActive(0)
 	theWidget("import_time_step_comboboxentry")$setActive(4)
 	theWidget("import_makefactor_comboboxentry")$setActive(0)
+	theWidget("explore_timeseries_aggr1_comboboxentry")$setActive(2)
+	theWidget("explore_timeseries_aggr2_comboboxentry")$setActive(4)
 	
 	# set up table format on import page
 	importTreeView <- theWidget("import_summary_treeview")
@@ -91,11 +106,8 @@ hydrosanity <- function() {
 	insertTreeViewTextColumns(timeperiodTreeView, 
 		colNames=c("Name", "Min", "Q25", "Median", "Q75", "Max", "Missing", ""))
 	
-	# set up log page
-	setTextviewMonospace("log_textview")
-	addInitialLogMessage()
-	
-	while (gtkEventsPending()) gtkMainIterationDo(blocking=F) # redraw
+	theWidget("hs_window")$present()
+	#while (gtkEventsPending()) gtkMainIterationDo(blocking=F) # redraw
 }
 
 
@@ -130,7 +142,6 @@ library(hydrosanity)
 ## initialised here to be empty, but will hold data and settings when needed.
 ## Type \"str(hsp)\" in the R Console to see what is stored there!
 
-hsp <- blankStateHSP()
 ")
 	addLogSeparator()
 }
@@ -143,20 +154,20 @@ on_notebook_switch_page <- function(notebook, window, page) {
 	
 	# page is the index of the page switched to.
 	if (page == 0) {
-		updateImportPage()
+		if (.hydrosanity$update$import) { updateImportPage() }
 	}
 	if (page == 1) {
-		updateTimePeriodPage()
+		if (.hydrosanity$update$timeperiod) { updateTimePeriodPage() }
 	}
 	if (page == 2) {
-		updateExplorePage()
+		if (.hydrosanity$update$explore) { updateExplorePage() }
 	}
-	#pageLabel <- nb$getTabLabelText(nb$getNthPage(page))
+	theWidget("hs_window")$present()
 }
 
 
 on_menu_quit_activate <- function(action, window) {
-	if (length(hsp$data) > 0) {
+	if (.hydrosanity$modified && (length(hsp$data) > 0)) {
 		if (!is.null(questionDialog("Save project?"))) {
 			saveProject()
 		}
@@ -241,7 +252,7 @@ getpackagefile <- function(filename) {
 	myPath <- ""
 	result <- try(etc <- file.path(.path.package(package="hydrosanity")[1], "etc"), silent=TRUE)
 	if (inherits(result, "try-error")) {
-		myPath <- file.path("hydrosanity", "inst", "etc", filename)
+		myPath <- file.path("hydrosanity", "hydrosanity", "inst", "etc", filename)
 	} else {
 		myPath <- file.path(etc, filename)
 	}

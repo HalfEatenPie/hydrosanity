@@ -63,6 +63,11 @@ updateImportPage <- function() {
 	myTreeView <- theWidget("import_summary_treeview")
 	myTreeView$setModel(dfModel)
 	
+	# this call to updateImportPage means dataset was modified
+	.hydrosanity$update$timeperiod <<- T
+	.hydrosanity$update$explore <<- T
+	
+	.hydrosanity$update$import <<- F
 	theWidget("hs_window")$present()
 }
 
@@ -77,7 +82,7 @@ on_import_robj_button_clicked <- function(button) {
 	dataName <- make.names(data.cmd)
 	addLogComment("Import data from R object ", data.cmd)
 	# first set a local variable x and do checks
-	x <- guiTryEval(data.cmd)
+	x <- guiTryEval(data.cmd, doLog=F)
 	if (inherits(x, "error")) { return() }
 	# check the user-defined object
 	if (is.list(x) && !is.data.frame(x)) {
@@ -111,6 +116,7 @@ on_import_robj_button_clicked <- function(button) {
 			errorDialog(data.cmd, "is not a data frame with first column \"Time\" of type POSIXct, and third column \"Qual\", or a list of these.")
 		}
 	}
+	.hydrosanity$modified <<- T
 	updateImportPage()
 }
 
@@ -177,7 +183,6 @@ on_import_file_button_clicked <- function(button) {
 	
 	addLogComment("Import data from file")
 	for (i in seq(along=filenames)) {
-		addToLog(import.cmd[i])
 		result <- guiTryEval(import.cmd[i])
 		if (inherits(result, "error")) { return() }
 		setStatusBar(sprintf('Imported file "%s" to hsp$data[["%s"]]', basename(filenames[i]), dataName[i]))
@@ -187,26 +192,15 @@ on_import_file_button_clicked <- function(button) {
 		updateImportPage()
 	}
 	
-	str.cmd <- 'str(hsp$data)'
-	addLogItem("Display a simple summary (structure) of the data.", str.cmd)
+	# basic check included in transcipt, not used in GUI
+	addLogComment("Display a simple summary (structure) of the data.")
+	addToLog('str(hsp$data)')
 	
 	theWidget("import_options_expander")$setExpanded(FALSE)
 	theWidget("import_makechanges_expander")$setExpanded(TRUE)
 	
+	.hydrosanity$modified <<- T
 	#updateImportPage()
-}
-
-setDataRole <- function(blobName, role=NULL, doLogComment=T) {
-	if (is.null(role)) {
-		role <- "RAIN"
-	}
-	
-	mv.cmd <- sprintf('attr(hsp$data[["%s"]], "role") <<- "%s"', blobName, role)
-	if (doLogComment) { addLogComment("Set data role") }
-	addToLog(mv.cmd)
-	result <- guiTryEval(mv.cmd)
-	if (inherits(result, "error")) { return() }
-	setStatusBar(sprintf('Set data role for object "%s" to "%s"', blobName, role))
 }
 
 on_import_summary_treeview_name_edited <- function(cell, path.string, new.text, user.data) {
@@ -214,11 +208,11 @@ on_import_summary_treeview_name_edited <- function(cell, path.string, new.text, 
 	blobName <- names(hsp$data)[blobIndex]
 	if (new.text == blobName) { return() }
 	mv.cmd <- sprintf('names(hsp$data)[%i] <<- "%s"', blobIndex, new.text)
-	addLogItem(paste("Rename data object", blobName), mv.cmd)
+	addLogComment(paste("Rename data object", blobName))
 	result <- guiTryEval(mv.cmd)
 	if (inherits(result, "error")) { return() }
 	setStatusBar(sprintf('Renamed data object "%s" to "%s"', blobName, new.text))
-	
+	.hydrosanity$modified <<- T
 	updateImportPage()
 }
 
@@ -226,9 +220,8 @@ on_import_summary_treeview_role_edited <- function(cell, path.string, new.text, 
 	blobIndex <- as.numeric(path.string)+1
 	blobName <- names(hsp$data)[blobIndex]
 	if (attr(hsp$data[[blobIndex]], "role") == new.text) { return() }
-	
 	setDataRole(blobName, new.text)
-	
+	.hydrosanity$modified <<- T
 	updateImportPage()
 }
 
@@ -238,18 +231,21 @@ on_import_remove_blob_button_clicked <- function(button) {
 	setStatusBar("")
 	
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
-	if (length(blobIndices)==0) { return() }
+	if (length(blobIndices)==0) {
+		errorDialog("No items selected.")
+		return()
+	}
 	
 	blobNames <- names(hsp$data)[blobIndices]
 	if (is.null(questionDialog("Remove item(s) ", paste(blobNames,collapse=', '), "?"))) {
 		return()
 	}
 	rm.cmd <- sprintf('hsp$data[c(%s)] <<- NULL', paste(blobIndices,collapse=','))
-	addLogItem("Remove data object(s)", rm.cmd)
+	addLogComment("Remove data object(s)")
 	result <- guiTryEval(rm.cmd)
 	if (inherits(result, "error")) { return() }
 	setStatusBar(sprintf('Removed data object(s) %s', paste(blobNames,collapse=', ')))
-	
+	.hydrosanity$modified <<- T
 	updateImportPage()
 }
 
@@ -259,12 +255,14 @@ on_import_makefactor_button_clicked <- function(button) {
 	setStatusBar("")
 	
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
-	if (length(blobIndices)==0) { return() }
+	if (length(blobIndices)==0) {
+		errorDialog("No items selected.")
+		return()
+	}
 	
 	addLogComment("Convert quality codes")
 	factorCmdRaw <- theWidget("import_makefactor_comboboxentry")$getActiveText()
 	factor_fn.cmd <- sprintf("tmp.factor <<- function(x){ %s }", factorCmdRaw)
-	addToLog(factor_fn.cmd)
 	result <- guiTryEval(factor_fn.cmd)
 	if (inherits(result, "error")) { return() }
 	
@@ -272,19 +270,30 @@ on_import_makefactor_button_clicked <- function(button) {
 		blobName <- names(hsp$data)[blobIndex]
 		data.cmd <- sprintf("hsp$data[[%i]]$Qual", blobIndex)
 		factor.cmd <- sprintf("%s <<- factor(tmp.factor(%s), exclude=NULL)", data.cmd, data.cmd)
-		addToLog(factor.cmd)
 		result <- guiTryEval(factor.cmd)
 		if (inherits(result, "error")) { return() }
-		setStatusBar(sprintf('Converted quality codes of object "%s" to factor.', blobName))
+		setStatusBar(sprintf('Converted quality codes of object "%s"', blobName))
 	}
 	addToLog('rm(tmp.factor)')
 	tmp.factor <<- NULL
-	
+	.hydrosanity$modified <<- T
 	updateImportPage()
 }
 
 
 ## NON-ACTIONS, just interface bits and pieces
+
+setDataRole <- function(blobName, role=NULL, doLogComment=T) {
+	if (is.null(role)) {
+		role <- "RAIN"
+	}
+	
+	mv.cmd <- sprintf('attr(hsp$data[["%s"]], "role") <<- "%s"', blobName, role)
+	if (doLogComment) { addLogComment("Set data role") }
+	result <- guiTryEval(mv.cmd)
+	if (inherits(result, "error")) { return() }
+	setStatusBar(sprintf('Set data role for object "%s" to "%s"', blobName, role))
+}
 
 on_import_file_radio_options_toggled <- function(button) {
 	
@@ -296,7 +305,8 @@ on_import_file_radio_options_toggled <- function(button) {
 	} else {
 		theWidget("import_options_expander")$setExpanded(TRUE)
 		# TODO: need to check switching from known format or not
-		theWidget("import_options_entry")$setText(hsp$defaultImportOptions)
+		theWidget("import_options_entry")$setText(
+			'sep=",", skip=1, dataName="Data", dataCol=2, qualCol=3')
 	}
 	
 	if (theWidget("import_file_with_time_radio")$getActive()) {
@@ -305,6 +315,10 @@ on_import_file_radio_options_toggled <- function(button) {
 	
 	if (theWidget("import_file_seq_radio")$getActive()) {
 		newPageIdx <- 2
+	}
+	
+	if (theWidget("import_robj_radiobutton")$getActive()) {
+		newPageIdx <- 3
 	}
 	
 	theWidget("import_file_radio_options_notebook")$setCurrentPage(newPageIdx)

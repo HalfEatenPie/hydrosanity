@@ -23,11 +23,6 @@ addLogSeparator <- function() {
 	#date()
 }
 
-addLogItem <- function(comment, ...) {
-	addLogComment(comment)
-	addToLog(...)
-}
-
 addLogComment <- function(...) {
 	addToLog("\n## ", ...)
 }
