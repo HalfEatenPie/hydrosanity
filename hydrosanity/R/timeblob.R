@@ -120,7 +120,7 @@ read.timeblob <- function(file, skip=1, sep=",", dataName="Data", dataCol=2, qua
 	blob <- data.frame(Time=myTime, Data=rawData[,dataIndex], Qual=myQual, 
 		rawData[,-c(timeIndex, dataIndex, qualIndex)])
 	names(blob) <- c("Time", dataName, "Qual", extraNames)
-	attr(blob, "timestep") <- difftimeString(blob$Time[2] - blob$Time[1], digits=1)
+	attr(blob, "timestep") <- as.byString(blob$Time[2] - blob$Time[1], digits=1)
 	return(blob)
 }
 
@@ -188,7 +188,7 @@ window.timeblob <- function(blob, start, end, inclusive=F) {
 
 
 # invisibly returns missing fraction for each series
-summary.missing.timeblob.list <- function(blob.list, timelim=NULL, timeStep=hsp$timeStep) {
+summary.missing.timeblob.list <- function(blob.list, timelim=NULL, timeStep="1 DSTday") {
 	# check types
 	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
 	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
@@ -282,8 +282,8 @@ aggregate.timeblob <- function(blob, by="1 year", FUN=mean, max.na.proportion=0.
 	# check types
 	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
 	# find expected number of old timesteps in each new timestep
-	oldDelta <- as.numeric.difftimeString(attr(blob, "timestep"))
-	newDelta <- as.numeric.difftimeString(by)
+	oldDelta <- as.numeric.byString(attr(blob, "timestep"))
+	newDelta <- as.numeric.byString(by)
 	freqN <- floor(newDelta / oldDelta)
 	# construct groups
 	dateGroups <- cut.POSIXt(blob$Time, breaks=by)
@@ -309,8 +309,8 @@ smooth.timeblob <- function(blob, by="1 year", max.na.proportion=0.05) {
 	# check types
 	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
 	# find expected number of timesteps in smoothing kernel window
-	delta <- as.numeric.difftimeString(attr(blob, "timestep"))
-	smoothDelta <- as.numeric.difftimeString(by)
+	delta <- as.numeric.byString(attr(blob, "timestep"))
+	smoothDelta <- as.numeric.byString(by)
 	winSize <- round(smoothDelta / delta)
 	winRear <- ceiling(winSize/2)
 	winFore <- floor(winSize/2)
@@ -365,15 +365,19 @@ floor.month <- function(thisPOSIXt) {
 	return(zz)
 }
 
-difftimeString <- function(x, digits=getOption("digits")) {
-	paste(format(unclass(x), digits=digits), attr(x, "units"))
+as.byString <- function(x, digits=getOption("digits")) {
+	it <- paste(format(unclass(x), digits=digits), attr(x, "units"))
+	sub(" day", " DSTday", it)
 }
 
-as.numeric.difftimeString <- function(x) {
+as.byString.numeric <- function(x) {
+	as.byString(diff(as.POSIXct.raw(c(0,x))))
+}
+
+as.numeric.byString <- function(x) {
 	timeseq <- seq.POSIXt(from=ISOdate(1970,1,1), by=x, length=2)
 	return(as.numeric(timeseq[2]) - as.numeric(timeseq[1]))
 }
-
 
 as.POSIXct.raw <- function(secs_since_1970, tz="") {
 	if (!is.numeric(secs_since_1970)) {

@@ -10,6 +10,16 @@ updateImportPage <- function() {
 	dfName <- dfStart <- dfEnd <- dfLength <- dfFreq <- character(length(hsp$data))
 	dfData <- dfRole <- dfQual <- dfExtra <- character(length(hsp$data))
 	
+	fastestTimeStep <- NULL
+	for (i in seq(along=hsp$data)) {
+		thisStepDelta <- as.numeric.byString(
+			attr(hsp$data[[i]], "timestep"))
+		if (is.null(fastestTimeStep) || (thisStepDelta < fastestTimeStep)) {
+			fastestTimeStep <- thisStepDelta
+		}
+	}
+	hsp$timeStep <<- as.byString.numeric(fastestTimeStep)
+	
 	for (i in seq(along=hsp$data)) {
 		myLength <- end.timeblob(hsp$data[[i]]) - start.timeblob(hsp$data[[i]])
 		myAvgFreq <- myLength / nrow(hsp$data[[i]])
@@ -17,8 +27,8 @@ updateImportPage <- function() {
 		dfName[i] <- names(hsp$data)[i]
 		dfStart[i] <- format(start.timeblob(hsp$data[[i]]))
 		dfEnd[i] <- format(end.timeblob(hsp$data[[i]]))
-		dfLength[i] <- difftimeString(myLength, digits=2)
-		#dfFreq[i] <- difftimeString(myAvgFreq, digits=2)
+		dfLength[i] <- as.byString(myLength, digits=2)
+		#dfFreq[i] <- as.byString(myAvgFreq, digits=2)
 		dfFreq[i] <- attr(hsp$data[[i]], "timestep")
 		
 		dfData[i] <- names(hsp$data[[i]])[2]
@@ -53,7 +63,7 @@ updateImportPage <- function() {
 		Start=dfStart,
 		End=dfEnd,
 		Length=dfLength,
-		Avg_Freq=dfFreq,
+		Timestep=dfFreq,
 		Data=dfData,
 		Qual=dfQual,
 		Extra_columns=dfExtra,

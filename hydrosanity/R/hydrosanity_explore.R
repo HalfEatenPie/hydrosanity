@@ -111,16 +111,13 @@ on_explore_timeseries_button_clicked <- function(button) {
 			data.cmd <- dataBits
 		}
 	}
-	
-# timelineplot: aggregated series should never have same scale as raw data
-#               but if using "same scales" setting, each aggr should have same scale
 
-	# set up common y scale
+	# set up common y scale for superposed blobs
 	yscale.cmd <- ''
-	if (doCommonScale) {
+	if (doCommonScale && doSuperpose) {
 		addToLog("## Find global range of data")
 		makescale.cmd <- sprintf(
-			'tmp.yscale <<- range(sapply(%s, range.timeblob, na.rm=T))',
+			'tmp.yscale <<- range(sapply(lapply(%s, window.timeblob, hsp$timePeriod[1], hsp$timePeriod[2]), range.timeblob, na.rm=T))',
 			all_data.cmd)
 		if (doLog) {
 			addToLog("## and limit by minimum non-zero value (for log scale)")
@@ -133,14 +130,15 @@ on_explore_timeseries_button_clicked <- function(button) {
 		yscale.cmd <- ', yscale=tmp.yscale'
 	}
 	
+	samescale.cmd <- if (doCommonScale) { '' } else { ', sameScales=F' }
 	log.cmd <- if (doLog) { ', logScale=T' } else { '' }
 	
 	setPlotDevice("explore")
 	
 	# do initial plot (may be multiple plots, but none superposed)
 	addToLog("## Plot")
-	plot.cmd <- sprintf('grid.timeseries.plot(%s, %s%s%s)',
-		data.cmd[1], 'xscale=hsp$timePeriod', yscale.cmd, log.cmd)
+	plot.cmd <- sprintf('grid.timeseries.plot(%s, %s%s%s%s)',
+		data.cmd[1], 'xscale=hsp$timePeriod', yscale.cmd, samescale.cmd, log.cmd)
 	result <- guiTryEval(plot.cmd)
 	if (inherits(result, "error")) { return() }
 	
@@ -152,15 +150,12 @@ on_explore_timeseries_button_clicked <- function(button) {
 	for (i in seq(along=data.cmd)) {
 		if (i==1) { next }
 		newscale.cmd <- ''
-		if (doCommonScale==F) {
-			newscale.cmd <- ', newScale=T'
-		}
-		if ((doCommonScale==F) && (doLog)) {
-			newscale.cmd <- ''
+		if (doCommonScale && doSuperpose) {
+			newscale.cmd <- ', newScale=F'
 		}
 		superpose.cmd <- sprintf(
-			'grid.timeseries.superpose(%s%s%s, superNum=%i, gp=gpar(col="%s"))', 
-			data.cmd[i], newscale.cmd, log.cmd, i, colSet[i])
+			'grid.timeseries.plot(%s%s%s%s, superPos=%i, gp=gpar(col="%s"))', 
+			data.cmd[i], newscale.cmd, samescale.cmd, log.cmd, i, colSet[i])
 		result <- guiTryEval(superpose.cmd)
 		if (inherits(result, "error")) { return() }
 	}
