@@ -5,7 +5,10 @@
 ## Copyright (c) 2007 Felix Andrews <felix@nfrac.org>, GPL
 
 updateTimePeriodPage <- function() {
-	if (length(hsp$data) == 0) { return() }
+	if (length(hsp$data) == 0) {
+		setTextview("timeperiod_summary_textview", "")
+		return()
+	}
 	# overall time period
 	wholePeriod <- c(start.timeblobs(hsp$data), end.timeblobs(hsp$data))
 	wholePeriodString <- sprintf('%s to %s', 
@@ -32,7 +35,7 @@ updateTimePeriodPage <- function() {
 	TV <- "timeperiod_summary_textview"
 	setTextview(TV, "")
 	
-	summmary.cmd <- sprintf('summary.missing.timeblob.list(hsp$data, hsp$timePeriod)')
+	summmary.cmd <- sprintf('summary.missing.timeblob.list(hsp$data, hsp$timePeriod, hsp$timeStep)')
 	addLogComment("View summary of data coverage in selected period")
 	missingSummary <- capture.output(
 		missingFrac <- guiTryEval(summmary.cmd)

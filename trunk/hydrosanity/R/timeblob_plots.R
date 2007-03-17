@@ -87,7 +87,7 @@ grid.timeline.bar <- function(blob, colMap=NULL, name="timeline.bar") {
 }
 
 
-grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales=T, logScale=F, zeroLevel=NULL, maxLabelChars=20, pad=unit(5,"mm"), superPos=1, newScale=T, newpage=!superPos, gp=gpar(col=colSet[superPos]), colSet=c("#0080ff", "#ff00ff", "darkgreen", "#ff0000", "orange", "#00ff00", "brown")) {
+grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales=T, logScale=F, zeroLevel=NULL, maxLabelChars=20, pad=unit(5,"mm"), superPos=1, newScale=T, newpage=(superPos==1), gp=gpar(col=colSet[superPos]), colSet=c("#0080ff", "#ff00ff", "darkgreen", "#ff0000", "orange", "#00ff00", "brown")) {
 	# check types
 	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
 	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
@@ -119,7 +119,7 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 	# calculate common yscale
 	if (is.null(yscale) && sameScales) {
 		yscale <- range(sapply(blob.list, range.timeblob, na.rm=T))
-		if (doLog && (yscale[1] <= 0)) {
+		if (logScale && (yscale[1] <= 0)) {
 			# limit by minimum non-zero value (for log scale)
 			yscale[1] <- min(sapply(blob.list,
 				function(x){min(x[,2][x[,2]>0], na.rm=T)}))
