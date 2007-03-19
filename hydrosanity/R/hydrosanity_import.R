@@ -32,11 +32,13 @@ updateImportPage <- function() {
 		dfFreq[i] <- attr(hsp$data[[i]], "timestep")
 		
 		dfData[i] <- names(hsp$data[[i]])[2]
-		dfQual[i] <- class(hsp$data[[i]]$Qual[1])[1]
-		if (dfQual[i] == "factor") {
-			dfQual[i] <- paste(' (', toString(
-				paste(levels(hsp$data[[i]]$Qual[1]),collapse="/"),
-			width=30), ')', sep='')
+		dfQual[i] <- class(hsp$data[[i]]$Qual)[1]
+		if (is.factor(hsp$data[[i]]$Qual) || is.numeric(hsp$data[[i]]$Qual)) {
+			levelsFn <- if (is.factor(hsp$data[[i]]$Qual))
+			{ levels } else { unique }
+			dfQual[i] <- paste(' (', toString( paste(
+				sort(levelsFn(hsp$data[[i]]$Qual)),
+			collapse="/"), width=30), ')', sep='')
 		}
 		dfExtra[i] <- ""
 		if (ncol(hsp$data[[i]]) >= 4) {
@@ -44,10 +46,10 @@ updateImportPage <- function() {
 			dfExtra[i] <- paste(dfExtra[i],
 				if(xcol > 4)', ',
 				names(hsp$data[[i]])[xcol],
-				if (is.factor(hsp$data[[i]][1,xcol])) {
-					paste(' (', toString(
-					paste(levels(hsp$data[[i]][1,xcol]),collapse="/"),
-					width=30), ')', sep='')
+				if (is.factor(hsp$data[[i]][[xcol]])) {
+					paste(' (', toString( paste(
+						sort(levels(hsp$data[[i]][[xcol]])),
+					collapse="/"), width=30), ')', sep='')
 				},
 				sep=''
 			)
@@ -72,6 +74,7 @@ updateImportPage <- function() {
 		)
 	myTreeView <- theWidget("import_summary_treeview")
 	myTreeView$setModel(dfModel)
+	myTreeView$columnsAutosize()
 	
 	# this call to updateImportPage means dataset was modified
 	.hydrosanity$update$timeperiod <<- T
@@ -327,8 +330,9 @@ on_import_file_radio_options_toggled <- function(button) {
 		newPageIdx <- 2
 	}
 	
-	if (theWidget("import_robj_radiobutton")$getActive()) {
+	if (theWidget("import_robj_radio")$getActive()) {
 		newPageIdx <- 3
+		theWidget("import_options_expander")$setExpanded(FALSE)
 	}
 	
 	theWidget("import_file_radio_options_notebook")$setCurrentPage(newPageIdx)

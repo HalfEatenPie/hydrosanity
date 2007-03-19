@@ -63,8 +63,8 @@ read.timeblob <- function(file, skip=1, sep=",", dataName="Data", dataCol=2, qua
 	firstLine <- read.table(file, header=F, skip=skip, sep=sep, strip.white=T, nrows=1, ...)
 	fileCols <- ncol(firstLine)
 	if (dataCol > fileCols) {
-		stop("Column ", dataCol, " ('dataCol') not found on line ", 
-		skip+1, "; maybe the column separator \"", sep, "\" is wrong?")
+		stop("Column ", dataCol, " ('dataCol') not found on line ", skip+1, 
+		"; maybe 'sep'=\"", sep, "\" or 'skip'=", skip, " is wrong?")
 	}
 	# drop variables for which column does not exist in file
 	if (qualCol > fileCols) { qualCol <- NULL }
@@ -86,7 +86,10 @@ read.timeblob <- function(file, skip=1, sep=",", dataName="Data", dataCol=2, qua
 	myQual <- NA
 	if (!is.null(qualCol) && !is.na(qualCol)) {
 		qualIndex <- qualCol - sum(fileColClasses[1:qualCol]=="NULL", na.rm=T)
-		myQual <- factor(rawData[,qualIndex], exclude=NULL)
+		myQual <- rawData[[qualIndex]]
+		if (is.factor(myQual)) {
+			myQual <- factor(myQual, exclude=NULL)
+		}
 	} else {
 		myQual <- rep(factor(NA, exclude=NULL), nrow(rawData))
 	}
@@ -94,7 +97,7 @@ read.timeblob <- function(file, skip=1, sep=",", dataName="Data", dataCol=2, qua
 	myTime <- NA
 	if (readTimesFromFile) {
 		timeIndex <- timeCol - sum(fileColClasses[1:timeCol]=="NULL", na.rm=T)
-		myTime <- strptime(rawData[,timeIndex], format=timeFormat)
+		myTime <- strptime(rawData[[timeIndex]], format=timeFormat)
 		if (any(is.na(myTime))) {
 			firstNA <- which(is.na(myTime))[1]
 			stop('could not convert "', rawData[firstNA,timeIndex],
@@ -117,7 +120,7 @@ read.timeblob <- function(file, skip=1, sep=",", dataName="Data", dataCol=2, qua
 		myTime <- seq.POSIXt(from=startTime, by=timeSeqBy, length.out=nrow(rawData))
 	}
 	# make sure first three columns are Time, Data, Qual (in that order)
-	blob <- data.frame(Time=myTime, Data=rawData[,dataIndex], Qual=myQual, 
+	blob <- data.frame(Time=myTime, Data=rawData[[dataIndex]], Qual=myQual, 
 		rawData[,-c(timeIndex, dataIndex, qualIndex)])
 	names(blob) <- c("Time", dataName, "Qual", extraNames)
 	attr(blob, "timestep") <- as.byString(blob$Time[2] - blob$Time[1], digits=1)
@@ -264,8 +267,12 @@ matchperiod.timeblob <- function(blob, refPeriod) {
 	}
 	# each blob here is not entirely outside refPeriod
 	blobBounds <- findInterval(c(start.timeblob(blob), end.timeblob(blob)), refPeriod)
+	# make sure blobBounds are really within blob$Time (findInterval rounds down)
+	if (refPeriod[blobBounds[1]] < start.timeblob(blob)) {
+		blobBounds[1] <- blobBounds[1] + 1
+	}
 	blobWindowIndices <- seq(blobBounds[1], blobBounds[2])
-	# now refPeriod[blobWindowIdblob] is not outside blob$Time
+	# now refPeriod[blobWindowIndices] is not outside blob$Time
 	periodIndices[blobWindowIndices] <- findInterval(refPeriod[blobWindowIndices], blob$Time)
 	return(periodIndices)
 }

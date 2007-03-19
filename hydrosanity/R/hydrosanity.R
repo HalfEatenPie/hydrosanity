@@ -70,7 +70,7 @@ hydrosanity <- function() {
 	addInitialLogMessage()
 	
 	# create empty project variable
-	guiTryEval('hsp <<- list(data=list())')
+	hsp <<- list(data=list())
 	
 	# set up initial GUI state
 	theWidget("notebook")$setCurrentPage(0)
@@ -138,10 +138,10 @@ sprintf("## Run by %s on %s", Sys.info()["user"], R.version.string), "\n\n",
 
 library(hydrosanity)
 
-## The variable hsp is used to store the current Hydrosanity Project. It is 
-## initialised here to be empty, but will hold data and settings when needed.
-## Type \"str(hsp)\" in the R Console to see what is stored there!
+## The variable hsp is used to store the current Hydrosanity Project. At any 
+## time, type \"str(hsp)\" in the R Console to see what is stored there!
 
+hsp <- list(data=list())
 ")
 	addLogSeparator()
 }
