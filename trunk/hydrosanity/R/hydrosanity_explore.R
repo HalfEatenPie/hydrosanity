@@ -48,6 +48,7 @@ on_explore_timeseries_button_clicked <- function(button) {
 	myN <- length(selNames)
 	rawdata.cmd <- paste('hsp$data[c("', paste(selNames, collapse='", "'), '")]', sep='')
 	if (myN == 1) { rawdata.cmd <- paste('hsp$data["', selNames, '"]', sep='') }
+	if (myN == length(hsp$data)) { rawdata.cmd <- 'hsp$data' }
 	
 	doLog <- theWidget("explore_timeseries_log_checkbutton")$getActive()
 	doCommonScale <- theWidget("explore_timeseries_commonscale_radiobutton")$getActive()
@@ -63,11 +64,14 @@ on_explore_timeseries_button_clicked <- function(button) {
 	
 	addLogComment("Generate timeseries plot")
 	
+	tmpObjs <- c()
+	
 	# compute and store aggregated series
 	if (doAggr1 || doAggr2) {
 		addToLog("## Compute and store aggregated series")
 	}
 	if (doAggr1) {
+		tmpObjs <- c(tmpObjs, 'tmp.aggr1')
 		pre_plot.cmd <- sprintf(
 			'tmp.aggr1 <<- lapply(%s, aggregate.timeblob, by="%s")',
 			rawdata.cmd, aggr1By)
@@ -75,6 +79,7 @@ on_explore_timeseries_button_clicked <- function(button) {
 		if (inherits(result, "error")) { return() }
 	}
 	if (doAggr2) {
+		tmpObjs <- c(tmpObjs, 'tmp.aggr2')
 		pre_plot.cmd <- sprintf(
 			'tmp.aggr2 <<- lapply(%s, aggregate.timeblob, by="%s")',
 			rawdata.cmd, aggr2By)
@@ -116,6 +121,7 @@ on_explore_timeseries_button_clicked <- function(button) {
 	yscale.cmd <- ''
 	if (doCommonScale && doSuperpose) {
 		addToLog("## Find global range of data")
+		tmpObjs <- c(tmpObjs, 'tmp.yscale')
 		makescale.cmd <- sprintf(
 			'tmp.yscale <<- range(sapply(lapply(%s, window.timeblob, hsp$timePeriod[1], hsp$timePeriod[2]), range.timeblob, na.rm=T))',
 			all_data.cmd)
@@ -146,7 +152,6 @@ on_explore_timeseries_button_clicked <- function(button) {
 	colSet <- c("#0080ff", "#ff00ff", "darkgreen", "#ff0000", "orange", "#00ff00", "brown")
 	
 	# plot superposed series
-	
 	for (i in seq(along=data.cmd)) {
 		if (i==1) { next }
 		newscale.cmd <- ''
@@ -160,8 +165,9 @@ on_explore_timeseries_button_clicked <- function(button) {
 		if (inherits(result, "error")) { return() }
 	}
 	
-	guiTryEval('suppressWarnings(rm(tmp.aggr1, tmp.aggr2, tmp.yscale))')
-	
+	if (length(tmpObjs) > 0) {
+		guiTryEval(paste('rm(', paste(tmpObjs, collapse=', '), ')', sep=''))
+	}
 	setStatusBar("Generated timeseries plot")
 }
 

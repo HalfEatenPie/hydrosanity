@@ -92,7 +92,13 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
 	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
 	if (is.null(xscale)) {
-		xscale <- c(start.timeblobs(blob.list), end.timeblobs(blob.list))
+		if (superPos == 1) {
+			xscale <- c(start.timeblobs(blob.list), end.timeblobs(blob.list))
+		} else {
+			depth <- downViewport("timeseries.layout.vp")
+			xscale <- as.POSIXct.raw(convertX(unit(c(0,1), "npc"), "native"))
+			upViewport(depth)
+		}
 	}
 	xscale <- as.POSIXct(xscale)
 	if (any(is.na(xscale))) { stop("'xscale' must be a pair of valid times (POSIXt)") }
@@ -210,49 +216,6 @@ grid.timeseries.steps <- function(blob, logScale=F, gp=gpar(), name="timeseries"
 }
 
 
-# plot superposed series
-grid.timeseries.superpose <- function(blob.list, newScale=F, yscale=NULL, sameScales=T, logScale=F, superNum=2, gp=gpar(col=colSet[superNum]), colSet=c("#0080ff", "#ff00ff", "darkgreen", "#ff0000", "orange", "#00ff00", "brown")) {
-	# check types
-	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
-	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
-	if (newScale && logScale) {
-		stop("different superposed log scales are not supported")
-	}
-	# setup
-	blob.list <- lapply(blob.list, window.timeblob, xscale[1], xscale[2], inclusive=T)
-	# calculate common yscale
-	if (is.null(yscale) && sameScales && newScale) {
-		yscale <- range(sapply(blob.list, range.timeblob, na.rm=T))
-		if (doLog && (yscale[1] <= 0)) {
-			# limit by minimum non-zero value (for log scale)
-			yscale[1] <- min(sapply(blob.list,
-				function(x){min(x[,2][x[,2]>0], na.rm=T)}))
-		}
-	}
-	# plot each timeblob in the list
-	for (k in seq(along=blob.list)) {
-		if (is.null(blob.list[[k]])) { next }
-		# navigate down to where timeseries number k was plotted
-		depth <- downViewport(paste("timeseries",k,".vp",sep=''))
-		if (newScale==T) {
-			# push a new viewport to change scales
-			myYScale <- yscale
-			if (is.null(yscale)) {
-				myYScale <- range.timeblob(blob.list[[k]], na.rm=T)
-			}
-			xscale <- convertX(unit(c(0,1), "npc"), "native")
-			pushViewport(viewport(xscale=xscale, yscale=myYScale, clip="on",
-				name=paste("timeseries",k,"/",superNum,".vp",sep='')))
-			depth <- depth + 1
-		}
-		# draw it
-		grid.timeseries.steps(blob.list[[k]], logScale=logScale, gp=gp, 
-			name=paste("timeseries",k,"/",superNum,sep=''))
-		upViewport(depth)
-	}
-}
-
-
 #qqmath(~ hsp$data[[1]][,2] + hsp$data[[2]][,2], ylim=c(0.1, 1000), scales=list(y=list(log=T)))
 
 
@@ -261,12 +224,12 @@ grid.timeseries.superpose <- function(blob.list, newScale=F, yscale=NULL, sameSc
 applyColourMap <- function(qualityCodes, colMap) {
 	# check types
 	if (!is.factor(qualityCodes)) { 
-		warning(paste("'qualityCodes' must be a factor, skipping"))
+		warning(paste("'qualityCodes' must be a factor (skipping)"))
 		return(rep(factor("black"), length(qualityCodes)))
 	}
 	if (!is.list(colMap)) { stop("'colMap' must be a list") }
 	if (length(intersect(names(colMap),levels(qualityCodes)))==0) {
-		warning(paste("levels of 'qualityCodes' do not match given 'colMap', skipping"))
+		warning(paste("levels of 'qualityCodes' do not match 'colMap' (skipping)"))
 		return(rep(factor("black"), length(qualityCodes)))
 	}
 	# need to invert colMap list
