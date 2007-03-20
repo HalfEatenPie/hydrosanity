@@ -136,37 +136,32 @@ on_explore_timeseries_button_clicked <- function(button) {
 		yscale.cmd <- ', yscale=tmp.yscale'
 	}
 	
-	samescale.cmd <- if (doCommonScale) { '' } else { ', sameScales=F' }
 	log.cmd <- if (doLog) { ', logScale=T' } else { '' }
+	samescale.cmd <- if (doCommonScale) { '' } else { ', sameScales=F' }
+	newscale.cmd <- if (doCommonScale && doSuperpose) { ', newScale=F' } else { '' }
 	
-	setPlotDevice("explore")
+	setPlotDevice("timeseries")
 	
 	# do initial plot (may be multiple plots, but none superposed)
 	addToLog("## Plot")
-	plot.cmd <- sprintf('grid.timeseries.plot(%s, %s%s%s%s)',
-		data.cmd[1], 'xscale=hsp$timePeriod', yscale.cmd, samescale.cmd, log.cmd)
-	result <- guiTryEval(plot.cmd)
-	if (inherits(result, "error")) { return() }
-	
-	# from lattice show.settings(): superpose.line$col
-	colSet <- c("#0080ff", "#ff00ff", "darkgreen", "#ff0000", "orange", "#00ff00", "brown")
-	
-	# plot superposed series
-	for (i in seq(along=data.cmd)) {
-		if (i==1) { next }
-		newscale.cmd <- ''
-		if (doCommonScale && doSuperpose) {
-			newscale.cmd <- ', newScale=F'
-		}
-		superpose.cmd <- sprintf(
-			'grid.timeseries.plot(%s%s%s%s, superPos=%i, gp=gpar(col="%s"))', 
-			data.cmd[i], newscale.cmd, samescale.cmd, log.cmd, i, colSet[i])
-		result <- guiTryEval(superpose.cmd)
-		if (inherits(result, "error")) { return() }
+	if (length(data.cmd) == 1) {
+		plot.cmd <- sprintf('grid.timeseries.plot(%s, %s%s%s%s)',
+			data.cmd[1], 'xscale=hsp$timePeriod', yscale.cmd, 
+			samescale.cmd, log.cmd)
+	} else {
+		plot.cmd <- sprintf('grid.timeseries.plot.superpose(list(%s), %s%s%s%s)',
+			paste(data.cmd, collapse=", "),
+			'xscale=hsp$timePeriod', yscale.cmd, 
+			samescale.cmd, log.cmd, newscale.cmd)
 	}
 	
+	result <- guiTryEval(plot.cmd)
+	if (inherits(result, "error")) { return() }
+	.hydrosanity$call$timeseries <<- evalCallArgs(parse(text=plot.cmd)[[1]])
+	
 	if (length(tmpObjs) > 0) {
-		guiTryEval(paste('rm(', paste(tmpObjs, collapse=', '), ')', sep=''))
+		addToLog(paste('rm(', paste(tmpObjs, collapse=', '), ')', sep=''))
+		rm(list=tmpObjs, envir=.GlobalEnv)
 	}
 	setStatusBar("Generated timeseries plot")
 }

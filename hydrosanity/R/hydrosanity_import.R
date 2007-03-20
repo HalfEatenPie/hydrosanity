@@ -12,6 +12,7 @@ updateImportPage <- function() {
 	
 	fastestTimeStep <- NULL
 	for (i in seq(along=hsp$data)) {
+		if (attr(hsp$data[[i]], "timestep") == "inst") { next }
 		thisStepDelta <- as.numeric.byString(
 			attr(hsp$data[[i]], "timestep"))
 		if (is.null(fastestTimeStep) || (thisStepDelta < fastestTimeStep)) {
@@ -68,7 +69,7 @@ updateImportPage <- function() {
 		Timestep=dfFreq,
 		Data=dfData,
 		Qual=dfQual,
-		Extra_columns=dfExtra,
+		Extra_data=dfExtra,
 		Role=dfRole,
 		stringsAsFactors=F)
 		)
@@ -142,6 +143,34 @@ on_import_displayfile_button_clicked <- function(button) {
 	theWidget("hs_window")$present()
 	if (length(filenames)==0) { return() }
 	file.show(filenames)
+}
+
+on_import_viewtable_button_clicked <- function(button) {
+	theWidget("hs_window")$setSensitive(F)
+	on.exit(theWidget("hs_window")$setSensitive(T))
+	setStatusBar("")
+	
+	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
+	if (length(blobIndices)==0) {
+		errorDialog("No items selected.")
+		return()
+	}
+	thisIndex <- blobIndices[1]
+	blobName <- names(hsp$data)[thisIndex]
+	if (length(blobIndices) > 1) {
+		infoDialog("Only the first selected item (",
+			names(hsp$data)[thisIndex], ") will be shown.")
+	}
+	tmp <- hsp$data[[thisIndex]][,-1]
+	row.names(tmp) <- make.unique(format(hsp$data[[thisIndex]]$Time))
+	tmp2 <- edit(tmp, title=blobName)
+	attributes(tmp2) <- attributes(tmp)
+	if (!identical(tmp, tmp2)) {
+		hsp$data[[thisIndex]][,-1] <<- tmp2
+		setStatusBar(sprintf('Edited data object "%s"', blobName))
+		.hydrosanity$modified <<- T
+		updateImportPage()
+	}
 }
 
 on_import_file_button_clicked <- function(button) {
@@ -288,7 +317,7 @@ on_import_makefactor_button_clicked <- function(button) {
 		setStatusBar(sprintf('Converted quality codes of object "%s"', blobName))
 	}
 	addToLog('rm(tmp.factor)')
-	tmp.factor <<- NULL
+	rm(tmp.factor, envir=.GlobalEnv)
 	.hydrosanity$modified <<- T
 	updateImportPage()
 }

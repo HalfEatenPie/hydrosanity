@@ -117,13 +117,20 @@ read.timeblob <- function(file, skip=1, sep=",", dataName="Data", dataCol=2, qua
 				stop("could not construct starting time from columns given in 'startTime': ", myBits)
 			}
 		}
-		myTime <- seq.POSIXt(from=startTime, by=timeSeqBy, length.out=nrow(rawData))
+		myTime <- seq.POSIXt(from=startTime, by=timeSeqBy, length=nrow(rawData))
 	}
 	# make sure first three columns are Time, Data, Qual (in that order)
 	blob <- data.frame(Time=myTime, Data=rawData[[dataIndex]], Qual=myQual, 
 		rawData[,-c(timeIndex, dataIndex, qualIndex)])
 	names(blob) <- c("Time", dataName, "Qual", extraNames)
 	attr(blob, "timestep") <- as.byString(blob$Time[2] - blob$Time[1], digits=1)
+	timeStepDiffs <- diff(as.numeric(blob$Time))
+	# trim by 10% because of anomolies in seq.POSIXt with DSTdays
+	timeStepRange <- c(quantile(timeStepDiffs, c(0.1, 0.9)))
+	if (timeStepRange[2] > 1.11 * timeStepRange[1]) {
+		# up to 11% difference expected in regular series (feb vs jan)
+		attr(blob, "timestep") <- "inst"
+	}
 	return(blob)
 }
 

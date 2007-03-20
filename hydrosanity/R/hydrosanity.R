@@ -50,6 +50,7 @@ hydrosanity <- function() {
 	.hydrosanity <<- list(
 		dev=list(),
 		win=list(),
+		call=list(),
 		modified=F,
 		update=list(
 			import=T,
@@ -94,12 +95,11 @@ hydrosanity <- function() {
 	# set up table format on import page
 	importTreeView <- theWidget("import_summary_treeview")
 	insertTreeViewTextColumns(importTreeView, 
-		colNames=c("Name", "Start", "End", "Length", "Timestep", "Data", "Qual", "Extra_columns", "Role"),
+		colNames=c("Name", "Start", "End", "Length", "Timestep", "Data", "Qual", "Extra_data", "Role"),
 		editors=list(Name=on_import_summary_treeview_name_edited,
 			Role=on_import_summary_treeview_role_edited),
 		combo=list(Role=data.frame(c("RAIN","FLOW","OTHER"))) )
 	importTreeView$getSelection()$setMode("multiple")
-	#myTreeView$setHeadersClickable(TRUE)
 	
 	# set up table format on timeperiod page
 	timeperiodTreeView <- theWidget("timeperiod_summary_treeview")
@@ -107,7 +107,6 @@ hydrosanity <- function() {
 		colNames=c("Name", "Min", "Q25", "Median", "Q75", "Max", "Missing", ""))
 	
 	theWidget("hs_window")$present()
-	#while (gtkEventsPending()) gtkMainIterationDo(blocking=F) # redraw
 }
 
 
@@ -261,6 +260,14 @@ getpackagefile <- function(filename) {
 	} else {
 		return(myPath)
 	}
+}
+
+evalCallArgs <- function(myCall) {
+	callArgs <- as.list(myCall)
+	callFn <- callArgs[[1]]
+	callArgs[[1]] <- NULL
+	callArgs <- lapply(callArgs, eval)
+	return(as.call(c(callFn, callArgs)))
 }
 
 getStem <- function(path) {
