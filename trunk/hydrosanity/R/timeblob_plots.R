@@ -21,15 +21,15 @@ grid.timeline.plot <- function(blob.list, xscale=NULL, colMap=list(good="black",
 	if (newpage) { grid.newpage() }
 	# layout for plot
 	pushViewport(viewport(name="timeline.plot.layout",
-		layout=grid.layout(2, 3,
+		layout=grid.layout(3, 3,
 			widths=unit.c(stringWidth(maxlab)+pad, unit(1,"null"), pad),
-			heights=unit.c(unit(1,"null"), unit(3, "lines")))))
+			heights=unit.c(pad, unit(1,"null"), unit(3, "lines")))))
 	# overall plot viewport, and layout for timeline bars
-	pushViewport(viewport(name="timeline.bars.layout.vp", 
-		layout.pos.col=2, layout.pos.row=1, xscale=xscale,
+	pushViewport(viewport(name="time.vp", 
+		layout.pos.col=2, layout.pos.row=2, xscale=xscale,
 		layout=grid.layout(n*2+1, 1,
-			heights=unit.c(rep(unit.c(unit(1,"null"), thickness), n), 
-				unit(1,"null")))))
+			heights=unit.c(unit(1,"null"), 
+				rep(unit.c(thickness, unit(1,"null")), n)))))
 	# draw axis and grill
 	tickX <- grid.xaxis.POSIXct(xscale, name="timeline.xaxis")
 	if (grill) {
@@ -49,7 +49,6 @@ grid.timeline.plot <- function(blob.list, xscale=NULL, colMap=list(good="black",
 	# come back up
 	upViewport(2)
 }
-
 
 #if colMap=NULL then ignore quality codes, just plot non-NA values as black
 grid.timeline.bar <- function(blob, colMap=NULL, name="timeline.bar") {
@@ -87,7 +86,19 @@ grid.timeline.bar <- function(blob, colMap=NULL, name="timeline.bar") {
 }
 
 
-grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales=T, logScale=F, zeroLevel=NULL, maxLabelChars=20, pad=unit(5,"mm"), superPos=1, newScale=T, newpage=(superPos==1), gp=gpar(col=colSet[superPos]), colSet=c("#0080ff", "#ff00ff", "darkgreen", "#ff0000", "orange", "#00ff00", "brown")) {
+grid.timeseries.plot.superpose <- function(superpose.blob.list, ...) {
+	for (layer in seq(along=superpose.blob.list)) {
+		this.args <- list(...)
+		blob.list <- superpose.blob.list[[layer]]
+		this.args$blob.list <- blob.list
+		this.args$superPos <- layer
+		this.args$nSuperpose <- length(superpose.blob.list)
+		do.call(grid.timeseries.plot, this.args)
+	}
+}
+
+
+grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales=T, logScale=F, zeroLevel=NULL, maxLabelChars=20, pad=unit(5,"mm"), superPos=1, newScale=T, newpage=(superPos==1), nSuperpose=1, gp=gpar(col=colSet[superPos]), colSet=c("#0080ff", "#ff00ff", "darkgreen", "#ff0000", "orange", "#00ff00")) {
 	# check types
 	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
 	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
@@ -95,7 +106,7 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 		if (superPos == 1) {
 			xscale <- c(start.timeblobs(blob.list), end.timeblobs(blob.list))
 		} else {
-			depth <- downViewport("timeseries.layout.vp")
+			depth <- downViewport("time.vp")
 			xscale <- as.POSIXct.raw(convertX(unit(c(0,1), "npc"), "native"))
 			upViewport(depth)
 		}
@@ -109,16 +120,20 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 	ylabs <- sapply(names(blob.list), toString, width=maxLabelChars)
 	if (newpage) { grid.newpage() }
 	# layout for plot
+	yLabSpace <- unit(1.5, "lines")
+	yAxisWidth <- unit(3, "lines")
+	yAxesSpace <- yAxisWidth
+	if (newScale) { yAxesSpace <- yAxisWidth * nSuperpose }
 	if (superPos == 1) {
 		pushViewport(viewport(name="timeseries.plot.layout",
-			layout=grid.layout(2, 3,
-			widths=unit.c(unit(4.5, "lines"), unit(1,"null"), pad),
-			heights=unit.c(unit(1,"null"), unit(3, "lines")))))
+			layout=grid.layout(3, 3,
+			widths=unit.c(yLabSpace+yAxesSpace, unit(1,"null"), pad),
+			heights=unit.c(pad, unit(1,"null"), unit(3, "lines")))))
 		# overall plot viewport, and layout for timeseries plots
-		pushViewport(viewport(name="timeseries.layout.vp", 
-			layout.pos.col=2, layout.pos.row=1, xscale=xscale,
-			layout=grid.layout(n*2, 1,
-			heights=unit.c(rep(unit.c(pad, unit(1,"null")), n)))))
+		pushViewport(viewport(name="time.vp", 
+			layout.pos.col=2, layout.pos.row=2, xscale=xscale,
+			layout=grid.layout(n*2-1, 1,
+			heights=unit.c(rep(unit.c(unit(1,"null"), pad), n), unit(1,"null")) )))
 		# draw time axis with labels at bottom of plot
 		grid.xaxis.POSIXct(xscale, name="timeseries.xaxis")
 	}
@@ -134,7 +149,7 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 	# plot each timeblob in the list
 	for (k in 1:n) {
 		# allow skipping for superposed series
-		if (is.null(blob.list[[k]])) { next }
+		if (is.null(blob.list[[k]]) || (nrow(blob.list[[k]])==0)) { next }
 		# set up vertical scale for timeseries number k
 		myYScale <- yscale
 		if (is.null(yscale)) {
@@ -153,17 +168,24 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 		if (logScale) {
 			myYScale <- log10(myYScale)
 		}
+		# extend yscale for clarity
+		myYScale[2] <- myYScale[2] + 0.05*diff(myYScale)
+		if (!logScale) { myYScale[1] <- myYScale[1] - 0.05*diff(myYScale) }
+		# do plot
 		if (superPos == 1) {
 			# create viewport for timeseries number k
-			pushViewport(viewport(name=paste("timeseries",k,".vp",sep=''),
-				layout.pos.row=k*2, xscale=xscale, yscale=myYScale, clip="on"))
+			pushViewport(viewport(
+				name=paste("timeseries",k,".vp",sep=''),
+				layout.pos.row=k*2-1, 
+				xscale=xscale, yscale=myYScale, clip="on"))
 		} else {
 			# navigate down to where timeseries number k was plotted
 			downViewport(paste("timeseries",k,".vp",sep=''))
 			if (newScale==T) {
 				# push a new viewport to change scales
-				pushViewport(viewport(name=paste("timeseries",k,"/",superPos,".vp",sep=''),
-					layout.pos.row=k*2, xscale=xscale, yscale=myYScale, clip="on"))
+				pushViewport(viewport(
+					name=paste("timeseries",k,"/",superPos,".vp",sep=''),
+					xscale=xscale, yscale=myYScale, clip="on"))
 			}
 		}
 		grid.timeseries.steps(blob.list[[k]], logScale=logScale,
@@ -174,19 +196,21 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 			grid.rect()
 			grid.xaxis.POSIXct(xscale, NA, labels=F)
 			if (logScale) {
-				grid.yaxis.log(myYScale)
-				grid.yaxis.log(myYScale, main=F, label=F)
+				grid.yaxis.log()
+				grid.yaxis.log(main=F, label=F)
 			} else {
 				grid.yaxis()
 				grid.yaxis(main=F, label=F)
 			}
 			# draw label number k
-			grid.text(ylabs[k], x=unit(-4, "lines"), rot=90,
+			grid.text(ylabs[k], x=-1*yAxesSpace-unit(1,"lines"), rot=90,
 				name=paste("label",k,sep=''))
 		}
 		if ((superPos != 1) && newScale) {
-			pushViewport(viewport(x=unit(-3,"lines"), just="left", clip="off"))
-			grid.yaxis()
+			pushViewport(viewport(x=-1*yAxisWidth*(superPos-1), just="left", 
+			clip="off", gp=gp))
+			if (logScale) { grid.yaxis.log() }
+			else { grid.yaxis() }
 		}
 		# come back up
 		if (superPos == 1) { upViewport() } # axes
@@ -198,7 +222,7 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 }
 
 
-grid.timeseries.steps <- function(blob, logScale=F, gp=gpar(), name="timeseries") {
+grid.timeseries.steps <- function(blob, logScale=F, name="timeseries", gp=NULL, vp=NULL) {
 	# check types
 	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
 	# setup
@@ -210,9 +234,15 @@ grid.timeseries.steps <- function(blob, logScale=F, gp=gpar(), name="timeseries"
 	iVals <- iDates
 	iDates <- c(rep(iDates,each=2)[-1], NA)
 	iVals <- rep(iVals,each=2)
-	transFn <- if (logScale) { log10 } else { I }
-	grid.lines(x=subBlob$Time[iDates], y=transFn(subBlob[iVals,2]),
-		default.units="native", gp=gp, name=name)
+	myData <- subBlob[,2]
+	if (logScale) {
+		myData <- log10(myData)
+		# set log(0)==-Inf to a finite value off bottom of plot
+		yscale <- as.numeric(convertY(unit(c(0,1), "npc"), "native"))
+		myData[na.omit(subBlob[,2]==0)] <- yscale[1] - diff(yscale)
+	}
+	grid.lines(x=subBlob$Time[iDates], y=myData[iVals],
+		default.units="native", name=name, gp=gp, vp=vp)
 }
 
 
@@ -243,7 +273,8 @@ applyColourMap <- function(qualityCodes, colMap) {
 	return(thisCol)
 }
 
-grid.yaxis.log <- function(yscale, at=NULL, label=NULL, name="yaxis", ...) {
+grid.yaxis.log <- function(at=NULL, label=NULL, name="yaxis", ...) {
+	yscale <- as.numeric(convertY(unit(c(0,1), "npc"), "native"))
 	if (is.null(at)) {
 		# integer log powers
 		at <- seq(ceiling(min(yscale)), max(yscale))

@@ -39,28 +39,176 @@ newCairoWindow <- function(name) {
 	.hydrosanity$win[[name]] <<- plotGUI$getWidget("plot_window")
 	newDev <- plotGUI$getWidget("drawingarea")
 	asCairoDevice(newDev)
-	myWin$setTitle(paste("Hydrosanity: Plot", dev.cur()))
+	myWin$setTitle(paste("Hydrosanity: ", name, sep=''))
 }
 
 on_plot_identify_button_clicked <- function(button) {
 	infoDialog("not implemented")
 }
 
-on_plot_centre_button_clicked <- function(button) {
-	infoDialog("not implemented")
-}
-
 on_plot_zoomin_button_clicked <- function(button) {
-	infoDialog("not implemented")
+	# look up information about this window in '.hydrosanity'
+	myWin <- button$getParent()$getParent()$getParent()
+	myIndex <- NA
+	for (i in seq(along=.hydrosanity$win)) {
+		if (myWin == .hydrosanity$win[[i]]) { myIndex <- i; break }
+	}
+	if (is.na(myIndex)) { return() }
+	myName <- names(.hydrosanity$win)[myIndex]
+	if (is.null(.hydrosanity$call[[myName]])) {
+		errorDialog("No call for this window.")
+		return()
+	}
+	depth <- try(downViewport("time.vp"), silent=T)
+	if (inherits(depth, "try-error")) {
+		errorDialog("No suitable time scales were found.")
+		return()
+	}
+	xscale <- convertX(unit(c(0,1), "npc"), "native")
+	timeVpPath <- current.vpPath()
+	upViewport(depth)
+	# display prompt to user (in top-level plot)
+	pad <- unit(2, "mm")
+	promptGrob <- textGrob("Click at the start of the window (to zoom in to) ", 
+		y=unit(1,"npc")-pad, just="top",
+		gp=gpar(fontface="bold"), name="tmp.prompt")
+	promptBoxGrob <- rectGrob(width=grobWidth(promptGrob)+pad*2, 
+		height=grobHeight(promptGrob)+pad*2,
+		y=unit(1,"npc"), just="top", 
+		gp=gpar(col="black", fill="yellow", linejoin="round"),
+		name="tmp.promptbox")
+	grid.draw(promptBoxGrob)
+	grid.draw(promptGrob)
+	# get start time
+	downViewport("time.vp")
+	clickLoc <- grid.locator()
+	upViewport(depth)
+	if (is.null(clickLoc)) {
+		grid.remove("tmp.*", grep=T, global=T)
+		return()
+	}
+	xscale.new <- as.POSIXct.raw(clickLoc$x)
+	maskGrob <- rectGrob(x=0, width=(clickLoc$x - xscale[1]), just="left", 
+		gp=gpar(col=NULL, fill="grey", alpha=0.5), 
+		vp=timeVpPath, name="tmp.mask")
+	grid.draw(maskGrob)
+	grid.lines(x=clickLoc$x, vp=timeVpPath, name="tmp.maskline")
+	# display second prompt
+	promptGrob <- editGrob(promptGrob, label="OK, now click at the end of the window")
+	promptBoxGrob <- editGrob(promptBoxGrob, gp=gpar(alpha=1))
+	grid.draw(promptBoxGrob)
+	grid.draw(promptGrob)
+	# get end time
+	downViewport("time.vp")
+	clickLoc <- grid.locator()
+	upViewport(depth)
+	if (is.null(clickLoc)) {
+		grid.remove("tmp.*", grep=T, global=T)
+		return()
+	}
+	xscale.new[2] <- as.POSIXct.raw(clickLoc$x)
+	grid.draw(editGrob(maskGrob, x=unit(1,"npc"),
+		width=(xscale[2] - clickLoc$x), just="right"))
+	grid.lines(x=clickLoc$x, vp=timeVpPath, name="tmp.maskline2")
+	# update the call (using do.call to force eval of args) and re-draw plot
+	.hydrosanity$call[[myName]] <<- do.call(update, list(
+		list(call=.hydrosanity$call[[myName]]), 
+		xscale=force(xscale.new),
+		evaluate=F)
+	)
+	eval(.hydrosanity$call[[myName]])
 }
 
 on_plot_zoomout_button_clicked <- function(button) {
-	infoDialog("not implemented")
+	# look up information about this window in '.hydrosanity'
+	myWin <- button$getParent()$getParent()$getParent()
+	myIndex <- NA
+	for (i in seq(along=.hydrosanity$win)) {
+		if (myWin == .hydrosanity$win[[i]]) { myIndex <- i; break }
+	}
+	if (is.na(myIndex)) { return() }
+	myName <- names(.hydrosanity$win)[myIndex]
+	if (is.null(.hydrosanity$call[[myName]])) {
+		errorDialog("No call for this window.")
+		return()
+	}
+	depth <- try(downViewport("time.vp"), silent=T)
+	if (inherits(depth, "try-error")) {
+		errorDialog("No suitable time scales were found.")
+		return()
+	}
+	xscale <- as.numeric(convertX(unit(c(0,1), "npc"), "native"))
+	upViewport(depth)
+	# make new xscale twice length of existing time period
+	xscale.new <- xscale + diff(xscale) * c(-0.5, 0.5)
+	xscale.new <- as.POSIXct.raw(xscale.new)
+	# update the call (using do.call to force eval of args) and re-draw plot
+	.hydrosanity$call[[myName]] <<- do.call(update, list(
+		list(call=.hydrosanity$call[[myName]]), 
+		xscale=xscale.new,
+		evaluate=F)
+	)
+	eval(.hydrosanity$call[[myName]])
+}
+
+
+on_plot_centre_button_clicked <- function(button) {
+	# look up information about this window in '.hydrosanity'
+	myWin <- button$getParent()$getParent()$getParent()
+	myIndex <- NA
+	for (i in seq(along=.hydrosanity$win)) {
+		if (myWin == .hydrosanity$win[[i]]) { myIndex <- i; break }
+	}
+	if (is.na(myIndex)) { return() }
+	myName <- names(.hydrosanity$win)[myIndex]
+	if (is.null(.hydrosanity$call[[myName]])) {
+		errorDialog("No call for this window.")
+		return()
+	}
+	depth <- try(downViewport("time.vp"), silent=T)
+	if (inherits(depth, "try-error")) {
+		errorDialog("No suitable time scales were found.")
+		return()
+	}
+	xscale <- as.numeric(convertX(unit(c(0,1), "npc"), "native"))
+	# get new centre point
+	clickLoc <- grid.locator()
+	upViewport(depth)
+	if (is.null(clickLoc)) {
+		return()
+	}
+	xscale.new <- as.numeric(clickLoc$x) + diff(xscale) * c(-0.5, 0.5)
+	xscale.new <- as.POSIXct.raw(xscale.new)
+	# update the call (using do.call to force eval of args) and re-draw plot
+	.hydrosanity$call[[myName]] <<- do.call(update, list(
+		list(call=.hydrosanity$call[[myName]]), 
+		xscale=xscale.new,
+		evaluate=F)
+	)
+	eval(.hydrosanity$call[[myName]])
 }
 
 on_plot_log_togglebutton_clicked <- function(button) {
-	infoDialog("not implemented")
-	#button$getActive()
+	# look up information about this window in '.hydrosanity'
+	myWin <- button$getParent()$getParent()$getParent()
+	myIndex <- NA
+	for (i in seq(along=.hydrosanity$win)) {
+		if (myWin == .hydrosanity$win[[i]]) { myIndex <- i; break }
+	}
+	if (is.na(myIndex)) { return() }
+	myName <- names(.hydrosanity$win)[myIndex]
+	if (is.null(.hydrosanity$call[[myName]])) {
+		errorDialog("No call for this window.")
+		return()
+	}
+	logScale <- button$getActive()
+	# update the call (using do.call to force eval of args) and re-draw plot
+	.hydrosanity$call[[myName]] <<- do.call(update, list(
+		list(call=.hydrosanity$call[[myName]]), 
+		logScale=logScale,
+		evaluate=F)
+	)
+	eval(.hydrosanity$call[[myName]])
 }
 
 on_plot_save_button_clicked <- function(button) {
@@ -69,13 +217,16 @@ on_plot_save_button_clicked <- function(button) {
 
 on_plot_delete_event <- function(widget, event, user.data) {
 	myWin <- widget
-	myTitle <- myWin$getTitle()
-	devnum <- as.integer(sub("Hydrosanity: Plot ", "", myTitle))
-	dev.off(devnum)
+	myIndex <- NA
 	for (i in seq(along=.hydrosanity$win)) {
-		if (myWin == .hydrosanity$win[[i]]) {
-			.hydrosanity$win[[i]] <<- NULL
-		}
+		if (myWin == .hydrosanity$win[[i]]) { myIndex <- i; break }
+	}
+	if (!is.na(myIndex)) {
+		myName <- names(.hydrosanity$win)[myIndex]
+		#dev.off(.hydrosanity$dev[[myName]])
+		.hydrosanity$dev[[myName]] <<- NULL
+		.hydrosanity$call[[myName]] <<- NULL
+		.hydrosanity$win[[myName]] <<- NULL
 	}
 	myWin$destroy()
 	theWidget("hs_window")$present()
