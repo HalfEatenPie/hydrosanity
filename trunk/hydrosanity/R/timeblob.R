@@ -351,31 +351,26 @@ range.timeblob <- function(blob, ...) {
 
 nonzeromin <- function(x, ...) { min(x[x>0], ...) }
 
-get.year <- function(thisPOSIXt) {
-	return(as.POSIXlt(thisPOSIXt)$year + 1900)
+trunc.month <- function(thisPOSIXt) {
+	zz <- as.POSIXlt(thisPOSIXt)
+	zz$mday <- 1
+        zz$hour <- zz$min <- zz$sec <- 0
+	zz$isdst <- -1
+	return(zz)
 }
 
-
-floor.year <- function(thisPOSIXt) {
+trunc.year <- function(thisPOSIXt) {
 	zz <- as.POSIXlt(thisPOSIXt)
 	zz$mday <- 1
 	zz$mon <- 0
-        zz$isdst <- zz$hour <- zz$min <- zz$sec <- 0
+        zz$hour <- zz$min <- zz$sec <- 0
+	zz$isdst <- -1
 	return(zz)
 }
 
-
-ceiling.year <- function(thisPOSIXt) {
+trunc.decade <- function(thisPOSIXt) {
 	zz <- as.POSIXlt(floor.year(thisPOSIXt))
-	zz$year <- zz$year + 1
-	return(zz)
-}
-
-
-floor.month <- function(thisPOSIXt) {
-	zz <- as.POSIXlt(thisPOSIXt)
-	zz$mday <- 1
-        zz$isdst <- zz$hour <- zz$min <- zz$sec <- 0
+	zz$year <- (zz$year %/% 10) * 10
 	return(zz)
 }
 

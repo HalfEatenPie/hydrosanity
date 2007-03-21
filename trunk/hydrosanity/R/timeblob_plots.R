@@ -31,7 +31,8 @@ grid.timeline.plot <- function(blob.list, xscale=NULL, colMap=list(good="black",
 			heights=unit.c(unit(1,"null"), 
 				rep(unit.c(thickness, unit(1,"null")), n)))))
 	# draw axis and grill
-	tickX <- grid.xaxis.POSIXct(xscale, name="timeline.xaxis")
+	grid.lines(y=unit(0,"npc"))
+	tickX <- grid.xaxis.POSIXt(name="timeline.xaxis")
 	if (grill) {
 		grid.segments(tickX, unit(0,"npc"), tickX, unit(1,"npc")-pad,
 			default.units="native", gp=gpar(col="grey"))
@@ -135,7 +136,7 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 			layout=grid.layout(n*2-1, 1,
 			heights=unit.c(rep(unit.c(unit(1,"null"), pad), n), unit(1,"null")) )))
 		# draw time axis with labels at bottom of plot
-		grid.xaxis.POSIXct(xscale, name="timeseries.xaxis")
+		grid.xaxis.POSIXt(name="timeseries.xaxis")
 	}
 	# calculate common yscale
 	if (is.null(yscale) && sameScales) {
@@ -194,7 +195,7 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 		if (superPos == 1) {
 			pushViewport(viewport(xscale=xscale, yscale=myYScale, clip="off"))
 			grid.rect()
-			grid.xaxis.POSIXct(xscale, NA, labels=F)
+			grid.xaxis.POSIXt(label=F)
 			if (logScale) {
 				grid.yaxis.log()
 				grid.yaxis.log(main=F, label=F)
@@ -207,8 +208,8 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 				name=paste("label",k,sep=''))
 		}
 		if ((superPos != 1) && newScale) {
-			pushViewport(viewport(x=-1*yAxisWidth*(superPos-1), just="left", 
-			clip="off", gp=gp))
+			pushViewport(viewport(x=-1*yAxisWidth*(superPos-1), 
+				just="left", yscale=myYScale, clip="off", gp=gp))
 			if (logScale) { grid.yaxis.log() }
 			else { grid.yaxis() }
 		}
@@ -244,9 +245,6 @@ grid.timeseries.steps <- function(blob, logScale=F, name="timeseries", gp=NULL, 
 	grid.lines(x=subBlob$Time[iDates], y=myData[iVals],
 		default.units="native", name=name, gp=gp, vp=vp)
 }
-
-
-#qqmath(~ hsp$data[[1]][,2] + hsp$data[[2]][,2], ylim=c(0.1, 1000), scales=list(y=list(log=T)))
 
 
 # returns factor with levels as colours (i.e. colour name/spec strings)
@@ -307,83 +305,59 @@ grid.yaxis.log <- function(at=NULL, label=NULL, name="yaxis", ...) {
 	grid.yaxis(at=at, label=label, name=name, ...)
 }
 
-# modified version of axis.POSIXct (namespace:graphics) to work with grid
-grid.xaxis.POSIXct <- function (range, x=NA, at, format, labels = TRUE, ...) 
-{
-    mat <- missing(at) || is.null(at)
-    if (!mat) 
-        x <- as.POSIXct(at)
-    else x <- as.POSIXct(x)
-    d <- as.numeric(range[2]) - as.numeric(range[1])
-    z <- c(range, x[is.finite(x)])
-    if (d < 1.1 * 60) {
-        sc <- 1
-        if (missing(format)) 
-            format <- "%S"
-    }
-    else if (d < 1.1 * 60 * 60) {
-        sc <- 60
-        if (missing(format)) 
-            format <- "%M:%S"
-    }
-    else if (d < 1.1 * 60 * 60 * 24) {
-        sc <- 60 * 24
-        if (missing(format)) 
-            format <- "%H:%M"
-    }
-    else if (d < 2 * 60 * 60 * 24) {
-        sc <- 60 * 24
-        if (missing(format)) 
-            format <- "%a %H:%M"
-    }
-    else if (d < 7 * 60 * 60 * 24) {
-        sc <- 60 * 60 * 24
-        if (missing(format)) 
-            format <- "%a"
-    }
-    else {
-        sc <- 60 * 60 * 24
-    }
-    if (d < 60 * 60 * 24 * 50) {
-        zz <- pretty(z/sc)
-        z <- zz * sc
-        class(z) <- c("POSIXt", "POSIXct")
-        if (sc == 60 * 60 * 24) 
-            z <- as.POSIXct(round(z, "days"))
-        if (missing(format)) 
-            format <- "%b %d"
-    }
-    else if (d < 1.1 * 60 * 60 * 24 * 365) {
-        class(z) <- c("POSIXt", "POSIXct")
-        zz <- as.POSIXlt(z)
-        zz$mday <- 1
-        zz$isdst <- zz$hour <- zz$min <- zz$sec <- 0
-        zz$mon <- pretty(zz$mon)
-        m <- length(zz$mon)
-        m <- rep.int(zz$year[1], m)
-        zz$year <- c(m, m + 1)
-        z <- as.POSIXct(zz)
-        if (missing(format)) 
-            format <- "%b"
-    }
-    else {
-        class(z) <- c("POSIXt", "POSIXct")
-        zz <- as.POSIXlt(z)
-        zz$mday <- 1
-        zz$isdst <- zz$mon <- zz$hour <- zz$min <- zz$sec <- 0
-        zz$year <- pretty(zz$year)
-        z <- as.POSIXct(zz)
-        if (missing(format)) 
-            format <- "%Y"
-    }
-    if (!mat) 
-        z <- x[is.finite(x)]
-    z <- z[z >= range[1] & z <= range[2]]
-    if (identical(labels, TRUE)) 
-        labels <- format(z, format = format)
-    else if (identical(labels, FALSE)) 
-        labels <- rep("", length(z))
-    grid.xaxis(at = z, label = labels, ...)
-    return(z)
+grid.xaxis.POSIXt <- function(at=NULL, label=NULL, name="timeaxis", ...) {
+	xscale <- as.numeric(convertX(unit(c(0,1), "npc"), "native"))
+	timelim <- as.POSIXct.raw(xscale)
+	if (is.null(at)) {
+		myBy <- "1 hour"
+		myStart <- trunc(min(timelim), units="hours")
+		myFormat <- "%m-%d %H:%M"
+		if (diff(xscale) > 12 * 60*60) {
+			myBy <- "6 hours"
+			myStart <- trunc(myStart, units="days")
+		}
+		if (diff(xscale) > 1.5 * 24*60*60) {
+			myBy <- "1 day"
+			myFormat <- "%Y-%m-%d"
+		}
+		if (diff(xscale) > 7 * 24*60*60) {
+			myBy <- "4 days"
+		}
+		if (diff(xscale) > 30 * 24*60*60) {
+			myBy <- "1 month"
+			myStart <- trunc.month(myStart)
+			myFormat <- "%Y-%m"
+		}
+		if (diff(xscale) > 6 * 30*24*60*60) {
+			myBy <- "3 months"
+			myStart <- trunc.year(myStart)
+			myFormat <- "%b"
+		}
+		if (diff(xscale) > 24 * 30*24*60*60) {
+			myBy <- "1 year"
+			myFormat <- "%Y"
+		}
+		if (diff(xscale) > 10 * 365.25*24*60*60) {
+			myBy <- "5 years"
+			myStart <- trunc.decade(myStart)
+		}
+		if (diff(xscale) > 30 * 365.25*24*60*60) {
+			myBy <- "10 years"
+		}
+		at <- seq.POSIXt(myStart, max(timelim), by=myBy)
+		# only keep axis ticks within range
+		inrange <- (min(timelim) <= at) & (at <= max(timelim))
+		at <- at[inrange]
+		if (is.null(label)) {
+			label <- format(at, format=myFormat)
+			atYears <- sapply(at, function(x) {
+				# TODO: make this stand-alone
+				x == trunc.year(as.POSIXct.raw(x))
+			})
+			label[atYears] <- format(at[atYears], format="%Y")
+		}
+	}
+	grid.xaxis(at=at, label=label, name=name, ...)
+	return(at)
 }
 

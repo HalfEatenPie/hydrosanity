@@ -58,7 +58,6 @@ on_explore_timeseries_button_clicked <- function(button) {
 	doAggr2 <- theWidget("explore_timeseries_aggr2_checkbutton")$getActive()
 	aggr1By <- theWidget("explore_timeseries_aggr1_comboboxentry")$getActiveText()
 	aggr2By <- theWidget("explore_timeseries_aggr2_comboboxentry")$getActiveText()
-	myOptions <- theWidget("explore_timeseries_options_entry")$getText()
 	myM <- (doRawData + doAggr1 + doAggr2)
 	if (myM == 0) { return() }
 	
@@ -157,7 +156,9 @@ on_explore_timeseries_button_clicked <- function(button) {
 	
 	result <- guiTryEval(plot.cmd)
 	if (inherits(result, "error")) { return() }
-	.hydrosanity$call$timeseries <<- evalCallArgs(parse(text=plot.cmd)[[1]])
+	
+	tmpCall <- parse(text=plot.cmd)[[1]]
+	.hydrosanity$call[["timeseries"]] <<- evalCallArgs(tmpCall, pattern="^tmp")
 	
 	if (length(tmpObjs) > 0) {
 		addToLog(paste('rm(', paste(tmpObjs, collapse=', '), ')', sep=''))
@@ -176,15 +177,29 @@ on_explore_cdf_button_clicked <- function(button) {
 		errorDialog("No items selected.")
 		return()
 	}
-	mySelNames <- paste('c("', paste(selNames, collapse='", "'), '")', sep='')
+	myN <- length(selNames)
+	rawdata.cmd <- paste('hsp$data[["', selNames, '"]][,2]', sep='')
+	rawdata.formula.cmd <- paste(rawdata.cmd, collapse=" + ")
 	
-	setPlotDevice("explore")
-	plot.cmd <- sprintf('fdcplot(hsp$data[%s], timelim=hsp$timePeriod, plotQualCodes=T)',
-		mySelNames)
+	doNormal <- theWidget("explore_cdf_normal_radiobutton")$getActive()
+	
+	dist.cmd <- if (doNormal) { '' } else { ', distribution=qunif' }
 	
 	addLogComment("Generate CDF plot")
+	
+	setPlotDevice("distribution")
+	
+	#title(xlab="Probability of exceedence (%)")
+	#axis(2, las=2, at = c(0.1, 1, 10, 100, 1000, 10^4, 10^5, 10^6), labels = c("0.1", "1", "10", "100", "1000", "10^4", "10^5", "10^6"))
+	#axis(1, at=probFn(c(0.001, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99, 0.999)), 
+	#	labels=c("0.1", "1", "10", "20", "30", "40", "50", "60", "70", "80", "90", "99", "99.9"))
+		
+	plot.cmd <- sprintf('qqmath(~ %s%s, ylim=c(0.1, 1000), scales=list(y=list(log=T)), auto.key=T)',
+		rawdata.formula.cmd, dist.cmd)
+	
 	result <- guiTryEval(plot.cmd)
 	if (inherits(result, "error")) { return() }
+	.hydrosanity$call[["distribution"]] <<- parse(text=plot.cmd)[[1]]
 	setStatusBar("Generated CDF plot")
 }
 
@@ -196,6 +211,17 @@ on_explore_seasonal_button_clicked <- function(button) {
 	selNames <- iconViewGetSelectedNames(theWidget("explore_iconview"))
 	
 	setPlotDevice("explore")
-	monthlyboxplot(hsp$data[[selNames[1]]])
+	
+	
+	#monthBlob <- aggregate.timeblob(myBlob, by="months", aggrFun=aggrFun)
+	#monthBlob[,2] <- pmax(monthBlob[,2], zeroLevel/10) # 0 values would be lost by log transform
+	##myMonths <- months(monthBlob$Time, abbreviate=TRUE)
+	#monthNums <- sapply(monthBlob$Time, function(x) { as.POSIXlt(as.POSIXct.raw(x))$mon })
+	#monthList <- split(monthBlob[,2], monthNums)
+	#names(monthList) <- c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
+	#globalMax <- max(monthBlob[,2], na.rm=T)
+	#boxplot(monthList, ylim=c(zeroLevel, globalMax), range=0, log=log, ...)
+	
+	#monthlyboxplot(hsp$data[[selNames[1]]])
 }
 
