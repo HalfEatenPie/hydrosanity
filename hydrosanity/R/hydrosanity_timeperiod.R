@@ -128,7 +128,7 @@ on_timeperiod_viewtimeline_button_clicked <- function(button) {
 	addLogComment("Generate timeline plot")
 	result <- guiTryEval(plot.cmd)
 	if (inherits(result, "error")) { return() }
-	.hydrosanity$call$timeline <<- parse(text=plot.cmd)[[1]]
+	.hydrosanity$call[["timeline"]] <<- parse(text=plot.cmd)[[1]]
 	setStatusBar("Generated timeline plot")
 }
 

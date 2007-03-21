@@ -7,7 +7,7 @@
 ##
 
 MAJOR <- "0"
-MINOR <- "3"
+MINOR <- "4"
 REVISION <- unlist(strsplit("$Revision: 0 $", split=" "))[2]
 VERSION <- paste(MAJOR, MINOR, REVISION, sep=".")
 COPYRIGHT <- "(c) 2007 Felix Andrews <felix@nfrac.org>, GPL\n based on Rattle, (c) 2006 Graham.Williams@togaware.com"
@@ -39,6 +39,7 @@ COPYRIGHT <- "(c) 2007 Felix Andrews <felix@nfrac.org>, GPL\n based on Rattle, (
 
 hydrosanity <- function() {
 	require(grid, quietly=TRUE)
+	require(lattice, quietly=TRUE)
 	require(RGtk2, quietly=TRUE) # From http://www.ggobi.org/rgtk2/
 	require(cairoDevice, quietly=TRUE)
 	
@@ -107,19 +108,6 @@ hydrosanity <- function() {
 		colNames=c("Name", "Min", "Q25", "Median", "Q75", "Max", "Missing", ""))
 	
 	theWidget("hs_window")$present()
-}
-
-
-blankStateHSP <- function() {
-	## PROJECT STATE VARIABLE
-	list(
-		data=list(),
-		timePeriod=NULL,
-		timeStep="1 DSTday",
-		cwd=getwd(),
-		defaultImportOptions=
-		'sep=",", skip=1, dataName="Data", dataCol=2, qualCol=3'
-	)
 }
 
 
@@ -262,12 +250,16 @@ getpackagefile <- function(filename) {
 	}
 }
 
-evalCallArgs <- function(myCall) {
-	callArgs <- as.list(myCall)
-	callFn <- callArgs[[1]]
-	callArgs[[1]] <- NULL
-	callArgs <- lapply(callArgs, eval)
-	return(as.call(c(callFn, callArgs)))
+evalCallArgs <- function(myCall, pattern=".*") {
+	for (i in seq(along=myCall)) {
+		if (i == 1) { next } # don't eval function itself
+		if (length(grep(pattern, deparse(myCall[[i]])))>0) {
+			myCall[[i]] <- eval(myCall[[i]], parent.frame(2))
+		} else if (identical(mode(myCall[[i]]), "call")) {
+			myCall[[i]] <- evalCallArgs(myCall[[i]], pattern)
+		}
+	}
+	return(myCall)
 }
 
 getStem <- function(path) {

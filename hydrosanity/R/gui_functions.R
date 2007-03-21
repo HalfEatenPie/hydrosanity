@@ -46,6 +46,56 @@ on_plot_identify_button_clicked <- function(button) {
 	infoDialog("not implemented")
 }
 
+on_plot_centre_button_clicked <- function(button) {
+	# look up information about this window in '.hydrosanity'
+	myWin <- button$getParent()$getParent()$getParent()
+	myIndex <- NA
+	for (i in seq(along=.hydrosanity$win)) {
+		if (myWin == .hydrosanity$win[[i]]) { myIndex <- i; break }
+	}
+	if (is.na(myIndex)) { return() }
+	myName <- names(.hydrosanity$win)[myIndex]
+	if (is.null(.hydrosanity$call[[myName]])) {
+		errorDialog("No call for this window.")
+		return()
+	}
+	depth <- try(downViewport("time.vp"), silent=T)
+	if (inherits(depth, "try-error")) {
+		errorDialog("No suitable time scales were found.")
+		return()
+	}
+	xscale <- as.numeric(convertX(unit(c(0,1), "npc"), "native"))
+	upViewport(depth)
+	# display prompt to user (in top-level plot)
+	pad <- unit(2, "mm")
+	promptGrob <- textGrob("Click to move the time window", 
+		y=unit(1,"npc")-pad, just="top",
+		gp=gpar(fontface="bold"), name="tmp.prompt")
+	promptBoxGrob <- rectGrob(width=grobWidth(promptGrob)+pad*2, 
+		height=grobHeight(promptGrob)+pad*2,
+		y=unit(1,"npc"), just="top", 
+		gp=gpar(col="black", fill="yellow"),
+		name="tmp.promptbox")
+	grid.draw(promptBoxGrob)
+	grid.draw(promptGrob)
+	# get new centre point
+	downViewport("time.vp")
+	clickLoc <- grid.locator()
+	upViewport(depth)
+	if (is.null(clickLoc)) {
+		return()
+	}
+	xscale.new <- as.numeric(clickLoc$x) + diff(xscale) * c(-0.5, 0.5)
+	xscale.new <- as.POSIXct.raw(xscale.new)
+	# update the call (using do.call to force eval of args) and re-draw plot
+	.hydrosanity$call[[myName]] <<- do.call(update, list(
+		list(call=.hydrosanity$call[[myName]]), 
+		xscale=xscale.new,
+		evaluate=F)
+	)
+	eval(.hydrosanity$call[[myName]])
+}
+
 on_plot_zoomin_button_clicked <- function(button) {
 	# look up information about this window in '.hydrosanity'
 	myWin <- button$getParent()$getParent()$getParent()
@@ -75,7 +125,7 @@ on_plot_zoomin_button_clicked <- function(button) {
 	promptBoxGrob <- rectGrob(width=grobWidth(promptGrob)+pad*2, 
 		height=grobHeight(promptGrob)+pad*2,
 		y=unit(1,"npc"), just="top", 
-		gp=gpar(col="black", fill="yellow", linejoin="round"),
+		gp=gpar(col="black", fill="yellow"),
 		name="tmp.promptbox")
 	grid.draw(promptBoxGrob)
 	grid.draw(promptGrob)
@@ -152,42 +202,6 @@ on_plot_zoomout_button_clicked <- function(button) {
 }
 
 
-on_plot_centre_button_clicked <- function(button) {
-	# look up information about this window in '.hydrosanity'
-	myWin <- button$getParent()$getParent()$getParent()
-	myIndex <- NA
-	for (i in seq(along=.hydrosanity$win)) {
-		if (myWin == .hydrosanity$win[[i]]) { myIndex <- i; break }
-	}
-	if (is.na(myIndex)) { return() }
-	myName <- names(.hydrosanity$win)[myIndex]
-	if (is.null(.hydrosanity$call[[myName]])) {
-		errorDialog("No call for this window.")
-		return()
-	}
-	depth <- try(downViewport("time.vp"), silent=T)
-	if (inherits(depth, "try-error")) {
-		errorDialog("No suitable time scales were found.")
-		return()
-	}
-	xscale <- as.numeric(convertX(unit(c(0,1), "npc"), "native"))
-	# get new centre point
-	clickLoc <- grid.locator()
-	upViewport(depth)
-	if (is.null(clickLoc)) {
-		return()
-	}
-	xscale.new <- as.numeric(clickLoc$x) + diff(xscale) * c(-0.5, 0.5)
-	xscale.new <- as.POSIXct.raw(xscale.new)
-	# update the call (using do.call to force eval of args) and re-draw plot
-	.hydrosanity$call[[myName]] <<- do.call(update, list(
-		list(call=.hydrosanity$call[[myName]]), 
-		xscale=xscale.new,
-		evaluate=F)
-	)
-	eval(.hydrosanity$call[[myName]])
-}
-
 on_plot_log_togglebutton_clicked <- function(button) {
 	# look up information about this window in '.hydrosanity'
 	myWin <- button$getParent()$getParent()$getParent()
@@ -201,6 +215,7 @@ on_plot_log_togglebutton_clicked <- function(button) {
 		errorDialog("No call for this window.")
 		return()
 	}
+	if (identical(myName, "timeline")) { return() }
 	logScale <- button$getActive()
 	# update the call (using do.call to force eval of args) and re-draw plot
 	.hydrosanity$call[[myName]] <<- do.call(update, list(
