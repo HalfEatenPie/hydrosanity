@@ -35,7 +35,7 @@ updateTimePeriodPage <- function() {
 	TV <- "timeperiod_summary_textview"
 	setTextview(TV, "")
 	
-	summmary.cmd <- sprintf('summary.missing.timeblob.list(hsp$data, hsp$timePeriod, hsp$timeStep)')
+	summmary.cmd <- sprintf('summary.missing.timeblob.list(hsp$data, timelim=hsp$timePeriod)')
 	addToLog("## View summary of data coverage in selected period")
 	missingSummary <- capture.output(
 		missingFrac <- guiTryEval(summmary.cmd)
