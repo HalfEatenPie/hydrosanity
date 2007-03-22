@@ -32,7 +32,7 @@ grid.timeline.plot <- function(blob.list, xscale=NULL, colMap=list(good="black",
 				rep(unit.c(thickness, unit(1,"null")), n)))))
 	# draw axis and grill
 	grid.lines(y=unit(0,"npc"))
-	tickX <- grid.xaxis.POSIXt(name="timeline.xaxis")
+	tickX <- grid.xaxis.POSIXt(name="timeline.xaxis")$at
 	if (grill) {
 		grid.segments(tickX, unit(0,"npc"), tickX, unit(1,"npc")-pad,
 			default.units="native", gp=gpar(col="grey"))
@@ -271,21 +271,20 @@ applyColourMap <- function(qualityCodes, colMap) {
 	return(thisCol)
 }
 
-grid.yaxis.log <- function(at=NULL, label=NULL, name="yaxis", ...) {
-	yscale <- as.numeric(convertY(unit(c(0,1), "npc"), "native"))
+grid.yaxis.log <- function(at=NULL, label=NULL, name="yaxis", lim=as.numeric(convertY(unit(c(0,1), "npc"), "native")), ...) {
 	if (is.null(at)) {
 		# integer log powers
-		at <- seq(ceiling(min(yscale)), max(yscale))
-		if (diff(range(yscale)) < 3.9) {
+		at <- seq(ceiling(min(lim)), max(lim))
+		if (diff(range(lim)) < 3.9) {
 			# make it a linear sequence log-transformed
-			mags <- seq(floor(min(yscale)), max(yscale))
+			mags <- seq(floor(min(lim)), max(lim))
 			logAt <- c()
 			for (mag in mags) {
 				logAt <- c(logAt, log10(seq(10^mag, 10^(mag+1), 
 					length.out=10)))
 			}
-			logAt <- logAt[(min(yscale) <= logAt) & (logAt <= max(yscale))]
-			if ((diff(range(yscale)) > 1.1) && !identical(label, F)) {
+			logAt <- logAt[(min(lim) <= logAt) & (logAt <= max(lim))]
+			if ((diff(range(lim)) > 1.1) && !identical(label, F)) {
 				# first draw ticks without labels
 				# (can't just set these labels to ""; then main labels are not drawn)
 				grid.yaxis(at=logAt, label=F,
@@ -303,45 +302,45 @@ grid.yaxis.log <- function(at=NULL, label=NULL, name="yaxis", ...) {
 		label[bigIntPowers] <- paste("10^",at[bigIntPowers],sep='')
 	}
 	grid.yaxis(at=at, label=label, name=name, ...)
+	return(list(at=at, label=label))
 }
 
-grid.xaxis.POSIXt <- function(at=NULL, label=NULL, name="timeaxis", ...) {
-	xscale <- as.numeric(convertX(unit(c(0,1), "npc"), "native"))
-	timelim <- as.POSIXct.raw(xscale)
+grid.xaxis.POSIXt <- function(at=NULL, label=NULL, name="timeaxis", lim=as.numeric(convertX(unit(c(0,1), "npc"), "native")), ...) {
+	timelim <- as.POSIXct.raw(lim)
 	if (is.null(at)) {
 		myBy <- "1 hour"
 		myStart <- trunc(min(timelim), units="hours")
 		myFormat <- "%m-%d %H:%M"
-		if (diff(xscale) > 12 * 60*60) {
+		if (diff(lim) > 12 * 60*60) {
 			myBy <- "6 hours"
 			myStart <- trunc(myStart, units="days")
 		}
-		if (diff(xscale) > 1.5 * 24*60*60) {
+		if (diff(lim) > 1.5 * 24*60*60) {
 			myBy <- "1 day"
 			myFormat <- "%Y-%m-%d"
 		}
-		if (diff(xscale) > 7 * 24*60*60) {
+		if (diff(lim) > 7 * 24*60*60) {
 			myBy <- "4 days"
 		}
-		if (diff(xscale) > 30 * 24*60*60) {
+		if (diff(lim) > 30 * 24*60*60) {
 			myBy <- "1 month"
 			myStart <- trunc.month(myStart)
 			myFormat <- "%Y-%m"
 		}
-		if (diff(xscale) > 6 * 30*24*60*60) {
+		if (diff(lim) > 6 * 30*24*60*60) {
 			myBy <- "3 months"
 			myStart <- trunc.year(myStart)
 			myFormat <- "%b"
 		}
-		if (diff(xscale) > 24 * 30*24*60*60) {
+		if (diff(lim) > 24 * 30*24*60*60) {
 			myBy <- "1 year"
 			myFormat <- "%Y"
 		}
-		if (diff(xscale) > 10 * 365.25*24*60*60) {
+		if (diff(lim) > 10 * 365.25*24*60*60) {
 			myBy <- "5 years"
 			myStart <- trunc.decade(myStart)
 		}
-		if (diff(xscale) > 30 * 365.25*24*60*60) {
+		if (diff(lim) > 30 * 365.25*24*60*60) {
 			myBy <- "10 years"
 		}
 		at <- seq.POSIXt(myStart, max(timelim), by=myBy)
@@ -358,6 +357,7 @@ grid.xaxis.POSIXt <- function(at=NULL, label=NULL, name="timeaxis", ...) {
 		}
 	}
 	grid.xaxis(at=at, label=label, name=name, ...)
-	return(at)
+	return(list(at=at, label=label))
 }
+
 

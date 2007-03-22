@@ -2351,8 +2351,8 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 				</widget>
 				<packing>
 				  <property name="padding">0</property>
-				  <property name="expand">False</property>
-				  <property name="fill">False</property>
+				  <property name="expand">True</property>
+				  <property name="fill">True</property>
 				</packing>
 			      </child>
 
@@ -2421,11 +2421,11 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 					<widget class="GtkComboBoxEntry" id="explore_timeseries_aggr1_comboboxentry">
 					  <property name="width_request">120</property>
 					  <property name="visible">True</property>
-					  <property name="items" translatable="yes">1 day
+					  <property name="items" translatable="yes">days
 7 days
-1 month
+months
 3 months
-1 year</property>
+years</property>
 					  <property name="add_tearoffs">False</property>
 					  <property name="has_frame">True</property>
 					  <property name="focus_on_click">True</property>
@@ -2473,11 +2473,11 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 					<widget class="GtkComboBoxEntry" id="explore_timeseries_aggr2_comboboxentry">
 					  <property name="width_request">120</property>
 					  <property name="visible">True</property>
-					  <property name="items" translatable="yes">1 day
+					  <property name="items" translatable="yes">days
 7 days
-1 month
+months
 3 months
-1 year</property>
+years</property>
 					  <property name="add_tearoffs">False</property>
 					  <property name="has_frame">True</property>
 					  <property name="focus_on_click">True</property>
@@ -2621,7 +2621,7 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 					  <child>
 					    <widget class="GtkLabel" id="label72">
 					      <property name="visible">True</property>
-					      <property name="label" translatable="yes">&lt;b&gt;View cumulative distribution&lt;/b&gt;</property>
+					      <property name="label" translatable="yes">&lt;b&gt;View distribution (cdf)&lt;/b&gt;</property>
 					      <property name="use_underline">True</property>
 					      <property name="use_markup">True</property>
 					      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -2674,14 +2674,14 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 				  <property name="spacing">0</property>
 
 				  <child>
-				    <widget class="GtkRadioButton" id="explore_cdf_normal_radiobutton">
+				    <widget class="GtkRadioButton" id="explore_cdf_uniform_radiobutton">
 				      <property name="visible">True</property>
 				      <property name="can_focus">True</property>
-				      <property name="label" translatable="yes">Log-normal</property>
+				      <property name="label" translatable="yes">Uniform probability scale</property>
 				      <property name="use_underline">True</property>
 				      <property name="relief">GTK_RELIEF_NORMAL</property>
 				      <property name="focus_on_click">True</property>
-				      <property name="active">False</property>
+				      <property name="active">True</property>
 				      <property name="inconsistent">False</property>
 				      <property name="draw_indicator">True</property>
 				    </widget>
@@ -2693,17 +2693,17 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 				  </child>
 
 				  <child>
-				    <widget class="GtkRadioButton" id="explore_cdf_uniform_radiobutton">
+				    <widget class="GtkRadioButton" id="explore_cdf_normal_radiobutton">
 				      <property name="visible">True</property>
 				      <property name="can_focus">True</property>
-				      <property name="label" translatable="yes">Uniform probabilities</property>
+				      <property name="label" translatable="yes">Normal probability scale</property>
 				      <property name="use_underline">True</property>
 				      <property name="relief">GTK_RELIEF_NORMAL</property>
 				      <property name="focus_on_click">True</property>
 				      <property name="active">False</property>
 				      <property name="inconsistent">False</property>
 				      <property name="draw_indicator">True</property>
-				      <property name="group">explore_cdf_normal_radiobutton</property>
+				      <property name="group">explore_cdf_uniform_radiobutton</property>
 				    </widget>
 				    <packing>
 				      <property name="padding">0</property>
@@ -2731,8 +2731,8 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 			      <property name="visible">True</property>
 			    </widget>
 			    <packing>
-			      <property name="padding">0</property>
-			      <property name="expand">True</property>
+			      <property name="padding">2</property>
+			      <property name="expand">False</property>
 			      <property name="fill">True</property>
 			    </packing>
 			  </child>
@@ -2744,14 +2744,14 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 			      <property name="spacing">0</property>
 
 			      <child>
-				<widget class="GtkCheckButton" id="checkbutton1">
+				<widget class="GtkCheckButton" id="explore_cdf_rawdata_checkbutton">
 				  <property name="visible">True</property>
 				  <property name="can_focus">True</property>
 				  <property name="label" translatable="yes">raw data</property>
 				  <property name="use_underline">True</property>
 				  <property name="relief">GTK_RELIEF_NORMAL</property>
 				  <property name="focus_on_click">True</property>
-				  <property name="active">True</property>
+				  <property name="active">False</property>
 				  <property name="inconsistent">False</property>
 				  <property name="draw_indicator">True</property>
 				</widget>
@@ -2769,7 +2769,7 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 				  <property name="spacing">0</property>
 
 				  <child>
-				    <widget class="GtkCheckButton" id="checkbutton2">
+				    <widget class="GtkCheckButton" id="explore_cdf_aggr1_checkbutton">
 				      <property name="visible">True</property>
 				      <property name="can_focus">True</property>
 				      <property name="label" translatable="yes">aggregated:</property>
@@ -2788,14 +2788,14 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 				  </child>
 
 				  <child>
-				    <widget class="GtkComboBoxEntry" id="comboboxentry1">
+				    <widget class="GtkComboBoxEntry" id="explore_cdf_aggr1_comboboxentry">
 				      <property name="width_request">120</property>
 				      <property name="visible">True</property>
-				      <property name="items" translatable="yes">1 day
+				      <property name="items" translatable="yes">days
 7 days
-1 month
+months
 3 months
-1 year</property>
+years</property>
 				      <property name="add_tearoffs">False</property>
 				      <property name="has_frame">True</property>
 				      <property name="focus_on_click">True</property>
@@ -2821,14 +2821,14 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 				  <property name="spacing">0</property>
 
 				  <child>
-				    <widget class="GtkCheckButton" id="checkbutton3">
+				    <widget class="GtkCheckButton" id="explore_cdf_aggr2_checkbutton">
 				      <property name="visible">True</property>
 				      <property name="can_focus">True</property>
 				      <property name="label" translatable="yes">aggregated:</property>
 				      <property name="use_underline">True</property>
 				      <property name="relief">GTK_RELIEF_NORMAL</property>
 				      <property name="focus_on_click">True</property>
-				      <property name="active">False</property>
+				      <property name="active">True</property>
 				      <property name="inconsistent">False</property>
 				      <property name="draw_indicator">True</property>
 				    </widget>
@@ -2840,14 +2840,14 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 				  </child>
 
 				  <child>
-				    <widget class="GtkComboBoxEntry" id="comboboxentry2">
+				    <widget class="GtkComboBoxEntry" id="explore_cdf_aggr2_comboboxentry">
 				      <property name="width_request">120</property>
 				      <property name="visible">True</property>
-				      <property name="items" translatable="yes">1 day
+				      <property name="items" translatable="yes">days
 7 days
-1 month
+months
 3 months
-1 year</property>
+years</property>
 				      <property name="add_tearoffs">False</property>
 				      <property name="has_frame">True</property>
 				      <property name="focus_on_click">True</property>
@@ -2868,7 +2868,7 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 			    </widget>
 			    <packing>
 			      <property name="padding">0</property>
-			      <property name="expand">True</property>
+			      <property name="expand">False</property>
 			      <property name="fill">True</property>
 			    </packing>
 			  </child>
@@ -3020,6 +3020,71 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 			    <packing>
 			      <property name="padding">0</property>
 			      <property name="expand">False</property>
+			      <property name="fill">True</property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkVBox" id="vbox26">
+			      <property name="visible">True</property>
+			      <property name="homogeneous">False</property>
+			      <property name="spacing">0</property>
+
+			      <child>
+				<widget class="GtkHBox" id="hbox45">
+				  <property name="visible">True</property>
+				  <property name="homogeneous">False</property>
+				  <property name="spacing">0</property>
+
+				  <child>
+				    <widget class="GtkRadioButton" id="explore_seasonal_months_radiobutton">
+				      <property name="visible">True</property>
+				      <property name="can_focus">True</property>
+				      <property name="label" translatable="yes">Months</property>
+				      <property name="use_underline">True</property>
+				      <property name="relief">GTK_RELIEF_NORMAL</property>
+				      <property name="focus_on_click">True</property>
+				      <property name="active">True</property>
+				      <property name="inconsistent">False</property>
+				      <property name="draw_indicator">True</property>
+				    </widget>
+				    <packing>
+				      <property name="padding">0</property>
+				      <property name="expand">False</property>
+				      <property name="fill">False</property>
+				    </packing>
+				  </child>
+
+				  <child>
+				    <widget class="GtkRadioButton" id="explore_seasonal_quarters_radiobutton">
+				      <property name="visible">True</property>
+				      <property name="can_focus">True</property>
+				      <property name="label" translatable="yes">Quarters</property>
+				      <property name="use_underline">True</property>
+				      <property name="relief">GTK_RELIEF_NORMAL</property>
+				      <property name="focus_on_click">True</property>
+				      <property name="active">False</property>
+				      <property name="inconsistent">False</property>
+				      <property name="draw_indicator">True</property>
+				      <property name="group">explore_seasonal_months_radiobutton</property>
+				    </widget>
+				    <packing>
+				      <property name="padding">0</property>
+				      <property name="expand">False</property>
+				      <property name="fill">False</property>
+				    </packing>
+				  </child>
+				</widget>
+				<packing>
+				  <property name="padding">0</property>
+				  <property name="expand">True</property>
+				  <property name="fill">True</property>
+				</packing>
+			      </child>
+			    </widget>
+			    <packing>
+			      <property name="padding">0</property>
+			      <property name="expand">True</property>
 			      <property name="fill">True</property>
 			    </packing>
 			  </child>

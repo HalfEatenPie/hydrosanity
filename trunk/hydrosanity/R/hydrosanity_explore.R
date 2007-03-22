@@ -178,14 +178,60 @@ on_explore_cdf_button_clicked <- function(button) {
 		return()
 	}
 	myN <- length(selNames)
-	rawdata.cmd <- paste('hsp$data[["', selNames, '"]][,2]', sep='')
-	rawdata.formula.cmd <- paste(rawdata.cmd, collapse=" + ")
+	rawdata.cmd <- paste('hsp$data[c("', paste(selNames, collapse='", "'), '")]', sep='')
+	if (myN == 1) { rawdata.cmd <- paste('hsp$data["', selNames, '"]', sep='') }
+	if (myN == length(hsp$data)) { rawdata.cmd <- 'hsp$data' }
 	
 	doNormal <- theWidget("explore_cdf_normal_radiobutton")$getActive()
-	
-	dist.cmd <- if (doNormal) { '' } else { ', distribution=qunif' }
+	doRawData <- theWidget("explore_cdf_rawdata_checkbutton")$getActive()
+	doAggr1 <- theWidget("explore_cdf_aggr1_checkbutton")$getActive()
+	doAggr2 <- theWidget("explore_cdf_aggr2_checkbutton")$getActive()
+	aggr1By <- theWidget("explore_cdf_aggr1_comboboxentry")$getActiveText()
+	aggr2By <- theWidget("explore_cdf_aggr2_comboboxentry")$getActiveText()
 	
 	addLogComment("Generate CDF plot")
+	
+	tmpObjs <- c()
+	
+	# compute and store aggregated series
+	if (doAggr1 || doAggr2) {
+		addToLog("## Compute and store aggregated series")
+	}
+	if (doAggr1) {
+		tmpObjs <- c(tmpObjs, 'tmp.aggr1')
+		pre_plot.cmd <- sprintf(
+			'tmp.aggr1 <<- lapply(%s, aggregate.timeblob, by="%s")',
+			rawdata.cmd, aggr1By)
+		
+		result <- guiTryEval(pre_plot.cmd)
+		if (inherits(result, "error")) { return() }
+	}
+	if (doAggr2) {
+		tmpObjs <- c(tmpObjs, 'tmp.aggr2')
+		pre_plot.cmd <- sprintf(
+			'tmp.aggr2 <<- lapply(%s, aggregate.timeblob, by="%s")',
+			rawdata.cmd, aggr2By)
+		result <- guiTryEval(pre_plot.cmd)
+		if (inherits(result, "error")) { return() }
+	}
+	
+	data.cmd <- c(
+		if(doRawData){paste('"',selNames, '"=hsp$data[["',selNames,'"]]',sep='')},
+		if(doAggr1){paste('"',selNames,'.',aggr1By,'"=tmp.aggr1[["',selNames,'"]]',sep='')},
+		if(doAggr2){paste('"',selNames,'.',aggr2By,'"=tmp.aggr2[["',selNames,'"]]',sep='')}
+	)
+	data.list.cmd <- paste(data.cmd, collapse=", ")
+	
+	# make synchronised data frame
+	tmpObjs <- c(tmpObjs, 'tmp.data')
+	pre_plot.cmd <- sprintf(
+		'tmp.data <<- sync.timeblobs(list(%s), timelim=hsp$timePeriod)',
+		data.list.cmd)
+	result <- guiTryEval(pre_plot.cmd)
+	if (inherits(result, "error")) { return() }
+		
+	data.formula.cmd <- paste(names(tmp.data)[-1], collapse=" + ")
+	dist.cmd <- if (doNormal) { '' } else { ', distribution=qunif' }
 	
 	setPlotDevice("distribution")
 	
@@ -193,13 +239,23 @@ on_explore_cdf_button_clicked <- function(button) {
 	#axis(2, las=2, at = c(0.1, 1, 10, 100, 1000, 10^4, 10^5, 10^6), labels = c("0.1", "1", "10", "100", "1000", "10^4", "10^5", "10^6"))
 	#axis(1, at=probFn(c(0.001, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99, 0.999)), 
 	#	labels=c("0.1", "1", "10", "20", "30", "40", "50", "60", "70", "80", "90", "99", "99.9"))
-		
-	plot.cmd <- sprintf('qqmath(~ %s%s, ylim=c(0.1, 1000), scales=list(y=list(log=T)), auto.key=T)',
-		rawdata.formula.cmd, dist.cmd)
+	
+	# scales = list(y = list(relation="free"), at=c(0,1,2,3), labels=c("a","b","c"))
+	# make.groups
+	
+	plot.cmd <- sprintf('qqmath(~ %s, data=tmp.data%s, scales=list(y=list(log=T)), xlab="Probability of exceedence (%%)", auto.key=T)',
+		data.formula.cmd, dist.cmd)
 	
 	result <- guiTryEval(plot.cmd)
 	if (inherits(result, "error")) { return() }
-	.hydrosanity$call[["distribution"]] <<- parse(text=plot.cmd)[[1]]
+	print(result) # plot trellis object
+	tmpCall <- parse(text=plot.cmd)[[1]]
+	.hydrosanity$call[["distribution"]] <<- evalCallArgs(tmpCall, pattern="^tmp")
+	
+	if (length(tmpObjs) > 0) {
+		addToLog(paste('rm(', paste(tmpObjs, collapse=', '), ')', sep=''))
+		rm(list=tmpObjs, envir=.GlobalEnv)
+	}
 	setStatusBar("Generated CDF plot")
 }
 
@@ -209,19 +265,53 @@ on_explore_seasonal_button_clicked <- function(button) {
 	setStatusBar("")
 	
 	selNames <- iconViewGetSelectedNames(theWidget("explore_iconview"))
+	myN <- length(selNames)
+	rawdata.cmd <- paste('hsp$data[c("', paste(selNames, collapse='", "'), '")]', sep='')
+	if (myN == 1) { rawdata.cmd <- paste('hsp$data["', selNames, '"]', sep='') }
+	if (myN == length(hsp$data)) { rawdata.cmd <- 'hsp$data' }
 	
-	setPlotDevice("explore")
+	doMonths <- theWidget("explore_seasonal_months_radiobutton")$getActive()
 	
+	addLogComment("Generate seasonal plot")
 	
-	#monthBlob <- aggregate.timeblob(myBlob, by="months", aggrFun=aggrFun)
-	#monthBlob[,2] <- pmax(monthBlob[,2], zeroLevel/10) # 0 values would be lost by log transform
-	##myMonths <- months(monthBlob$Time, abbreviate=TRUE)
-	#monthNums <- sapply(monthBlob$Time, function(x) { as.POSIXlt(as.POSIXct.raw(x))$mon })
-	#monthList <- split(monthBlob[,2], monthNums)
-	#names(monthList) <- c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
-	#globalMax <- max(monthBlob[,2], na.rm=T)
-	#boxplot(monthList, ylim=c(zeroLevel, globalMax), range=0, log=log, ...)
+	tmpObjs <- c()
 	
-	#monthlyboxplot(hsp$data[[selNames[1]]])
+	pre_plot.cmd <- ''
+	tmpObjs <- c(tmpObjs, 'tmp.data')
+	if (doMonths) {
+		pre_plot.cmd <- paste(sep='\n', 
+			sprintf('tmp.data <<- sync.timeblobs(lapply(%s, aggregate.timeblob, by="months"))',
+				rawdata.cmd),
+			'tmp.data$Season <<- factor(months(tmp.data$Time, abbreviate=TRUE),',
+			'	levels=c("Jan","Feb","Mar","Apr","May","Jun",',
+			'	"Jul","Aug","Sep","Oct","Nov","Dec"), ordered=T)')
+	} else {
+		pre_plot.cmd <- paste(sep='\n', 
+			sprintf('tmp.data <<- lapply(%s, function(x) {', rawdata.cmd),
+			'	window.timeblob(x, trunc.year(start.timeblob(x)), end.timeblob(x), extend=T) })',
+			'tmp.data <<- sync.timeblobs(lapply(tmp.data, aggregate.timeblob, by="3 months"))',
+			'tmp.data$Season <<- factor(quarters(tmp.data$Time), ordered=T)')
+	}
+	result <- guiTryEval(pre_plot.cmd)
+	if (inherits(result, "error")) { return() }
+	
+	data.formula.cmd <- paste(names(tmp.data)[-c(1,ncol(tmp.data))], collapse=" + ")
+	layout.cmd <- if (doMonths) { sprintf(', layout=c(1, %i)', myN) } else { '' }
+	
+	setPlotDevice("seasonality")
+	
+	plot.cmd <- sprintf('bwplot(%s ~ Season, data=tmp.data, outer=T%s)',
+		data.formula.cmd, layout.cmd)
+	result <- guiTryEval(plot.cmd)
+	if (inherits(result, "error")) { return() }
+	print(result) # plot trellis object
+	tmpCall <- parse(text=plot.cmd)[[1]]
+	.hydrosanity$call[["seasonality"]] <<- evalCallArgs(tmpCall, pattern="^tmp")
+	
+	if (length(tmpObjs) > 0) {
+		addToLog(paste('rm(', paste(tmpObjs, collapse=', '), ')', sep=''))
+		rm(list=tmpObjs, envir=.GlobalEnv)
+	}
+	setStatusBar("Generated seasonal plot")
 }
 

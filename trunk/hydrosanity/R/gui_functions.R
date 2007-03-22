@@ -8,11 +8,6 @@
 ## PLOT WINDOW FUNCTIONS
 
 setPlotDevice <- function(name) {
-	#imageFile <- paste(tempfile(), ".png", sep="")
-	#myWidth <- theWidget("timeperiod_image")$getAllocation()$width
-	#myHeight <- theWidget("timeperiod_image")$getAllocation()$height
-	#png(imageFile, width=myWidth, height=myHeight)
-
 	if (is.null(.hydrosanity$dev[[name]]) ||
 		(.hydrosanity$dev[[name]] %notin% dev.list())) {
 		if (require("cairoDevice", quietly=TRUE)) {
@@ -39,7 +34,7 @@ newCairoWindow <- function(name) {
 	.hydrosanity$win[[name]] <<- plotGUI$getWidget("plot_window")
 	newDev <- plotGUI$getWidget("drawingarea")
 	asCairoDevice(newDev)
-	myWin$setTitle(paste("Hydrosanity: ", name, sep=''))
+	myWin$setTitle(paste("Hydrosanity: ", name, " plot", sep=''))
 }
 
 on_plot_identify_button_clicked <- function(button) {
@@ -93,7 +88,8 @@ on_plot_centre_button_clicked <- function(button) {
 		xscale=xscale.new,
 		evaluate=F)
 	)
-	eval(.hydrosanity$call[[myName]])
+	tmp <- eval(.hydrosanity$call[[myName]])
+	if (identical(class(tmp), "trellis")) { print(tmp) }
 }
 
 on_plot_zoomin_button_clicked <- function(button) {
@@ -166,7 +162,8 @@ on_plot_zoomin_button_clicked <- function(button) {
 		xscale=force(xscale.new),
 		evaluate=F)
 	)
-	eval(.hydrosanity$call[[myName]])
+	tmp <- eval(.hydrosanity$call[[myName]])
+	if (identical(class(tmp), "trellis")) { print(tmp) }
 }
 
 on_plot_zoomout_button_clicked <- function(button) {
@@ -198,7 +195,8 @@ on_plot_zoomout_button_clicked <- function(button) {
 		xscale=xscale.new,
 		evaluate=F)
 	)
-	eval(.hydrosanity$call[[myName]])
+	tmp <- eval(.hydrosanity$call[[myName]])
+	if (identical(class(tmp), "trellis")) { print(tmp) }
 }
 
 
@@ -211,23 +209,41 @@ on_plot_log_togglebutton_clicked <- function(button) {
 	}
 	if (is.na(myIndex)) { return() }
 	myName <- names(.hydrosanity$win)[myIndex]
-	if (is.null(.hydrosanity$call[[myName]])) {
+	if (myName %notin% names(.hydrosanity$call)) {
 		errorDialog("No call for this window.")
 		return()
 	}
-	if (identical(myName, "timeline")) { return() }
+	myCallName <- deparse(.hydrosanity$call[[myName]][[1]])
+	if (myCallName == "grid.timeline.plot") { return() }
+	# get new value of log argument
 	logScale <- button$getActive()
 	# update the call (using do.call to force eval of args) and re-draw plot
-	.hydrosanity$call[[myName]] <<- do.call(update, list(
-		list(call=.hydrosanity$call[[myName]]), 
-		logScale=logScale,
-		evaluate=F)
-	)
-	eval(.hydrosanity$call[[myName]])
+	if (myCallName %in% c("xyplot", "bwplot", "stripplot", "qqmath", "qq")) {
+		# lattice plots
+		myScalesArg <- eval(.hydrosanity$call[[myName]]$scales)
+		myScalesArg$y$log <- logScale
+		.hydrosanity$call[[myName]] <<- do.call(update, list(
+			list(call=.hydrosanity$call[[myName]]), 
+			scales=myScalesArg,
+			evaluate=F)
+		)
+	}
+	if (myCallName %in% c("grid.timeseries.plot", "grid.timeseries.plot.superpose")) {
+		.hydrosanity$call[[myName]] <<- do.call(update, list(
+			list(call=.hydrosanity$call[[myName]]), 
+			logScale=logScale,
+			evaluate=F)
+		)
+	}
+	tmp <- eval(.hydrosanity$call[[myName]])
+	if (identical(class(tmp), "trellis")) { print(tmp) }
 }
 
 on_plot_save_button_clicked <- function(button) {
 	infoDialog("not implemented")
+	#myWidth <- theWidget("timeperiod_image")$getAllocation()$width
+	#myHeight <- theWidget("timeperiod_image")$getAllocation()$height
+	#png(imageFile, width=myWidth, height=myHeight)
 }
 
 on_plot_delete_event <- function(widget, event, user.data) {

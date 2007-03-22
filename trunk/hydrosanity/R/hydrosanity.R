@@ -92,6 +92,8 @@ hydrosanity <- function() {
 	theWidget("import_makefactor_comboboxentry")$setActive(0)
 	theWidget("explore_timeseries_aggr1_comboboxentry")$setActive(2)
 	theWidget("explore_timeseries_aggr2_comboboxentry")$setActive(4)
+	theWidget("explore_cdf_aggr1_comboboxentry")$setActive(2)
+	theWidget("explore_cdf_aggr2_comboboxentry")$setActive(4)
 	
 	# set up table format on import page
 	importTreeView <- theWidget("import_summary_treeview")
