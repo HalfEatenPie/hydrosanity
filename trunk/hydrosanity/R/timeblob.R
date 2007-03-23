@@ -134,12 +134,13 @@ read.timeblob <- function(file, skip=1, sep=",", dataName="Data", dataCol=2, qua
 	return(blob)
 }
 
-
+# returns length 0 if blob is empty
 start.timeblob <- function(blob) {
 	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
-	blob$Time[1]
+	blob$Time[min(1,nrow(blob))]
 }
 
+# returns length 0 if blob is empty
 end.timeblob <- function(blob) {
 	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
 	blob$Time[nrow(blob)]
@@ -149,7 +150,7 @@ start.timeblobs <- function(blob.list) {
 	# check types
 	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
 	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
-	globalStart <- as.POSIXct.raw(min(sapply(blob.list, start.timeblob)))
+	globalStart <- as.POSIXct.raw(min(unlist(lapply(blob.list, start.timeblob))))
 	return(globalStart)
 }
 
@@ -157,7 +158,7 @@ end.timeblobs <- function(blob.list) {
 	# check types
 	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
 	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
-	globalEnd <- as.POSIXct.raw(max(sapply(blob.list, end.timeblob)))
+	globalEnd <- as.POSIXct.raw(max(unlist(lapply(blob.list, end.timeblob))))
 	return(globalEnd)
 }
 
@@ -248,7 +249,7 @@ summary.missing.timeblob.list <- function(blob.list, timelim=NULL, timestep=NULL
 	# find whether data exists for each timeblob for each time in myPeriod
 	# (note: this rounds down if times do not match)
 	dataMatrix <- sync.timeblobs(blob.list, timestep=timestep)
-	dataExistsMatrix <- !is.na(as.matrix(dataMatrix[[-1]]))
+	dataExistsMatrix <- !is.na(as.matrix(dataMatrix[-1]))
 	
 	activeNs <- apply(dataExistsMatrix, 1, sum)
 	allActiveSteps <- sum(activeNs == n)
@@ -449,9 +450,13 @@ as.numeric.byString <- function(x) {
 }
 
 as.POSIXct.raw <- function(secs_since_1970, tz="") {
+	#if (is(secs_since_1970, "POSIXt")) {
+	#	return(as.POSIXct(secs_since_1970))
+	#}
 	if (!is.numeric(secs_since_1970)) {
 		stop("'secs_since_1970' must be numeric")
 	}
+	secs_since_1970 <- as.numeric(secs_since_1970)
 	class(secs_since_1970) <- c("POSIXt", "POSIXct")
 	attr(secs_since_1970, "tzone") <- tz
 	return(secs_since_1970)
@@ -478,6 +483,10 @@ trunc.decade <- function(thisPOSIXt) {
 	zz <- as.POSIXlt(floor.year(thisPOSIXt))
 	zz$year <- (zz$year %/% 10) * 10
 	return(zz)
+}
+
+one.step.acf <- function(blob) {
+	acf(blob[,2], na.action=na.pass, lag.max=1, plot=F)$acf[2]
 }
 
 nonzeromin <- function(x, ...) { min(x[x>0], ...) }

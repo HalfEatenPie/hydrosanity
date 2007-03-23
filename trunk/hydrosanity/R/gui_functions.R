@@ -31,10 +31,28 @@ newCairoWindow <- function(name) {
 	myWin <- plotGUI$getWidget("plot_window")
 	gSignalConnect(myWin, "delete-event", on_plot_delete_event)
 	
+	.hydrosanity$win.gui[[name]] <<- plotGUI
 	.hydrosanity$win[[name]] <<- plotGUI$getWidget("plot_window")
 	newDev <- plotGUI$getWidget("drawingarea")
 	asCairoDevice(newDev)
 	myWin$setTitle(paste("Hydrosanity: ", name, " plot", sep=''))
+}
+
+on_plot_delete_event <- function(widget, event, user.data) {
+	myWin <- widget
+	myIndex <- NA
+	for (i in seq(along=.hydrosanity$win)) {
+		if (myWin == .hydrosanity$win[[i]]) { myIndex <- i; break }
+	}
+	if (!is.na(myIndex)) {
+		myName <- names(.hydrosanity$win)[myIndex]
+		.hydrosanity$dev[[myName]] <<- NULL
+		.hydrosanity$call[[myName]] <<- NULL
+		.hydrosanity$win[[myName]] <<- NULL
+		.hydrosanity$win.gui[[myName]] <<- NULL
+	}
+	myWin$destroy()
+	theWidget("hs_window")$present()
 }
 
 on_plot_identify_button_clicked <- function(button) {
@@ -240,27 +258,54 @@ on_plot_log_togglebutton_clicked <- function(button) {
 }
 
 on_plot_save_button_clicked <- function(button) {
-	infoDialog("not implemented")
-	#myWidth <- theWidget("timeperiod_image")$getAllocation()$width
-	#myHeight <- theWidget("timeperiod_image")$getAllocation()$height
-	#png(imageFile, width=myWidth, height=myHeight)
-}
-
-on_plot_delete_event <- function(widget, event, user.data) {
-	myWin <- widget
+	# look up information about this window in '.hydrosanity'
+	myWin <- button$getParent()$getParent()$getParent()
 	myIndex <- NA
 	for (i in seq(along=.hydrosanity$win)) {
 		if (myWin == .hydrosanity$win[[i]]) { myIndex <- i; break }
 	}
-	if (!is.na(myIndex)) {
-		myName <- names(.hydrosanity$win)[myIndex]
-		#dev.off(.hydrosanity$dev[[myName]])
-		.hydrosanity$dev[[myName]] <<- NULL
-		.hydrosanity$call[[myName]] <<- NULL
-		.hydrosanity$win[[myName]] <<- NULL
+	if (is.na(myIndex)) { return() }
+	myName <- names(.hydrosanity$win)[myIndex]
+	
+	myDefault <- paste(myName, '.pdf', sep='')
+	filename <- choose.file.save(myDefault, caption="Save plot (pdf/ps/png/jpg)", 
+		filters=Filters[c("pdf","ps","png","jpeg"),])
+	myWin$present()
+	if (is.na(filename)) { return() }
+	
+	if (get.extension(filename) == "") {
+		filename <- sprintf("%s.pdf", filename)
 	}
-	myWin$destroy()
-	theWidget("hs_window")$present()
+	
+	mySize <- .hydrosanity$win.gui[[myName]]$getWidget("drawingarea")$getAllocation()
+	myWidth <- mySize$width
+	myHeight <- mySize$height
+	myScale <- min(7/myWidth, 7/myHeight)
+	
+	ext <- get.extension(filename)
+	if (ext %in% "pdf") {
+		pdf(filename, width=myWidth*myScale, height=myHeight*myScale)
+	}
+	else if (ext %in% c("ps", "eps")) {
+		ps(filename, width=myWidth*myScale, height=myHeight*myScale)
+	}
+	else if (ext %in% "png") {
+		png(filename, width=myWidth*2, height=myHeight*2, pointsize=12*2, res=144)
+	}
+	else if (ext %in% c("jpeg", "jpg")) {
+		jpeg(filename, width=myWidth*2, height=myHeight*2, pointsize=12*2, res=144)
+	}
+	else {
+		errorDialog("Unrecognised filename extension")
+		return()
+	}
+	# draw plot from scratch on this device
+	tmp <- eval(.hydrosanity$call[[myName]])
+	if (identical(class(tmp), "trellis")) { print(tmp) }
+	dev.off()
+	
+	myWin$present()
+	setStatusBar("Saved plot to ", filename)
 }
 
 
@@ -377,16 +422,20 @@ guiMessageDialog <- function(type="info", ...) {
 ## SAVE FILE DIALOG
 
 # returns character string, or NA if cancelled
-choose.file.save <- function(default="", caption="Save File") {
+choose.file.save <- function(default="", caption="Save File", filters=Filters[c("All"),]) {
 	dialog <- gtkFileChooserDialog(caption, NULL, "save",
 		"gtk-cancel", GtkResponseType["cancel"],
 		"gtk-save", GtkResponseType["accept"])
 	dialog$setCurrentName(default)
 	
-	ff <- gtkFileFilterNew()
-	ff$setName("All Files")
-	ff$addPattern("*")
-	dialog$addFilter(ff)
+	for (i in 1:nrow(filters)) {
+		ff <- gtkFileFilterNew()
+		ff$setName(filters[i,1])
+		for (x in strsplit(filters[i,2], ';')[[1]]) {
+			ff$addPattern(x)
+		}
+		dialog$addFilter(ff)
+	}
 	
 	if (dialog$run() == GtkResponseType["accept"]) {
 		filename <- dialog$getFilename()

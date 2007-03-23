@@ -10,17 +10,6 @@ updateImportPage <- function() {
 	dfName <- dfStart <- dfEnd <- dfLength <- dfFreq <- character(length(hsp$data))
 	dfData <- dfRole <- dfQual <- dfExtra <- character(length(hsp$data))
 	
-	fastestTimeStep <- NULL
-	for (i in seq(along=hsp$data)) {
-		if (attr(hsp$data[[i]], "timestep") == "inst") { next }
-		thisStepDelta <- as.numeric.byString(
-			attr(hsp$data[[i]], "timestep"))
-		if (is.null(fastestTimeStep) || (thisStepDelta < fastestTimeStep)) {
-			fastestTimeStep <- thisStepDelta
-		}
-	}
-	hsp$timeStep <<- as.byString.numeric(fastestTimeStep)
-	
 	for (i in seq(along=hsp$data)) {
 		myLength <- end.timeblob(hsp$data[[i]]) - start.timeblob(hsp$data[[i]])
 		myAvgFreq <- myLength / nrow(hsp$data[[i]])
@@ -327,7 +316,11 @@ on_import_makefactor_button_clicked <- function(button) {
 
 setDataRole <- function(blobName, role=NULL, doLogComment=T) {
 	if (is.null(role)) {
-		role <- "RAIN"
+		if (one.step.acf(hsp$data[[blobName]]) > 0.5) {
+			role <- "FLOW"
+		} else {
+			role <- "RAIN"
+		}
 	}
 	
 	mv.cmd <- sprintf('attr(hsp$data[["%s"]], "role") <<- "%s"', blobName, role)
