@@ -94,6 +94,7 @@ grid.timeseries.plot.superpose <- function(superpose.blob.list, ...) {
 		this.args$blob.list <- blob.list
 		this.args$superPos <- layer
 		this.args$nSuperpose <- length(superpose.blob.list)
+		if (!is.null(this.args$yscale)) { this.args$newScale <- F }
 		do.call(grid.timeseries.plot, this.args)
 	}
 }
@@ -140,20 +141,26 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 	}
 	# calculate common yscale
 	if (is.null(yscale) && sameScales) {
-		yscale <- range(sapply(blob.list, range.timeblob, na.rm=T))
+		allRanges <- sapply(blob.list, range.timeblob, na.rm=T)
+		yscale <- range(allRanges[is.finite(allRanges)])
 		if (logScale && (yscale[1] <= 0)) {
 			# limit by minimum non-zero value (for log scale)
-			yscale[1] <- min(sapply(blob.list,
-				function(x){min(x[,2][x[,2]>0], na.rm=T)}))
+			allMins <- sapply(blob.list, function(x){
+				min(x[,2][x[,2]>0], na.rm=T)})
+			yscale[1] <- min(allMins[is.finite(allMins)])
 		}
 	}
 	# plot each timeblob in the list
 	for (k in 1:n) {
 		# allow skipping for superposed series
-		if (is.null(blob.list[[k]]) || (nrow(blob.list[[k]])==0)) { next }
+		if (is.null(blob.list[[k]])) { next }
 		# set up vertical scale for timeseries number k
 		myYScale <- yscale
-		if (is.null(yscale)) {
+		if (is.null(myYScale) && nrow(blob.list[[k]])==0) {
+			# no data for this series
+			myYScale <- c(0, 1)
+		}
+		if (is.null(myYScale)) {
 			myYScale <- range.timeblob(blob.list[[k]], na.rm=T)
 			# need to ensure yscale > 0 for log scale
 			if (logScale) {
@@ -227,22 +234,20 @@ grid.timeseries.steps <- function(blob, logScale=F, name="timeseries", gp=NULL, 
 	# check types
 	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
 	# setup
-	xscale <- as.POSIXct.raw(convertX(unit(c(0,1), "npc"), "native"))
-	subBlob <- window.timeblob(blob, xscale[1], xscale[2], inclusive=T)
-	if (nrow(subBlob)==0) { return() }
+	if (nrow(blob)==0) { return() }
 	# draw as steps (note: plot type="s" fails to draw horiz line preceding NA points)
-	iDates <- seq(1, nrow(subBlob))
+	iDates <- seq(1, nrow(blob))
 	iVals <- iDates
 	iDates <- c(rep(iDates,each=2)[-1], NA)
 	iVals <- rep(iVals,each=2)
-	myData <- subBlob[,2]
+	myData <- blob[,2]
 	if (logScale) {
 		myData <- log10(myData)
 		# set log(0)==-Inf to a finite value off bottom of plot
 		yscale <- as.numeric(convertY(unit(c(0,1), "npc"), "native"))
-		myData[na.omit(subBlob[,2]==0)] <- yscale[1] - diff(yscale)
+		myData[na.omit(blob[,2]==0)] <- yscale[1] - diff(yscale)
 	}
-	grid.lines(x=subBlob$Time[iDates], y=myData[iVals],
+	grid.lines(x=blob$Time[iDates], y=myData[iVals],
 		default.units="native", name=name, gp=gp, vp=vp)
 }
 

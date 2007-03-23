@@ -32,6 +32,9 @@ openProject <- function() {
 	theWidget("notebook")$setCurrentPage(0)
 	on_notebook_switch_page(theWidget("notebook"), theWidget("hs_window"), 0)
 	
+	theWidget("import_options_expander")$setExpanded(FALSE)
+	theWidget("import_makechanges_expander")$setExpanded(TRUE)
+	
 	setStatusBar("Loaded project from", filename)
 }
 

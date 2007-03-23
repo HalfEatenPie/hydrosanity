@@ -160,6 +160,8 @@ on_explore_timeseries_button_clicked <- function(button) {
 	tmpCall <- parse(text=plot.cmd)[[1]]
 	.hydrosanity$call[["timeseries"]] <<- evalCallArgs(tmpCall, pattern="^tmp")
 	
+	.hydrosanity$win.gui[["timeseries"]]$getWidget("plot_log_togglebutton")$setActive(doLog)
+	
 	if (length(tmpObjs) > 0) {
 		addToLog(paste('rm(', paste(tmpObjs, collapse=', '), ')', sep=''))
 		rm(list=tmpObjs, envir=.GlobalEnv)
@@ -231,26 +233,43 @@ on_explore_cdf_button_clicked <- function(button) {
 	if (inherits(result, "error")) { return() }
 		
 	data.formula.cmd <- paste(names(tmp.data)[-1], collapse=" + ")
-	dist.cmd <- if (doNormal) { '' } else { ', distribution=qunif' }
+	dist.cmd <- if (doNormal) { ', distribution=qnorm' } else { ', distribution=qunif' }
+	
+	# set up y scale (lattice clips off the bottom!)
+	addToLog("## Find global range of data")
+	tmpObjs <- c(tmpObjs, 'tmp.yscale')
+	makescale.cmd <- paste(sep="\n",
+		'tmp.yscale <<- range(tmp.data[-1], na.rm=T)',
+		'tmp.yscale[2] <<- tmp.yscale[2] + diff(tmp.yscale)*0.05')
+	addToLog("## and limit by minimum non-zero value (for log scale)")
+	makescale.cmd <- paste(makescale.cmd, "\n", 
+		'tmp.yscale[1] <<- min((tmp.data[-1])[tmp.data[-1]>0], na.rm=T)')
+	result <- guiTryEval(makescale.cmd)
+	if (inherits(result, "error")) { return() }
+	yscale.cmd <- ', ylim=tmp.yscale'
+	
+	# make axis components
+	tmpObjs <- c(tmpObjs, 'tmp.probs', 'tmp.xaxis')
+	pre_plot.cmd <- paste(sep='\n',
+		'tmp.probs <<- c(0.01, seq(0.1, 0.9, by=0.1), 0.99)',
+		sprintf(
+		'tmp.xaxis <<- list(at=%s(tmp.probs), labels=as.character(tmp.probs*100))',
+			if (doNormal) { 'qnorm' } else { '' } ))
+	result <- guiTryEval(pre_plot.cmd)
+	if (inherits(result, "error")) { return() }
 	
 	setPlotDevice("distribution")
 	
-	#title(xlab="Probability of exceedence (%)")
-	#axis(2, las=2, at = c(0.1, 1, 10, 100, 1000, 10^4, 10^5, 10^6), labels = c("0.1", "1", "10", "100", "1000", "10^4", "10^5", "10^6"))
-	#axis(1, at=probFn(c(0.001, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99, 0.999)), 
-	#	labels=c("0.1", "1", "10", "20", "30", "40", "50", "60", "70", "80", "90", "99", "99.9"))
-	
-	# scales = list(y = list(relation="free"), at=c(0,1,2,3), labels=c("a","b","c"))
-	# make.groups
-	
-	plot.cmd <- sprintf('qqmath(~ %s, data=tmp.data%s, scales=list(y=list(log=T)), xlab="Probability of exceedence (%%)", auto.key=T)',
-		data.formula.cmd, dist.cmd)
+	plot.cmd <- sprintf('qqmath(~ %s, data=tmp.data%s%s, scales=list(x=tmp.xaxis, y=list(log=T)), xlab="Probability of non-exceedence (%%)", auto.key=T)',
+		data.formula.cmd, dist.cmd, yscale.cmd)
 	
 	result <- guiTryEval(plot.cmd)
 	if (inherits(result, "error")) { return() }
 	print(result) # plot trellis object
 	tmpCall <- parse(text=plot.cmd)[[1]]
 	.hydrosanity$call[["distribution"]] <<- evalCallArgs(tmpCall, pattern="^tmp")
+	
+	.hydrosanity$win.gui[["distribution"]]$getWidget("plot_log_togglebutton")$setActive(T)
 	
 	if (length(tmpObjs) > 0) {
 		addToLog(paste('rm(', paste(tmpObjs, collapse=', '), ')', sep=''))

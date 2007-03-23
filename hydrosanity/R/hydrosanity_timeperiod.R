@@ -16,20 +16,13 @@ updateTimePeriodPage <- function() {
 	theWidget("timeperiod_overallperiod_entry")$setText(wholePeriodString)
 	
 	# time period for analysis
-	doUpdateTimePeriod <- F
-	if (is.null(hsp$timePeriod)) {
-		hsp$timePeriod <<- wholePeriod
-		doUpdateTimePeriod <- T
+	chosenPeriodString <- wholePeriodString
+	if (!is.null(hsp$timePeriod)) {
+		chosenPeriodString <- sprintf('%s to %s', 
+			format(hsp$timePeriod[1]), format(hsp$timePeriod[2]))
+		theWidget("timeperiod_updateperiod_button")$setSensitive(FALSE)
 	}
-	chosenPeriodString <- sprintf('%s to %s', 
-		format(hsp$timePeriod[1]), format(hsp$timePeriod[2]))
 	theWidget("timeperiod_chosenperiod_entry")$setText(chosenPeriodString)
-	theWidget("timeperiod_updateperiod_button")$setSensitive(FALSE)
-	
-	if (doUpdateTimePeriod) {
-		on_timeperiod_updateperiod_button_clicked()
-		return()
-	}
 	
 	# generate summary
 	TV <- "timeperiod_summary_textview"
@@ -48,7 +41,10 @@ updateTimePeriodPage <- function() {
 	
 	for (i in seq(along=hsp$data)) {
 		dfName[i] <- names(hsp$data)[i]
-		subBlob <- window.timeblob(hsp$data[[i]], hsp$timePeriod[1], hsp$timePeriod[2])
+		subBlob <- hsp$data[[i]]
+		if (!is.null(hsp$timePeriod)) {
+			subBlob <- window.timeblob(hsp$data[[i]], hsp$timePeriod[1], hsp$timePeriod[2])
+		}
 		myQuantiles <- format(quantile(subBlob[,2], probs=c(0, 0.25, 0.5, 0.75, 1), na.rm=T), digits=2)
 		dfMin[i] <- myQuantiles[1]
 		dfQ25[i] <- myQuantiles[2]
@@ -100,6 +96,27 @@ on_timeperiod_updateperiod_button_clicked <- function(button) {
 	updateTimePeriodPage()
 }
 
+on_timeperiod_setfromplot_button_clicked <- function(button) {
+	theWidget("hs_window")$setSensitive(F)
+	on.exit(theWidget("hs_window")$setSensitive(T))
+	setStatusBar("")
+	
+	myCall <- .hydrosanity$call$timeline
+	if (is.null(myCall)) {
+		errorDialog("Could not find an active timeline plot.")
+		return()
+	}
+	
+	if (is.null(myCall$xscale)) {
+		on_timeperiod_reset_button_clicked()
+		return()
+	}
+	timelim <- as.POSIXct.raw(myCall$xscale)
+	periodString <- paste(format(round(timelim, "days")), collapse=" to ")
+	theWidget("timeperiod_chosenperiod_entry")$setText(periodString)
+	on_timeperiod_updateperiod_button_clicked()
+}
+
 on_timeperiod_reset_button_clicked <- function(button) {
 	theWidget("hs_window")$setSensitive(F)
 	on.exit(theWidget("hs_window")$setSensitive(T))
@@ -129,6 +146,9 @@ on_timeperiod_viewtimeline_button_clicked <- function(button) {
 	result <- guiTryEval(plot.cmd)
 	if (inherits(result, "error")) { return() }
 	.hydrosanity$call[["timeline"]] <<- parse(text=plot.cmd)[[1]]
+	
+	theWidget("timeperiod_setfromplot_button")$setSensitive(T)
+	
 	setStatusBar("Generated timeline plot")
 }
 

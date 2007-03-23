@@ -1530,6 +1530,20 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 				  </child>
 
 				  <child>
+				    <widget class="GtkButton" id="timeperiod_setfromplot_button">
+				      <property name="visible">True</property>
+				      <property name="sensitive">False</property>
+				      <property name="can_default">True</property>
+				      <property name="can_focus">True</property>
+				      <property name="label" translatable="yes">Set from timeline</property>
+				      <property name="use_underline">True</property>
+				      <property name="relief">GTK_RELIEF_NORMAL</property>
+				      <property name="focus_on_click">True</property>
+				      <signal name="clicked" handler="on_timeperiod_setfromplot_button_clicked" last_modification_time="Fri, 23 Mar 2007 05:55:53 GMT"/>
+				    </widget>
+				  </child>
+
+				  <child>
 				    <widget class="GtkButton" id="timeperiod_reset_button">
 				      <property name="visible">True</property>
 				      <property name="can_default">True</property>

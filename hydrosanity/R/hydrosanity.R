@@ -51,6 +51,7 @@ hydrosanity <- function() {
 	.hydrosanity <<- list(
 		dev=list(),
 		win=list(),
+		win.gui=list(),
 		call=list(),
 		modified=F,
 		update=list(
@@ -182,12 +183,14 @@ on_export_log_button_clicked <- function(button) {
 	on.exit(theWidget("hs_window")$setSensitive(T))
 	setStatusBar("")
 	
-	filename <- choose.file.save(caption="Export Log")
+	filename <- choose.file.save("log.R", caption="Export Log", 
+		filters=Filters[c("R","txt","All"),])
 	theWidget("hs_window")$present()
 	if (is.na(filename)) { return() }
 	
-	if (get.extension(filename) != "R")
-	filename <- sprintf("%s.R", filename)
+	if (get.extension(filename) == "") {
+		filename <- sprintf("%s.R", filename)
+	}
 	
 	write(getTextviewText("log_textview"), filename)
 	
