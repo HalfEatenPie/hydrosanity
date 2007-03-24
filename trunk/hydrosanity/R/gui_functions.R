@@ -437,10 +437,10 @@ choose.file.save <- function(default="", caption="Save File", filters=Filters[c(
 		dialog$addFilter(ff)
 	}
 	
+	# dialog$setDoOverwriteConfirmation(T)
 	if (dialog$run() == GtkResponseType["accept"]) {
 		filename <- dialog$getFilename()
 		dialog$destroy()
-		#TODO: warn about replace?
 		return(filename)
 	} else {
 		dialog$destroy()
