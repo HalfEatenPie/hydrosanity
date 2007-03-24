@@ -1,16 +1,21 @@
 \name{read.timeblob}
 \alias{read.timeblob}
-%- Also NEED an '\alias' for EACH other topic documented here.
+\alias{is.timeblob}
+\alias{range.timeblob}
 \title{ ~~function to do ... ~~ }
 \description{
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-read.timeblob(dataFile, skip = 1, sep = ",", dataName = "Data", dataCol = 2, qualCol = 3, extraCols = c(), extraNames = paste("Extra", extraCols), readTimesFromFile = T, timeCol = 1, timeFormat = "%d %b %Y", startTime = NA, timeSeqBy = "DSTday", ...)
+read.timeblob(file, skip = 1, sep = ",", dataName = "Data", dataCol = 2, qualCol = 3, extraCols = c(), extraNames = paste("Extra", extraCols), readTimesFromFile = T, timeCol = 1, timeFormat = "%d %b %Y", startTime = NA, timeSeqBy = "DSTday", ...)
+
+is.timeblob(x)
+
+range.timeblob(blob, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{dataFile}{ ~~Describe \code{dataFile} here~~ }
+  \item{file}{ ~~Describe \code{file} here~~ }
   \item{skip}{ ~~Describe \code{skip} here~~ }
   \item{sep}{ ~~Describe \code{sep} here~~ }
   \item{dataName}{ ~~Describe \code{dataName} here~~ }
@@ -24,6 +29,7 @@ read.timeblob(dataFile, skip = 1, sep = ",", dataName = "Data", dataCol = 2, qua
   \item{startTime}{ ~~Describe \code{startTime} here~~ }
   \item{timeSeqBy}{ ~~Describe \code{timeSeqBy} here~~ }
   \item{\dots}{ ~~Describe \code{\dots} here~~ }
+  \item{blob}{ ~~Describe \code{blob} here~~ }
 }
 \details{
   ~~ If necessary, more details than the description above ~~
@@ -48,40 +54,64 @@ read.timeblob(dataFile, skip = 1, sep = ",", dataName = "Data", dataCol = 2, qua
 ##--	or do  help(data=index)  for the standard data sets.
 
 ## The function is currently defined as
-function(dataFile, skip=1, sep=",", dataName="Data", dataCol=2, qualCol=3, extraCols=c(), extraNames=paste("Extra",extraCols), readTimesFromFile=T, timeCol=1, timeFormat="\%d \%b \%Y", startTime=NA, timeSeqBy="DSTday", ...) {
+function(file, skip=1, sep=",", dataName="Data", dataCol=2, qualCol=3, extraCols=c(), extraNames=paste("Extra",extraCols), readTimesFromFile=T, timeCol=1, timeFormat="\%d \%b \%Y", startTime=NA, timeSeqBy="DSTday", ...) {
 	# check types
-	if (!is.numeric(dataCol)) { stop("dataCol must be numeric (column number)") }
-	if (readTimesFromFile && !is.numeric(timeCol)) { stop("timeCol must be numeric (column number)") }
+	if (!is.numeric(dataCol)) { stop("'dataCol' must be numeric (column number)") }
+	if (readTimesFromFile) {
+		if (!is.numeric(timeCol)) { stop("'timeCol' must be numeric (column number)") }
+	} else {
+		if (!is.list(startTime)) {
+			startTime <- as.POSIXct(startTime)
+			if (is.na(startTime)) { stop("could not convert 'startTime' to a time") }
+		}
+	}
 	# make sure extra column names correspond to given columns
 	length(extraNames) <- length(extraCols)
 	extraNames[is.na(extraNames)] <- paste("Extra", which(is.na(extraNames)))
 	# number of columns in file
-	firstLine <- read.table(dataFile, header=F, skip=skip, sep=sep, strip.white=T, nrows=1)
-	dataFileCols <- ncol(firstLine)
-	#dataFileCols <- length(gregexpr(sep, readLines(dataFile, n=skip+1)[skip+1])[[1]]) + 1
-	if (dataCol > dataFileCols) { stop("Column ", dataCol, " (dataCol) not found on line ", 
-		skip+1, "; maybe the column separator \"", sep, "\" is wrong?") }
+	firstLine <- read.table(file, header=F, skip=skip, sep=sep, strip.white=T, nrows=1, ...)
+	fileCols <- ncol(firstLine)
+	if (dataCol > fileCols) {
+		stop("Column ", dataCol, " ('dataCol') not found on line ", skip+1, 
+		"; maybe 'sep'=\"", sep, "\" or 'skip'=", skip, " is wrong?")
+	}
 	# drop variables for which column does not exist in file
-	if (qualCol > dataFileCols) { qualCol <- NULL }
-	extraNames <- extraNames[!(extraCols > dataFileCols)]
-	extraCols <- extraCols[!(extraCols > dataFileCols)]
+	if (qualCol > fileCols) { qualCol <- NULL }
+	extraNames <- extraNames[!(extraCols > fileCols)]
+	extraCols <- extraCols[!(extraCols > fileCols)]
 	# define which columns to import and which to ignore
-	dataFileColClasses <- rep("NULL", dataFileCols)
-	if (readTimesFromFile) { dataFileColClasses[timeCol] <- character(1) }
-	dataFileColClasses[dataCol] <- numeric(1)
-	dataFileColClasses[qualCol] <- NA # qualCol may be NULL
-	dataFileColClasses[extraCols] <- NA # extraCols may be NULL
+	fileColClasses <- rep("NULL", fileCols)
+	if (readTimesFromFile) { fileColClasses[timeCol] <- "character" }
+	fileColClasses[dataCol] <- "numeric" #, but then "" gives error
+	fileColClasses[qualCol] <- NA # qualCol may be NULL
+	fileColClasses[extraCols] <- NA # extraCols may be NULL
 	# read file
-	rawData <- read.table(dataFile, header=F, skip=skip, sep=sep, colClasses=dataFileColClasses, strip.white=T, ...)
+	rawData <- read.table(file, header=F, skip=skip, sep=sep, colClasses=fileColClasses, strip.white=T, ...)
 	# work out which column of rawData has the data (from dataCol)
-	dataIndex <- sum(!is.null(dataFileColClasses[1:dataCol]))
+	dataIndex <- dataCol - sum(fileColClasses[1:dataCol]=="NULL", na.rm=T)
 	qualIndex <- NULL
 	timeIndex <- NULL
+	# extract quality codes or set to default (factor("NA"))
+	myQual <- NA
+	if (!is.null(qualCol) && !is.na(qualCol)) {
+		qualIndex <- qualCol - sum(fileColClasses[1:qualCol]=="NULL", na.rm=T)
+		myQual <- rawData[[qualIndex]]
+		if (is.factor(myQual)) {
+			myQual <- factor(myQual, exclude=NULL)
+		}
+	} else {
+		myQual <- rep(factor(NA, exclude=NULL), nrow(rawData))
+	}
 	# convert or construct the time sequence
 	myTime <- NA
 	if (readTimesFromFile) {
-		timeIndex <- sum(!is.null(dataFileColClasses[1:timeCol]))
-		myTime <- strptime(rawData[,timeIndex], format=timeFormat)
+		timeIndex <- timeCol - sum(fileColClasses[1:timeCol]=="NULL", na.rm=T)
+		myTime <- strptime(rawData[[timeIndex]], format=timeFormat)
+		if (any(is.na(myTime))) {
+			firstNA <- which(is.na(myTime))[1]
+			stop('could not convert "', rawData[firstNA,timeIndex],
+			'" to time with format string "', timeFormat, '"')
+		}
 	} else {
 		if ("list" \%in\% class(startTime)) {
 			timeBits <- lapply(startTime, function(i) {
@@ -91,22 +121,26 @@ function(dataFile, skip=1, sep=",", dataName="Data", dataCol=2, qualCol=3, extra
 			if (is.null(timeBits$min)) { timeBits$min <- 0 }
 			if (is.null(timeBits$sec)) { timeBits$sec <- 0 }
 			startTime <- do.call(ISOdatetime, timeBits)
+			if (is.na(startTime)) {
+				myBits <- paste(paste(names(unlist(timeBits)), '=', unlist(timeBits)), collapse=', ')
+				stop("could not construct starting time from columns given in 'startTime': ", myBits)
+			}
 		}
-		myTime <- seq.POSIXt(from=startTime, by=timeSeqBy, length.out=nrow(rawData))
-	}
-	# extract quality codes or set to default (factor("NA"))
-	myQual <- NA
-	if (!is.null(qualCol) && !is.na(qualCol)) {
-		qualIndex <- sum(!is.null(dataFileColClasses[1:qualCol]))
-		myQual <- factor(rawData[,qualIndex], exclude=NULL)
-	} else {
-		myQual <- rep(factor(NA, exclude=NULL), nrow(rawData))
+		myTime <- seq.POSIXt(from=startTime, by=timeSeqBy, length=nrow(rawData))
 	}
 	# make sure first three columns are Time, Data, Qual (in that order)
-	myBlob <- cbind(Time=myTime, Data=rawData[,dataIndex], Qual=myQual, 
+	blob <- data.frame(Time=myTime, Data=rawData[[dataIndex]], Qual=myQual, 
 		rawData[,-c(timeIndex, dataIndex, qualIndex)])
-	names(myBlob) <- c("Time", dataName, "Qual", extraNames)
-	return(myBlob)
+	names(blob) <- c("Time", dataName, "Qual", extraNames)
+	attr(blob, "timestep") <- as.byString(blob$Time[2] - blob$Time[1], digits=1)
+	timeStepDiffs <- diff(as.numeric(blob$Time))
+	# trim by 10\% because of anomolies in seq.POSIXt with DSTdays
+	timeStepRange <- c(quantile(timeStepDiffs, c(0.1, 0.9)))
+	if (timeStepRange[2] > 1.11 * timeStepRange[1]) {
+		# up to 11\% difference expected in regular series (feb vs jan)
+		attr(blob, "timestep") <- "inst"
+	}
+	return(blob)
   }
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the

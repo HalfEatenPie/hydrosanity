@@ -1,19 +1,30 @@
 \name{window.timeblob}
 \alias{window.timeblob}
-%- Also NEED an '\alias' for EACH other topic documented here.
+\alias{start.timeblob}
+\alias{start.timeblobs}
+\alias{end.timeblob}
+\alias{end.timeblobs}
 \title{ ~~function to do ... ~~ }
 \description{
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-window.timeblob(myBlob, start, end, inclusive = F)
+window.timeblob(blob, start, end, inclusive = F, extend = F)
+
+start.timeblob(blob)
+start.timeblobs(blob.list)
+
+end.timeblob(blob)
+end.timeblobs(blob.list)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{myBlob}{ ~~Describe \code{myBlob} here~~ }
+  \item{blob}{ ~~Describe \code{blob} here~~ }
   \item{start}{ ~~Describe \code{start} here~~ }
   \item{end}{ ~~Describe \code{end} here~~ }
   \item{inclusive}{ ~~Describe \code{inclusive} here~~ }
+  \item{extend}{ ~~Describe \code{extend} here~~ }
+  \item{blob.list}{ ~~Describe \code{blob.list} here~~ }
 }
 \details{
   ~~ If necessary, more details than the description above ~~
@@ -38,35 +49,59 @@ window.timeblob(myBlob, start, end, inclusive = F)
 ##--	or do  help(data=index)  for the standard data sets.
 
 ## The function is currently defined as
-function(myBlob, start, end, inclusive=F) {
+function(blob, start, end, inclusive=F, extend=F) {
+	# check types
+	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
 	start <- as.POSIXct(start)
 	end <- as.POSIXct(end)
+	if (any(is.na(c(start, end)))) { stop("'start' and 'end' must be valid times (POSIXt)") }
+	if (extend) {
+		timestep <- attr(blob, "timestep")
+		if (is.null(timestep)) { stop("'blob' needs a timestep attribute for 'extend=T'") }
+		negTimestep <- paste("-1", timestep)
+		if (length(grep("^[0-9]", timestep)>0)) {
+			negTimestep <- paste("-", timestep, sep='')
+		}
+		if (start < start.timeblob(blob)) {
+			extendTimes <- seq.POSIXt(start.timeblob(blob), start, by=negTimestep)[-1]
+			extendTimes <- rev(extendTimes)
+			extendBlob <- blob[c(0,rep(NA,length(extendTimes))),]
+			extendBlob$Time <- extendTimes
+			blob <- rbind(extendBlob, blob)
+		}
+		if (end > end.timeblob(blob)) {
+			extendTimes <- seq.POSIXt(end.timeblob(blob), end, by=timestep)[-1]
+			extendBlob <- blob[c(0,rep(NA,length(extendTimes))),]
+			extendBlob$Time <- extendTimes
+			blob <- rbind(blob, extendBlob)
+		}
+	}
 	
-	if (start > end.timeblob(myBlob)) {
+	if (start > end.timeblob(blob)) {
 		# entire window is after end
-		return(myBlob[0,])
+		return(blob[0,])
 	}
-	if (end < start.timeblob(myBlob)) {
+	if (end < start.timeblob(blob)) {
 		# entire window is before start
-		return(myBlob[0,])
+		return(blob[0,])
 	}
 	
-	windowIdx <- findInterval(c(start,end), myBlob$Time)
+	windowIdx <- findInterval(c(start,end), blob$Time)
 	
 	if (inclusive == F) {
-		testDate <- myBlob$Time[windowIdx[1]]
-		if ((length(testDate) > 0) && (testDate != start) && (windowIdx[1] < nrow(myBlob))) {
+		testDate <- blob$Time[windowIdx[1]]
+		if ((length(testDate) > 0) && (testDate != start) && (windowIdx[1] < nrow(blob))) {
 			# round up at start (findInterval rounds down)
 			windowIdx[1] <- windowIdx[1] + 1
 		}
 	} else {
-		testDate <- myBlob$Time[windowIdx[2]]
-		if ((length(testDate) > 0) && (testDate != end) && (windowIdx[2] < nrow(myBlob))) {
+		testDate <- blob$Time[windowIdx[2]]
+		if ((length(testDate) > 0) && (testDate != end) && (windowIdx[2] < nrow(blob))) {
 			# round up at end (findInterval rounds down)
 			windowIdx[2] <- windowIdx[2] + 1
 		}
 	}
-	return(myBlob[seq(windowIdx[1],windowIdx[2]),])
+	return(blob[seq(windowIdx[1],windowIdx[2]),])
   }
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
