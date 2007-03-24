@@ -327,6 +327,8 @@ on_explore_seasonal_button_clicked <- function(button) {
 	tmpCall <- parse(text=plot.cmd)[[1]]
 	.hydrosanity$call[["seasonality"]] <<- evalCallArgs(tmpCall, pattern="^tmp")
 	
+	.hydrosanity$win.gui[["seasonality"]]$getWidget("plot_log_togglebutton")$setActive(F)
+	
 	if (length(tmpObjs) > 0) {
 		addToLog(paste('rm(', paste(tmpObjs, collapse=', '), ')', sep=''))
 		rm(list=tmpObjs, envir=.GlobalEnv)

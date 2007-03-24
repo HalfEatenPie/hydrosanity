@@ -477,7 +477,7 @@ trunc.year <- function(thisPOSIXt) {
 }
 
 trunc.decade <- function(thisPOSIXt) {
-	zz <- as.POSIXlt(floor.year(thisPOSIXt))
+	zz <- as.POSIXlt(trunc.year(thisPOSIXt))
 	zz$year <- (zz$year %/% 10) * 10
 	return(zz)
 }
