@@ -6,16 +6,14 @@
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-aggregate.timeblob(myBlob, by = "1 year", from = floor.year(start.timeblob(myBlob)), to = end.timeblob(myBlob), max.na.proportion = 0.05, aggrFun = mean)
+aggregate.timeblob(blob, by = "1 year", FUN = NULL, max.na.proportion = 0.05)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{myBlob}{ ~~Describe \code{myBlob} here~~ }
+  \item{blob}{ ~~Describe \code{blob} here~~ }
   \item{by}{ ~~Describe \code{by} here~~ }
-  \item{from}{ ~~Describe \code{from} here~~ }
-  \item{to}{ ~~Describe \code{to} here~~ }
+  \item{FUN}{ ~~Describe \code{FUN} here~~ }
   \item{max.na.proportion}{ ~~Describe \code{max.na.proportion} here~~ }
-  \item{aggrFun}{ ~~Describe \code{aggrFun} here~~ }
 }
 \details{
   ~~ If necessary, more details than the description above ~~
@@ -40,47 +38,35 @@ aggregate.timeblob(myBlob, by = "1 year", from = floor.year(start.timeblob(myBlo
 ##--	or do  help(data=index)  for the standard data sets.
 
 ## The function is currently defined as
-function(myBlob, by="1 year", from=floor.year(start.timeblob(myBlob)), to=end.timeblob(myBlob), max.na.proportion=0.05, aggrFun=mean) {
-	from <- as.POSIXct(from)
-	to <- as.POSIXct(to)
-	fromPlusOne <- seq.POSIXt(from, by=by, length=2)[2]
-	newDelta <- as.numeric(fromPlusOne) - as.numeric(from)
-	oldDelta <- as.numeric(myBlob$Time[2]) - as.numeric(myBlob$Time[1])
-	freqN <- trunc(newDelta / oldDelta)
-	
-	subBlob <- window.timeblob(myBlob, from, to)
-	dateGroups <- cut.POSIXt(subBlob$Time, breaks=by)
+function(blob, by="1 year", FUN=NULL, max.na.proportion=0.05) {
+	# check types
+	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
+	if (is.null(FUN)) {
+		FUN <- mean
+		if (identical(attr(blob, "role"), "RAIN")) {
+			FUN <- sum
+		}
+	}
+	# find expected number of old timesteps in each new timestep
+	oldDelta <- as.numeric.byString(attr(blob, "timestep"))
+	newDelta <- as.numeric.byString(by)
+	freqN <- floor(newDelta / oldDelta)
+	# construct groups
+	dateGroups <- cut.POSIXt(blob$Time, breaks=by)
 	newDates <- as.POSIXct(levels(dateGroups))
-	
-	newVals <- aggregate(subBlob[,2], by=list(dateGroups), FUN=aggrFun, na.rm=T)[,2]
-	eachNA <- aggregate(subBlob[,2], by=list(dateGroups), FUN=function(x) {sum(is.na(x))})[,2]
+	# aggregate
+	newVals <- aggregate(blob[,2], by=list(dateGroups), FUN=FUN, na.rm=T)[,2]
+	# set NA values
+	eachNA <- aggregate(blob[,2], by=list(dateGroups), FUN=function(x) {sum(is.na(x))})[,2]
 	newVals[eachNA > freqN * max.na.proportion] <- NA
-	firstN <- sum(unclass(dateGroups)==1, na.rm=T)
+	firstN <- sum(as.integer(dateGroups)==1, na.rm=T)
 	if (firstN < freqN * (1-max.na.proportion)) {
 		newVals[1] <- NA
 	}
-
-	#newVals[eachN < freqN * (1-max.na.proportion)] <- NA
-	
-	#newDates <- seq.POSIXt(from, to, by=by)
-	#newN <- length(newDates)
-	#newVals <- rep(as.numeric(NA), newN)
-	#dateGroups <- cut.POSIXt(myBlob$Time, breaks=by)
-	
-	#breaksIdx <- findInterval(newDates, myBlob$Time)
-	# forget about new dates preceding data (before Time[1]), where breaksIdx == 0
-	#preTimes <- sum(breaksIdx==0)
-
-	#dateGroups <- cut.POSIXt(myBlob$Time, breaks=myBlob$Time[breaksIdx])
-	
-	
-	
-	#breaksEachN <- diff(breaksIdx)
-	#breaksEachN[newN] <- nrow(myBlob) - breaksEachN[newN-1]
-	#dateGroups <- rep(seq(1,newN), times=breaksEachN)
-	
+	# construct new blob
 	newBlob <- data.frame(newDates, newVals)
-	names(newBlob) <- names(myBlob)[1:2]
+	names(newBlob) <- names(blob)[1:2]
+	attr(newBlob, "timestep") <- by
 	return(newBlob)
   }
 }

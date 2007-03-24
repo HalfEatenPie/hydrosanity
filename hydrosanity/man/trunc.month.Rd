@@ -1,12 +1,17 @@
-\name{floor.year}
-\alias{floor.year}
-%- Also NEED an '\alias' for EACH other topic documented here.
+\name{trunc.month}
+\alias{trunc.month}
+\alias{trunc.year}
+\alias{trunc.decade}
 \title{ ~~function to do ... ~~ }
 \description{
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-floor.year(thisPOSIXt)
+trunc.month(thisPOSIXt)
+
+trunc.year(thisPOSIXt)
+
+trunc.decade(thisPOSIXt)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -38,8 +43,8 @@ floor.year(thisPOSIXt)
 function(thisPOSIXt) {
 	zz <- as.POSIXlt(thisPOSIXt)
 	zz$mday <- 1
-	zz$mon <- 0
-        zz$isdst <- zz$hour <- zz$min <- zz$sec <- 0
+        zz$hour <- zz$min <- zz$sec <- 0
+	zz$isdst <- -1
 	return(zz)
   }
 }

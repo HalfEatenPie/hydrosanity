@@ -1,16 +1,16 @@
-\name{smooth.timeblob}
-\alias{smooth.timeblob}
+\name{running.average.timeblob}
+\alias{running.average.timeblob}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{ ~~function to do ... ~~ }
 \description{
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-smooth.timeblob(myBlob, by = "1 year", max.na.proportion = 0.05)
+running.average.timeblob(blob, by = "1 year", max.na.proportion = 0.05)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{myBlob}{ ~~Describe \code{myBlob} here~~ }
+  \item{blob}{ ~~Describe \code{blob} here~~ }
   \item{by}{ ~~Describe \code{by} here~~ }
   \item{max.na.proportion}{ ~~Describe \code{max.na.proportion} here~~ }
 }
@@ -37,22 +37,26 @@ smooth.timeblob(myBlob, by = "1 year", max.na.proportion = 0.05)
 ##--	or do  help(data=index)  for the standard data sets.
 
 ## The function is currently defined as
-function(myBlob, by="1 year", max.na.proportion=0.05) {
-	periodSeq <- seq.POSIXt(start.timeblob(myBlob), by=by, length=2)
-	sampleWindow <- window.timeblob(myBlob, periodSeq[1], periodSeq[2])
-	winSize <- nrow(sampleWindow)
+function(blob, by="1 year", max.na.proportion=0.05) {
+	# check types
+	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
+	# find expected number of timesteps in smoothing kernel window
+	delta <- as.numeric.byString(attr(blob, "timestep"))
+	smoothDelta <- as.numeric.byString(by)
+	winSize <- round(smoothDelta / delta)
 	winRear <- ceiling(winSize/2)
 	winFore <- floor(winSize/2)
-	cumSum <- myBlob[,2]
+	# do smoothing
+	cumSum <- blob[,2]
 	cumSum[is.na(cumSum)] <- 0
 	cumSum <- cumsum(cumSum)
-	cumNAs <- cumsum(is.na(myBlob[,2]))
-	newBlob <- myBlob[,c(1,2)]
+	cumNAs <- cumsum(is.na(blob[,2]))
+	newBlob <- blob[,1:2]
 	newBlob[,2] <- NA
-	winNAs <- cumNAs[seq(1+winSize,nrow(myBlob))] - cumNAs[seq(1,nrow(myBlob)-winSize)]
-	winSum <- cumSum[seq(1+winSize,nrow(myBlob))] - cumSum[seq(1,nrow(myBlob)-winSize)]
+	winNAs <- cumNAs[seq(1+winSize,nrow(blob))] - cumNAs[seq(1,nrow(blob)-winSize)]
+	winSum <- cumSum[seq(1+winSize,nrow(blob))] - cumSum[seq(1,nrow(blob)-winSize)]
 	winSum[winNAs > max.na.proportion * winSize] <- NA
-	newBlob[seq(1+winRear,nrow(myBlob)-winFore)] <- winSum / (winSize - winNAs)
+	newBlob[seq(1+winRear,nrow(blob)-winFore)] <- winSum / (winSize - winNAs)
 	return(newBlob)
   }
 }
