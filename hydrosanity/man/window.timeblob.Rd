@@ -1,23 +1,22 @@
 \name{window.timeblob}
 \alias{window.timeblob}
 \alias{start.timeblob}
-\alias{start.timeblobs}
 \alias{end.timeblob}
+\alias{start.timeblobs}
 \alias{end.timeblobs}
-\title{ ~~function to do ... ~~ }
+\title{Time Windows of Time Series (Timeblobs)}
 \description{
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-window.timeblob(blob, start, end, inclusive = F, extend = F)
+\method{window}{timeblob}(blob, start, end, inclusive = F, extend = F)
 
-start.timeblob(blob)
+\method{start}{timeblob}(blob)
+\method{end}{timeblob}(blob)
+
 start.timeblobs(blob.list)
-
-end.timeblob(blob)
 end.timeblobs(blob.list)
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{blob}{ ~~Describe \code{blob} here~~ }
   \item{start}{ ~~Describe \code{start} here~~ }
@@ -35,6 +34,7 @@ end.timeblobs(blob.list)
   \item{comp1 }{Description of 'comp1'}
   \item{comp2 }{Description of 'comp2'}
   ...
+  returns length 0 if blob is empty
 }
 \references{ ~put references to the literature/web site here ~ }
 \author{ ~~who you are~~ }

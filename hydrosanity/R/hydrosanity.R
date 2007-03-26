@@ -31,10 +31,10 @@ COPYRIGHT <- "(c) 2007 Felix Andrews <felix@nfrac.org>, GPL\n based on Rattle, (
 .KNOWN_FORMATS <- list(
 	".au BoM daily rainfall"=
 		c('read.timeblob',
-		  'skip=1, sep=",", dataName="Rain (mm)", dataCol=6, qualCol=7, extraCols=c(9), extraNames=c("AccumSteps"), readTimesFromFile=F, startTime=list(year=3,month=4,day=5), timeSeqBy="DSTday"'),
+		  'skip=1, sep=",", dataname="Rain (mm)", dataCol=6, qualCol=7, extraCols=c(9), extraNames=c("AccumSteps"), readTimesFromFile=F, startTime=list(year=3,month=4,day=5), timeSeqBy="DSTday"'),
 	".au NSW Pinneena v8 streamflow (ML/day, default time format)"=
 		c('read.timeblob',
-		  'skip=3, sep=",", dataName="Flow (ML/day)", timeFormat="%H:%M_%d/%m/%Y", na.strings=c(\'""\')')
+		  'skip=3, sep=",", dataname="Flow (ML/day)", timeFormat="%H:%M_%d/%m/%Y", na.strings=c(\'""\')')
 )
 
 hydrosanity <- function() {
@@ -44,7 +44,7 @@ hydrosanity <- function() {
 	require(cairoDevice, quietly=TRUE)
 	
 	if (exists('.hydrosanity') && !is.null(.hydrosanity$GUI)) {
-		on_menu_quit_activate()
+		.hs_on_menu_quit_activate()
 	}
 	
 	# this global variable stores non-project state information
@@ -66,7 +66,7 @@ hydrosanity <- function() {
 	
 	# connect the callbacks (event handlers)
 	gladeXMLSignalAutoconnect(.hydrosanity$GUI)
-	gSignalConnect(theWidget("hs_window"), "delete-event", on_menu_quit_activate)
+	gSignalConnect(theWidget("hs_window"), "delete-event", .hs_on_menu_quit_activate)
 	
 	# set up log page
 	setTextviewMonospace("log_textview")
@@ -100,8 +100,8 @@ hydrosanity <- function() {
 	importTreeView <- theWidget("import_summary_treeview")
 	insertTreeViewTextColumns(importTreeView, 
 		colNames=c("Name", "Start", "End", "Length", "Timestep", "Data", "Qual", "Extra_data", "Role"),
-		editors=list(Name=on_import_summary_treeview_name_edited,
-			Role=on_import_summary_treeview_role_edited),
+		editors=list(Name=.hs_on_import_summary_treeview_name_edited,
+			Role=.hs_on_import_summary_treeview_role_edited),
 		combo=list(Role=data.frame(c("RAIN","FLOW","OTHER"))) )
 	importTreeView$getSelection()$setMode("multiple")
 	
@@ -137,7 +137,7 @@ hsp <- list(data=list())
 }
 
 
-on_notebook_switch_page <- function(notebook, window, page) {
+.hs_on_notebook_switch_page <- function(notebook, window, page) {
 	theWidget("hs_window")$setSensitive(F)
 	on.exit(theWidget("hs_window")$setSensitive(T))
 	setStatusBar("")
@@ -156,7 +156,7 @@ on_notebook_switch_page <- function(notebook, window, page) {
 }
 
 
-on_menu_quit_activate <- function(action, window) {
+.hs_on_menu_quit_activate <- function(action, window) {
 	if (.hydrosanity$modified && (length(hsp$data) > 0)) {
 		if (!is.null(questionDialog("Save project?"))) {
 			saveProject()
@@ -170,7 +170,7 @@ on_menu_quit_activate <- function(action, window) {
 	.hydrosanity$GUI <<- NULL
 }
 
-on_menu_about_activate <-  function(action, window) {
+.hs_on_menu_about_activate <-  function(action, window) {
 	setStatusBar("")
 	about <- gladeXMLNew(getpackagefile("hydrosanity.glade"), 
 		root="aboutdialog")
@@ -178,7 +178,7 @@ on_menu_about_activate <-  function(action, window) {
 	about$getWidget("aboutdialog")$setCopyright(COPYRIGHT)
 }
 
-on_export_log_button_clicked <- function(button) {
+.hs_on_export_log_button_clicked <- function(button) {
 	theWidget("hs_window")$setSensitive(F)
 	on.exit(theWidget("hs_window")$setSensitive(T))
 	setStatusBar("")
@@ -202,7 +202,7 @@ sanitycheck.rain <- function(timeblobList) {
 	if (is.data.frame(timeblobList)) { timeblobList <- list(timeblobList) }
 	for (k in seq(along=timeblobList)) {
 		cat("Sanity checking rainfall series", k, "(", names(timeblobList)[k], ") ...\n")
-		rawdata <- timeblobList[[k]][,2]
+		rawdata <- timeblobList[[k]]$Data
 		pctiles <- quantile(rawdata, na.rm=T)
 		if (pctiles[["0%"]] != 0) {
 			cat("  INSANITY: minimum not zero:", pctiles[["0%"]], "\n")
@@ -222,7 +222,7 @@ sanitycheck.flow <- function(timeblobList) {
 	if (is.data.frame(timeblobList)) { timeblobList <- list(timeblobList) }
 	for (k in seq(along=timeblobList)) {
 		cat("Sanity checking streamflow series", k, "(", names(timeblobList)[k], ") ...\n")
-		rawdata <- timeblobList[[k]][,2]
+		rawdata <- timeblobList[[k]]$Data
 		pctiles <- quantile(rawdata, na.rm=T)
 		if (pctiles[["0%"]] < 0) {
 			cat("  INSANITY: minimum less than zero:", pctiles[["0%"]], "\n")

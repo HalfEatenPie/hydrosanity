@@ -29,7 +29,7 @@ newCairoWindow <- function(name) {
 	
 	gladeXMLSignalAutoconnect(plotGUI)
 	myWin <- plotGUI$getWidget("plot_window")
-	gSignalConnect(myWin, "delete-event", on_plot_delete_event)
+	gSignalConnect(myWin, "delete-event", .hs_on_plot_delete_event)
 	
 	.hydrosanity$win.gui[[name]] <<- plotGUI
 	.hydrosanity$win[[name]] <<- plotGUI$getWidget("plot_window")
@@ -38,7 +38,7 @@ newCairoWindow <- function(name) {
 	myWin$setTitle(paste("Hydrosanity: ", name, " plot", sep=''))
 }
 
-on_plot_delete_event <- function(widget, event, user.data) {
+.hs_on_plot_delete_event <- function(widget, event, user.data) {
 	myWin <- widget
 	myIndex <- NA
 	for (i in seq(along=.hydrosanity$win)) {
@@ -55,11 +55,11 @@ on_plot_delete_event <- function(widget, event, user.data) {
 	theWidget("hs_window")$present()
 }
 
-on_plot_identify_button_clicked <- function(button) {
+.hs_on_plot_identify_button_clicked <- function(button) {
 	infoDialog("not implemented")
 }
 
-on_plot_centre_button_clicked <- function(button) {
+.hs_on_plot_centre_button_clicked <- function(button) {
 	# look up information about this window in '.hydrosanity'
 	myWin <- button$getParent()$getParent()$getParent()
 	myIndex <- NA
@@ -99,7 +99,7 @@ on_plot_centre_button_clicked <- function(button) {
 		return()
 	}
 	xscale.new <- as.numeric(clickLoc$x) + diff(xscale) * c(-0.5, 0.5)
-	xscale.new <- as.POSIXct.raw(xscale.new)
+	xscale.new <- as.POSIXct(xscale.new)
 	# update the call (using do.call to force eval of args) and re-draw plot
 	.hydrosanity$call[[myName]] <<- do.call(update, list(
 		list(call=.hydrosanity$call[[myName]]), 
@@ -110,7 +110,7 @@ on_plot_centre_button_clicked <- function(button) {
 	if (identical(class(tmp), "trellis")) { print(tmp) }
 }
 
-on_plot_zoomin_button_clicked <- function(button) {
+.hs_on_plot_zoomin_button_clicked <- function(button) {
 	# look up information about this window in '.hydrosanity'
 	myWin <- button$getParent()$getParent()$getParent()
 	myIndex <- NA
@@ -151,7 +151,7 @@ on_plot_zoomin_button_clicked <- function(button) {
 		grid.remove("tmp.*", grep=T, global=T)
 		return()
 	}
-	xscale.new <- as.POSIXct.raw(clickLoc$x)
+	xscale.new <- as.POSIXct.numeric(clickLoc$x)
 	maskGrob <- rectGrob(x=0, width=(clickLoc$x - xscale[1]), just="left", 
 		gp=gpar(col=NULL, fill="grey", alpha=0.5), 
 		vp=timeVpPath, name="tmp.mask")
@@ -170,7 +170,7 @@ on_plot_zoomin_button_clicked <- function(button) {
 		grid.remove("tmp.*", grep=T, global=T)
 		return()
 	}
-	xscale.new[2] <- as.POSIXct.raw(clickLoc$x)
+	xscale.new[2] <- as.POSIXct.numeric(clickLoc$x)
 	grid.draw(editGrob(maskGrob, x=unit(1,"npc"),
 		width=(xscale[2] - clickLoc$x), just="right"))
 	grid.lines(x=clickLoc$x, vp=timeVpPath, name="tmp.maskline2")
@@ -184,7 +184,7 @@ on_plot_zoomin_button_clicked <- function(button) {
 	if (identical(class(tmp), "trellis")) { print(tmp) }
 }
 
-on_plot_zoomout_button_clicked <- function(button) {
+.hs_on_plot_zoomout_button_clicked <- function(button) {
 	# look up information about this window in '.hydrosanity'
 	myWin <- button$getParent()$getParent()$getParent()
 	myIndex <- NA
@@ -206,7 +206,7 @@ on_plot_zoomout_button_clicked <- function(button) {
 	upViewport(depth)
 	# make new xscale twice length of existing time period
 	xscale.new <- xscale + diff(xscale) * c(-0.5, 0.5)
-	xscale.new <- as.POSIXct.raw(xscale.new)
+	xscale.new <- as.POSIXct(xscale.new)
 	# update the call (using do.call to force eval of args) and re-draw plot
 	.hydrosanity$call[[myName]] <<- do.call(update, list(
 		list(call=.hydrosanity$call[[myName]]), 
@@ -218,7 +218,7 @@ on_plot_zoomout_button_clicked <- function(button) {
 }
 
 
-on_plot_log_togglebutton_clicked <- function(button) {
+.hs_on_plot_log_togglebutton_clicked <- function(button) {
 	# look up information about this window in '.hydrosanity'
 	myWin <- button$getParent()$getParent()$getParent()
 	myIndex <- NA
@@ -257,7 +257,7 @@ on_plot_log_togglebutton_clicked <- function(button) {
 	if (identical(class(tmp), "trellis")) { print(tmp) }
 }
 
-on_plot_save_button_clicked <- function(button) {
+.hs_on_plot_save_button_clicked <- function(button) {
 	# look up information about this window in '.hydrosanity'
 	myWin <- button$getParent()$getParent()$getParent()
 	myIndex <- NA
@@ -356,9 +356,20 @@ iconViewGetSelectedNames <- function(iconView) {
 guiTryEval <- function(commandText, doLog=T, doFailureDialog=T, doFailureLog=T) {
 	setCursor("watch")
 	if (length(commandText)==0) { commandText <- "" }
-	if (doLog) { addToLog(commandText) }
 	result <- tryCatch(eval(parse(text=commandText)), error=function(e)e)
 	setCursor()
+	if (doLog) {
+		commandExpr <- try(parse(text=commandText))
+		if (inherits(commandExpr, "try-error")) {
+			# syntax error
+			addToLog(commandText)
+		} else {
+			commandPretty <- paste(capture.output(
+				lapply(commandExpr, print)
+			), collapse="\n")
+			addToLog(commandPretty)
+		}
+	}
 	if (inherits(result, "error") && doFailureDialog) {
 		setStatusBar("")
 		msgText <- conditionMessage(result)
@@ -366,8 +377,8 @@ guiTryEval <- function(commandText, doLog=T, doFailureDialog=T, doFailureLog=T) 
 		if (length(msgText)==0) { msgText <- "" }
 		if (length(callText)==0) { callText <- "" }
 		errorDialog(paste(sep='',
-	"A command has failed. The error was: \n\n<i>", msgText,
-	"</i>\n\n", "The error occurred in: \n\n<tt>", callText, "</tt>\n\n", 
+	"A command has failed. The error was: \n\n<span foreground=\"#aa0000\">", msgText,
+	"</span>\n\n", "The error occurred in: \n\n<tt>", callText, "</tt>\n\n", 
 	"The original command was: \n\n<tt>", commandText, "</tt>\n\n",
 	"If this is not your fault, you might want to select this text and copy it into a bug report."))
 	}
@@ -428,7 +439,11 @@ choose.file.save <- function(default="", caption="Save File", filters=Filters[c(
 		"gtk-save", GtkResponseType["accept"])
 	dialog$setCurrentName(default)
 	
-	for (i in 1:nrow(filters)) {
+	if (length(filters)==2) {
+		filters <- matrix(filters, nrow=1, ncol=2)
+	}
+	
+	for (i in seq(1, nrow(filters))) {
 		ff <- gtkFileFilterNew()
 		ff$setName(filters[i,1])
 		for (x in strsplit(filters[i,2], ';')[[1]]) {
@@ -437,9 +452,14 @@ choose.file.save <- function(default="", caption="Save File", filters=Filters[c(
 		dialog$addFilter(ff)
 	}
 	
-	# dialog$setDoOverwriteConfirmation(T)
+	#dialog$setDoOverwriteConfirmation(T) crap, appears behind filechooser
 	if (dialog$run() == GtkResponseType["accept"]) {
 		filename <- dialog$getFilename()
+		if (file.exists(filename)) {
+			if (is.null(questionDialog("Replace existing file?"))) {
+				filename <- NA
+			}
+		}
 		dialog$destroy()
 		return(filename)
 	} else {

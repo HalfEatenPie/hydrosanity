@@ -1,12 +1,14 @@
 \name{grid.timeline.plot}
 \alias{grid.timeline.plot}
-%- Also NEED an '\alias' for EACH other topic documented here.
-\title{ ~~function to do ... ~~ }
+\alias{grid.timeline.bar}
+\title{Plot Timeline of Data and its Quality}
 \description{
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
 grid.timeline.plot(blob.list, xscale = NULL, colMap = list(good = "black", maybe = "orange", poor = "red"), thickness = unit(1.5, "lines"), maxLabelChars = 20, pad = unit(4, "mm"), grill = T, newpage = T)
+
+grid.timeline.bar <- function(blob, colMap = NULL, name = "timeline.bar", vp = NULL)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -18,6 +20,9 @@ grid.timeline.plot(blob.list, xscale = NULL, colMap = list(good = "black", maybe
   \item{pad}{ ~~Describe \code{pad} here~~ }
   \item{grill}{ ~~Describe \code{grill} here~~ }
   \item{newpage}{ ~~Describe \code{newpage} here~~ }
+  \item{blob}{ ~~Describe \code{blob} here~~ }
+  \item{name}{ ~~Describe \code{name} here~~ }
+  \item{vp}{ ~~Describe \code{vp} here~~ }
 }
 \details{
   ~~ If necessary, more details than the description above ~~

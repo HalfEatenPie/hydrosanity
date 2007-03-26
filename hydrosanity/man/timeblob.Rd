@@ -1,34 +1,34 @@
-\name{read.timeblob}
-\alias{read.timeblob}
-\title{Read Timeblob from a Text File}
+\name{timeblob}
+\alias{timeblob}
+\alias{is.timeblob}
+\alias{lapply.timeblob.data}
+\alias{sapply.timeblob.data}
+\title{Time Series Object (Timeblob) with Times and Data}
 \description{
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-read.timeblob(file, skip = 1, sep = ",", dataname = "Data", dataCol = 2, qualCol = 3, extraCols = c(), extraNames = paste("Extra", extraCols), readTimesFromFile = T, timeCol = 1, timeFormat = "%d %b %Y", startTime = NA, timeSeqBy = "DSTday", ...)
+timeblob(Time, Data, Qual=NULL, extras=NULL, timestep=NULL, dataname=NULL)
+
+is.timeblob(x)
+
+lapply.timeblob.data(blob.list, FUN, ...)
+sapply.timeblob.data(blob.list, FUN, ...)
 }
+%- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{file}{ ~~Describe \code{file} here~~ }
-  \item{skip}{ ~~Describe \code{skip} here~~ }
-  \item{sep}{ ~~Describe \code{sep} here~~ }
-  \item{dataname}{ ~~Describe \code{dataName} here~~ }
-  \item{dataCol}{ ~~Describe \code{dataCol} here~~ }
-  \item{qualCol}{ ~~Describe \code{qualCol} here~~ }
-  \item{extraCols}{ ~~Describe \code{extraCols} here~~ }
-  \item{extraNames}{ ~~Describe \code{extraNames} here~~ }
-  \item{readTimesFromFile}{ ~~Describe \code{readTimesFromFile} here~~ }
-  \item{timeCol}{ ~~Describe \code{timeCol} here~~ }
-  \item{timeFormat}{ ~~Describe \code{timeFormat} here~~ }
-  \item{startTime}{ ~~Describe \code{startTime} here~~ }
-  \item{timeSeqBy}{ ~~Describe \code{timeSeqBy} here~~ }
+  \item{Time}{ ~~Describe \code{Time} here~~ }
+  \item{Data}{ ~~Describe \code{Data} here~~ }
+  \item{Qual}{ ~~Describe \code{Qual} here~~ }
+  \item{extras}{ ~~Describe \code{extras} here~~ }
+  \item{timestep}{ ~~Describe \code{timestep} here~~ }
+  \item{dataname}{ ~~Describe \code{dataname} here~~ }
+  \item{blob.list}{ ~~Describe \code{blob.list} here~~ }
+  \item{FUN}{ ~~Describe \code{FUN} here~~ }
   \item{\dots}{ ~~Describe \code{\dots} here~~ }
 }
 \details{
   ~~ If necessary, more details than the description above ~~
-  if readTimesFromFile == FALSE then
-startTime should be able to be interpreted as a POSIXt, or else be a list like
-startTime=list(year=1,month=2,day=3,etc) where these give column numbers to read the start time from the first line in file
-
 }
 \value{
   ~Describe the value returned

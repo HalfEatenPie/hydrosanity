@@ -1,14 +1,12 @@
 \name{summary.missing.timeblobs}
 \alias{summary.missing.timeblobs}
-%- Also NEED an '\alias' for EACH other topic documented here.
-\title{ ~~function to do ... ~~ }
+\title{Summarise Missing Data in a Set of Timeblobs}
 \description{
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
 summary.missing.timeblobs(blob.list, timelim = NULL, timestep = NULL)
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{blob.list}{ ~~Describe \code{blob.list} here~~ }
   \item{timelim}{ ~~Describe \code{timelim} here~~ }

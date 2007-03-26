@@ -35,7 +35,7 @@ updateExplorePage <- function() {
 	theWidget("hs_window")$present()
 }
 
-on_explore_timeseries_button_clicked <- function(button) {
+.hs_on_explore_timeseries_button_clicked <- function(button) {
 	theWidget("hs_window")$setSensitive(F)
 	on.exit(theWidget("hs_window")$setSensitive(T))
 	setStatusBar("")
@@ -122,12 +122,12 @@ on_explore_timeseries_button_clicked <- function(button) {
 		addToLog("## Find global range of data")
 		tmpObjs <- c(tmpObjs, 'tmp.yscale')
 		makescale.cmd <- sprintf(
-			'tmp.yscale <<- range(sapply(lapply(%s, window.timeblob, hsp$timePeriod[1], hsp$timePeriod[2]), range.timeblob, na.rm=T))',
+			'tmp.yscale <<- range(sapply.timeblob.data(lapply(%s, window.timeblob, hsp$timePeriod[1], hsp$timePeriod[2]), range, na.rm=T))',
 			all_data.cmd)
 		if (doLog) {
 			addToLog("## and limit by minimum non-zero value (for log scale)")
 			makescale.cmd <- paste(makescale.cmd, "\n", sprintf(
-			'tmp.yscale[1] <<- min(sapply(%s, function(x){min(x[,2][x[,2]>0], na.rm=T)}))',
+			'tmp.yscale[1] <<- min(sapply.timeblob.data(%s, function(x){ min(x[x>0], na.rm=T) }))',
 				all_data.cmd), sep='')
 		}
 		result <- guiTryEval(makescale.cmd)
@@ -169,7 +169,7 @@ on_explore_timeseries_button_clicked <- function(button) {
 	setStatusBar("Generated timeseries plot")
 }
 
-on_explore_cdf_button_clicked <- function(button) {
+.hs_on_explore_cdf_button_clicked <- function(button) {
 	theWidget("hs_window")$setSensitive(F)
 	on.exit(theWidget("hs_window")$setSensitive(T))
 	setStatusBar("")
@@ -185,6 +185,7 @@ on_explore_cdf_button_clicked <- function(button) {
 	if (myN == length(hsp$data)) { rawdata.cmd <- 'hsp$data' }
 	
 	doNormal <- theWidget("explore_cdf_normal_radiobutton")$getActive()
+	doLine <- theWidget("explore_cdf_line_checkbutton")$getActive()
 	doRawData <- theWidget("explore_cdf_rawdata_checkbutton")$getActive()
 	doAggr1 <- theWidget("explore_cdf_aggr1_checkbutton")$getActive()
 	doAggr2 <- theWidget("explore_cdf_aggr2_checkbutton")$getActive()
@@ -235,7 +236,7 @@ on_explore_cdf_button_clicked <- function(button) {
 	data.formula.cmd <- paste(names(tmp.data)[-1], collapse=" + ")
 	dist.cmd <- if (doNormal) { ', distribution=qnorm' } else { ', distribution=qunif' }
 	
-	# set up y scale (lattice clips off the bottom!)
+	# set up y scale (lattice default clips off the bottom!)
 	addToLog("## Find global range of data")
 	tmpObjs <- c(tmpObjs, 'tmp.yscale')
 	makescale.cmd <- paste(sep="\n",
@@ -248,10 +249,14 @@ on_explore_cdf_button_clicked <- function(button) {
 	if (inherits(result, "error")) { return() }
 	yscale.cmd <- ', ylim=tmp.yscale'
 	
+	panel.cmd <- if (doLine) {
+		', panel=function(...) { panel.qqmathline(...); panel.qqmath(...) }'
+	} else { '' }
+	
 	# make axis components
 	tmpObjs <- c(tmpObjs, 'tmp.probs', 'tmp.xaxis')
 	pre_plot.cmd <- paste(sep='\n',
-		'tmp.probs <<- c(0.01, seq(0.1, 0.9, by=0.1), 0.99)',
+		'tmp.probs <<- c(0.01, 0.1, 0.25, 0.5, 0.75, 0.9, 0.99)',
 		sprintf(
 		'tmp.xaxis <<- list(at=%s(tmp.probs), labels=as.character(tmp.probs*100))',
 			if (doNormal) { 'qnorm' } else { '' } ))
@@ -260,9 +265,9 @@ on_explore_cdf_button_clicked <- function(button) {
 	
 	setPlotDevice("distribution")
 	
-	plot.cmd <- sprintf('qqmath(~ %s, data=tmp.data%s%s, scales=list(x=tmp.xaxis, y=list(log=T)), xlab="Probability of non-exceedence (%%)", auto.key=T)',
-		data.formula.cmd, dist.cmd, yscale.cmd)
-	
+	plot.cmd <- sprintf('qqmath(~ %s, data=tmp.data%s%s%s, scales=list(x=tmp.xaxis, y=list(log=T)), xlab="Probability of non-exceedence (%%)", auto.key=T)',
+		data.formula.cmd, dist.cmd, panel.cmd, yscale.cmd)
+
 	result <- guiTryEval(plot.cmd)
 	if (inherits(result, "error")) { return() }
 	print(result) # plot trellis object
@@ -278,7 +283,7 @@ on_explore_cdf_button_clicked <- function(button) {
 	setStatusBar("Generated CDF plot")
 }
 
-on_explore_seasonal_button_clicked <- function(button) {
+.hs_on_explore_seasonal_button_clicked <- function(button) {
 	theWidget("hs_window")$setSensitive(F)
 	on.exit(theWidget("hs_window")$setSensitive(T))
 	setStatusBar("")
@@ -290,6 +295,9 @@ on_explore_seasonal_button_clicked <- function(button) {
 	if (myN == length(hsp$data)) { rawdata.cmd <- 'hsp$data' }
 	
 	doMonths <- theWidget("explore_seasonal_months_radiobutton")$getActive()
+	doBoxPlot <- theWidget("explore_seasonal_bwplot_radiobutton")$getActive()
+	doStripPlot <- theWidget("explore_seasonal_stripplot_radiobutton")$getActive()
+	doViolinPlot <- theWidget("explore_seasonal_violinplot_radiobutton")$getActive()
 	
 	addLogComment("Generate seasonal plot")
 	
@@ -316,11 +324,13 @@ on_explore_seasonal_button_clicked <- function(button) {
 	
 	data.formula.cmd <- paste(names(tmp.data)[-c(1,ncol(tmp.data))], collapse=" + ")
 	layout.cmd <- if (doMonths) { sprintf(', layout=c(1, %i)', myN) } else { '' }
+	plotfn.cmd <- if (doStripPlot) { 'stripplot' } else { 'bwplot' }
+	panel.cmd <- if (doViolinPlot) { ', panel=panel.violin' } else { '' }
 	
 	setPlotDevice("seasonality")
 	
-	plot.cmd <- sprintf('bwplot(%s ~ Season, data=tmp.data, outer=T%s)',
-		data.formula.cmd, layout.cmd)
+	plot.cmd <- sprintf('%s(%s ~ Season, data=tmp.data, outer=T%s%s)',
+		plotfn.cmd, data.formula.cmd, panel.cmd, layout.cmd)
 	result <- guiTryEval(plot.cmd)
 	if (inherits(result, "error")) { return() }
 	print(result) # plot trellis object

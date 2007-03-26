@@ -21,7 +21,7 @@ updateImportPage <- function() {
 		#dfFreq[i] <- as.byString(myAvgFreq, digits=2)
 		dfFreq[i] <- attr(hsp$data[[i]], "timestep")
 		
-		dfData[i] <- names(hsp$data[[i]])[2]
+		dfData[i] <- attr(hsp$data[[i]], "dataname")
 		dfQual[i] <- class(hsp$data[[i]]$Qual)[1]
 		if (is.factor(hsp$data[[i]]$Qual) || is.numeric(hsp$data[[i]]$Qual)) {
 			levelsFn <- if (is.factor(hsp$data[[i]]$Qual))
@@ -76,7 +76,7 @@ updateImportPage <- function() {
 
 ## ACTIONS
 
-on_import_robj_button_clicked <- function(button) {
+.hs_on_import_robj_button_clicked <- function(button) {
 	theWidget("hs_window")$setSensitive(F)
 	on.exit(theWidget("hs_window")$setSensitive(T))
 	setStatusBar("")
@@ -123,7 +123,7 @@ on_import_robj_button_clicked <- function(button) {
 	updateImportPage()
 }
 
-on_import_displayfile_button_clicked <- function(button) {
+.hs_on_import_displayfile_button_clicked <- function(button) {
 	theWidget("hs_window")$setSensitive(F)
 	on.exit(theWidget("hs_window")$setSensitive(T))
 	setStatusBar("")
@@ -134,7 +134,7 @@ on_import_displayfile_button_clicked <- function(button) {
 	file.show(filenames)
 }
 
-on_import_viewtable_button_clicked <- function(button) {
+.hs_on_import_viewtable_button_clicked <- function(button) {
 	theWidget("hs_window")$setSensitive(F)
 	on.exit(theWidget("hs_window")$setSensitive(T))
 	setStatusBar("")
@@ -162,7 +162,7 @@ on_import_viewtable_button_clicked <- function(button) {
 	}
 }
 
-on_import_file_button_clicked <- function(button) {
+.hs_on_import_file_button_clicked <- function(button) {
 	theWidget("hs_window")$setSensitive(F)
 	on.exit(theWidget("hs_window")$setSensitive(T))
 	setStatusBar("")
@@ -234,7 +234,7 @@ on_import_file_button_clicked <- function(button) {
 	#updateImportPage()
 }
 
-on_import_summary_treeview_name_edited <- function(cell, path.string, new.text, user.data) {
+.hs_on_import_summary_treeview_name_edited <- function(cell, path.string, new.text, user.data) {
 	blobIndex <- as.numeric(path.string)+1
 	blobName <- names(hsp$data)[blobIndex]
 	if (new.text == blobName) { return() }
@@ -247,7 +247,7 @@ on_import_summary_treeview_name_edited <- function(cell, path.string, new.text, 
 	updateImportPage()
 }
 
-on_import_summary_treeview_role_edited <- function(cell, path.string, new.text, user.data) {
+.hs_on_import_summary_treeview_role_edited <- function(cell, path.string, new.text, user.data) {
 	blobIndex <- as.numeric(path.string)+1
 	blobName <- names(hsp$data)[blobIndex]
 	if (attr(hsp$data[[blobIndex]], "role") == new.text) { return() }
@@ -256,7 +256,7 @@ on_import_summary_treeview_role_edited <- function(cell, path.string, new.text, 
 	updateImportPage()
 }
 
-on_import_remove_blob_button_clicked <- function(button) {
+.hs_on_import_remove_blob_button_clicked <- function(button) {
 	theWidget("hs_window")$setSensitive(F)
 	on.exit(theWidget("hs_window")$setSensitive(T))
 	setStatusBar("")
@@ -280,7 +280,7 @@ on_import_remove_blob_button_clicked <- function(button) {
 	updateImportPage()
 }
 
-on_import_makefactor_button_clicked <- function(button) {
+.hs_on_import_makefactor_button_clicked <- function(button) {
 	theWidget("hs_window")$setSensitive(F)
 	on.exit(theWidget("hs_window")$setSensitive(T))
 	setStatusBar("")
@@ -330,18 +330,18 @@ setDataRole <- function(blobName, role=NULL, doLogComment=T) {
 	setStatusBar(sprintf('Set data role for object "%s" to "%s"', blobName, role))
 }
 
-on_import_file_radio_options_toggled <- function(button) {
+.hs_on_import_file_radio_options_toggled <- function(button) {
 	
 	newPageIdx <- 0
 	if (theWidget("import_known_format_radio")$getActive()) {
 		newPageIdx <- 0
-		on_import_known_format_combobox_changed(
+		.hs_on_import_known_format_combobox_changed(
 			theWidget("import_known_format_combobox"))
 	} else {
 		theWidget("import_options_expander")$setExpanded(TRUE)
 		# TODO: need to check switching from known format or not
 		theWidget("import_options_entry")$setText(
-			'sep=",", skip=1, dataName="Data", dataCol=2, qualCol=3')
+			'sep=",", skip=1, dataname="Data", dataCol=2, qualCol=3')
 	}
 	
 	if (theWidget("import_file_with_time_radio")$getActive()) {
@@ -360,7 +360,7 @@ on_import_file_radio_options_toggled <- function(button) {
 	theWidget("import_file_radio_options_notebook")$setCurrentPage(newPageIdx)
 }
 
-on_import_known_format_combobox_changed <- function(widget) {
+.hs_on_import_known_format_combobox_changed <- function(widget) {
 	kfIndex <- widget$getActive()+1
 	theWidget("import_options_entry")$setText(.KNOWN_FORMATS[[kfIndex]][2])
 }

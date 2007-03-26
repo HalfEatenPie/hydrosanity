@@ -2,7 +2,7 @@
 \alias{trunc.month}
 \alias{trunc.year}
 \alias{trunc.decade}
-\title{ ~~function to do ... ~~ }
+\title{Round Down to a Month, Year or Decade}
 \description{
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
@@ -13,7 +13,6 @@ trunc.year(thisPOSIXt)
 
 trunc.decade(thisPOSIXt)
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{thisPOSIXt}{ ~~Describe \code{thisPOSIXt} here~~ }
 }

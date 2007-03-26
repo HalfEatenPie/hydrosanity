@@ -45,7 +45,7 @@
 		      <property name="visible">True</property>
 		      <property name="label">gtk-new</property>
 		      <property name="use_stock">True</property>
-		      <signal name="activate" handler="on_menu_new_activate" last_modification_time="Sun, 11 Mar 2007 02:00:22 GMT"/>
+		      <signal name="activate" handler=".hs_on_menu_new_activate" last_modification_time="Sun, 11 Mar 2007 02:00:22 GMT"/>
 		    </widget>
 		  </child>
 
@@ -54,7 +54,7 @@
 		      <property name="visible">True</property>
 		      <property name="label">gtk-open</property>
 		      <property name="use_stock">True</property>
-		      <signal name="activate" handler="on_menu_open_activate" last_modification_time="Thu, 15 Feb 2007 07:23:47 GMT"/>
+		      <signal name="activate" handler=".hs_on_menu_open_activate" last_modification_time="Thu, 15 Feb 2007 07:23:47 GMT"/>
 		    </widget>
 		  </child>
 
@@ -63,7 +63,7 @@
 		      <property name="visible">True</property>
 		      <property name="label">gtk-save</property>
 		      <property name="use_stock">True</property>
-		      <signal name="activate" handler="on_menu_save_activate" last_modification_time="Thu, 15 Feb 2007 07:23:47 GMT"/>
+		      <signal name="activate" handler=".hs_on_menu_save_activate" last_modification_time="Thu, 15 Feb 2007 07:23:47 GMT"/>
 		    </widget>
 		  </child>
 
@@ -72,7 +72,7 @@
 		      <property name="visible">True</property>
 		      <property name="label">gtk-save-as</property>
 		      <property name="use_stock">True</property>
-		      <signal name="activate" handler="on_menu_saveas_activate" last_modification_time="Thu, 15 Feb 2007 07:23:47 GMT"/>
+		      <signal name="activate" handler=".hs_on_menu_saveas_activate" last_modification_time="Thu, 15 Feb 2007 07:23:47 GMT"/>
 		    </widget>
 		  </child>
 
@@ -87,7 +87,7 @@
 		      <property name="visible">True</property>
 		      <property name="label">gtk-quit</property>
 		      <property name="use_stock">True</property>
-		      <signal name="activate" handler="on_menu_quit_activate" last_modification_time="Thu, 15 Feb 2007 07:23:47 GMT"/>
+		      <signal name="activate" handler=".hs_on_menu_quit_activate" last_modification_time="Thu, 15 Feb 2007 07:23:47 GMT"/>
 		    </widget>
 		  </child>
 		</widget>
@@ -109,7 +109,7 @@
 		      <property name="visible">True</property>
 		      <property name="label" translatable="yes">_About</property>
 		      <property name="use_underline">True</property>
-		      <signal name="activate" handler="on_menu_about_activate" last_modification_time="Thu, 15 Feb 2007 07:23:47 GMT"/>
+		      <signal name="activate" handler=".hs_on_menu_about_activate" last_modification_time="Thu, 15 Feb 2007 07:23:47 GMT"/>
 		    </widget>
 		  </child>
 		</widget>
@@ -133,7 +133,7 @@
 	  <property name="tab_pos">GTK_POS_TOP</property>
 	  <property name="scrollable">True</property>
 	  <property name="enable_popup">True</property>
-	  <signal name="switch_page" handler="on_notebook_switch_page" last_modification_time="Thu, 15 Feb 2007 03:21:47 GMT"/>
+	  <signal name="switch_page" handler=".hs_on_notebook_switch_page" last_modification_time="Thu, 15 Feb 2007 03:21:47 GMT"/>
 
 	  <child>
 	    <widget class="GtkAlignment" id="alignment4">
@@ -184,7 +184,7 @@
 				  <property name="active">True</property>
 				  <property name="inconsistent">False</property>
 				  <property name="draw_indicator">True</property>
-				  <signal name="toggled" handler="on_import_file_radio_options_toggled" last_modification_time="Thu, 01 Mar 2007 08:08:46 GMT"/>
+				  <signal name="toggled" handler=".hs_on_import_file_radio_options_toggled" last_modification_time="Thu, 01 Mar 2007 08:08:46 GMT"/>
 				</widget>
 				<packing>
 				  <property name="padding">0</property>
@@ -205,7 +205,7 @@
 				  <property name="inconsistent">False</property>
 				  <property name="draw_indicator">True</property>
 				  <property name="group">import_known_format_radio</property>
-				  <signal name="toggled" handler="on_import_file_radio_options_toggled" last_modification_time="Thu, 01 Mar 2007 08:08:52 GMT"/>
+				  <signal name="toggled" handler=".hs_on_import_file_radio_options_toggled" last_modification_time="Thu, 01 Mar 2007 08:08:52 GMT"/>
 				</widget>
 				<packing>
 				  <property name="padding">0</property>
@@ -226,7 +226,7 @@
 				  <property name="inconsistent">False</property>
 				  <property name="draw_indicator">True</property>
 				  <property name="group">import_known_format_radio</property>
-				  <signal name="toggled" handler="on_import_file_radio_options_toggled" last_modification_time="Thu, 01 Mar 2007 08:08:58 GMT"/>
+				  <signal name="toggled" handler=".hs_on_import_file_radio_options_toggled" last_modification_time="Thu, 01 Mar 2007 08:08:58 GMT"/>
 				</widget>
 				<packing>
 				  <property name="padding">0</property>
@@ -247,7 +247,7 @@
 				  <property name="inconsistent">False</property>
 				  <property name="draw_indicator">True</property>
 				  <property name="group">import_known_format_radio</property>
-				  <signal name="toggled" handler="on_import_file_radio_options_toggled" last_modification_time="Fri, 16 Mar 2007 07:25:11 GMT"/>
+				  <signal name="toggled" handler=".hs_on_import_file_radio_options_toggled" last_modification_time="Fri, 16 Mar 2007 07:25:11 GMT"/>
 				</widget>
 				<packing>
 				  <property name="padding">0</property>
@@ -310,7 +310,7 @@
 				      <property name="items" translatable="yes">No known formats (set hsKnownFormats)</property>
 				      <property name="add_tearoffs">False</property>
 				      <property name="focus_on_click">True</property>
-				      <signal name="changed" handler="on_import_known_format_combobox_changed" last_modification_time="Fri, 16 Feb 2007 06:47:41 GMT"/>
+				      <signal name="changed" handler=".hs_on_import_known_format_combobox_changed" last_modification_time="Fri, 16 Feb 2007 06:47:41 GMT"/>
 				    </widget>
 				    <packing>
 				      <property name="padding">0</property>
@@ -571,7 +571,7 @@
 				  <child>
 				    <widget class="GtkLabel" id="label20">
 				      <property name="visible">True</property>
-				      <property name="label" translatable="yes">&lt;i&gt;(YYYY-MM-DD)&lt;/i&gt;, going by steps of</property>
+				      <property name="label" translatable="yes">&lt;tt&gt;(YYYY-MM-DD)&lt;/tt&gt;, going by steps of</property>
 				      <property name="use_underline">False</property>
 				      <property name="use_markup">True</property>
 				      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -705,7 +705,7 @@
 				      <property name="use_underline">True</property>
 				      <property name="relief">GTK_RELIEF_NORMAL</property>
 				      <property name="focus_on_click">True</property>
-				      <signal name="clicked" handler="on_import_robj_button_clicked" last_modification_time="Fri, 16 Feb 2007 06:46:20 GMT"/>
+				      <signal name="clicked" handler=".hs_on_import_robj_button_clicked" last_modification_time="Fri, 16 Feb 2007 06:46:20 GMT"/>
 				    </widget>
 				    <packing>
 				      <property name="padding">0</property>
@@ -933,7 +933,7 @@
 				  <property name="use_underline">True</property>
 				  <property name="relief">GTK_RELIEF_NORMAL</property>
 				  <property name="focus_on_click">True</property>
-				  <signal name="clicked" handler="on_import_file_button_clicked" last_modification_time="Thu, 15 Feb 2007 08:02:08 GMT"/>
+				  <signal name="clicked" handler=".hs_on_import_file_button_clicked" last_modification_time="Thu, 15 Feb 2007 08:02:08 GMT"/>
 				</widget>
 			      </child>
 
@@ -946,7 +946,7 @@
 				  <property name="use_underline">True</property>
 				  <property name="relief">GTK_RELIEF_NORMAL</property>
 				  <property name="focus_on_click">True</property>
-				  <signal name="clicked" handler="on_import_displayfile_button_clicked" last_modification_time="Sat, 17 Feb 2007 08:38:19 GMT"/>
+				  <signal name="clicked" handler=".hs_on_import_displayfile_button_clicked" last_modification_time="Sat, 17 Feb 2007 08:38:19 GMT"/>
 				</widget>
 			      </child>
 			    </widget>
@@ -1116,7 +1116,7 @@
 						      <property name="use_underline">True</property>
 						      <property name="relief">GTK_RELIEF_NORMAL</property>
 						      <property name="focus_on_click">True</property>
-						      <signal name="clicked" handler="on_import_viewtable_button_clicked" last_modification_time="Mon, 19 Mar 2007 01:50:11 GMT"/>
+						      <signal name="clicked" handler=".hs_on_import_viewtable_button_clicked" last_modification_time="Mon, 26 Mar 2007 03:24:15 GMT"/>
 						    </widget>
 						    <packing>
 						      <property name="padding">0</property>
@@ -1133,7 +1133,7 @@
 						      <property name="use_underline">True</property>
 						      <property name="relief">GTK_RELIEF_NORMAL</property>
 						      <property name="focus_on_click">True</property>
-						      <signal name="clicked" handler="on_import_remove_blob_button_clicked" last_modification_time="Fri, 16 Feb 2007 06:46:54 GMT"/>
+						      <signal name="clicked" handler=".hs_on_import_remove_blob_button_clicked" last_modification_time="Fri, 16 Feb 2007 06:46:54 GMT"/>
 						    </widget>
 						    <packing>
 						      <property name="padding">0</property>
@@ -1261,7 +1261,7 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 						      <property name="use_underline">True</property>
 						      <property name="relief">GTK_RELIEF_NORMAL</property>
 						      <property name="focus_on_click">True</property>
-						      <signal name="clicked" handler="on_import_makefactor_button_clicked" last_modification_time="Sat, 17 Feb 2007 08:18:50 GMT"/>
+						      <signal name="clicked" handler=".hs_on_import_makefactor_button_clicked" last_modification_time="Sat, 17 Feb 2007 08:18:50 GMT"/>
 						    </widget>
 						    <packing>
 						      <property name="padding">0</property>
@@ -1525,7 +1525,7 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 				      <property name="use_underline">True</property>
 				      <property name="relief">GTK_RELIEF_NORMAL</property>
 				      <property name="focus_on_click">True</property>
-				      <signal name="clicked" handler="on_timeperiod_updateperiod_button_clicked" last_modification_time="Thu, 22 Feb 2007 10:29:13 GMT"/>
+				      <signal name="clicked" handler=".hs_on_timeperiod_updateperiod_button_clicked" last_modification_time="Thu, 22 Feb 2007 10:29:13 GMT"/>
 				    </widget>
 				  </child>
 
@@ -1539,7 +1539,7 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 				      <property name="use_underline">True</property>
 				      <property name="relief">GTK_RELIEF_NORMAL</property>
 				      <property name="focus_on_click">True</property>
-				      <signal name="clicked" handler="on_timeperiod_setfromplot_button_clicked" last_modification_time="Fri, 23 Mar 2007 05:55:53 GMT"/>
+				      <signal name="clicked" handler=".hs_on_timeperiod_setfromplot_button_clicked" last_modification_time="Fri, 23 Mar 2007 05:55:53 GMT"/>
 				    </widget>
 				  </child>
 
@@ -1552,7 +1552,7 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 				      <property name="use_underline">True</property>
 				      <property name="relief">GTK_RELIEF_NORMAL</property>
 				      <property name="focus_on_click">True</property>
-				      <signal name="clicked" handler="on_timeperiod_reset_button_clicked" last_modification_time="Thu, 22 Feb 2007 13:54:08 GMT"/>
+				      <signal name="clicked" handler=".hs_on_timeperiod_reset_button_clicked" last_modification_time="Thu, 22 Feb 2007 13:54:08 GMT"/>
 				    </widget>
 				  </child>
 				</widget>
@@ -1577,8 +1577,8 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 				  <property name="invisible_char">*</property>
 				  <property name="activates_default">True</property>
 				  <property name="width_chars">24</property>
-				  <signal name="changed" handler="on_timeperiod_chosenperiod_entry_changed" last_modification_time="Thu, 22 Feb 2007 14:01:35 GMT"/>
-				  <signal name="editing_done" handler="on_timeperiod_updateperiod_button_clicked" last_modification_time="Thu, 22 Feb 2007 14:04:45 GMT"/>
+				  <signal name="changed" handler=".hs_on_timeperiod_chosenperiod_entry_changed" last_modification_time="Thu, 22 Feb 2007 14:01:35 GMT"/>
+				  <signal name="editing_done" handler=".hs_on_timeperiod_updateperiod_button_clicked" last_modification_time="Thu, 22 Feb 2007 14:04:45 GMT"/>
 				</widget>
 				<packing>
 				  <property name="left_attach">1</property>
@@ -1633,7 +1633,7 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 				      <property name="can_focus">True</property>
 				      <property name="relief">GTK_RELIEF_NORMAL</property>
 				      <property name="focus_on_click">True</property>
-				      <signal name="clicked" handler="on_timeperiod_viewtimeline_button_clicked" last_modification_time="Fri, 02 Mar 2007 15:01:45 GMT"/>
+				      <signal name="clicked" handler=".hs_on_timeperiod_viewtimeline_button_clicked" last_modification_time="Fri, 02 Mar 2007 15:01:45 GMT"/>
 
 				      <child>
 					<widget class="GtkAlignment" id="alignment10">
@@ -1987,6 +1987,7 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 
 	      <child>
 		<widget class="GtkFrame" id="frame11">
+		  <property name="height_request">120</property>
 		  <property name="visible">True</property>
 		  <property name="label_xalign">0</property>
 		  <property name="label_yalign">0.5</property>
@@ -2052,7 +2053,7 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 		</widget>
 		<packing>
 		  <property name="padding">0</property>
-		  <property name="expand">True</property>
+		  <property name="expand">False</property>
 		  <property name="fill">True</property>
 		</packing>
 	      </child>
@@ -2100,7 +2101,7 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 				      <property name="can_focus">True</property>
 				      <property name="relief">GTK_RELIEF_NORMAL</property>
 				      <property name="focus_on_click">True</property>
-				      <signal name="clicked" handler="on_explore_timeseries_button_clicked" last_modification_time="Thu, 01 Mar 2007 04:27:14 GMT"/>
+				      <signal name="clicked" handler=".hs_on_explore_timeseries_button_clicked" last_modification_time="Thu, 01 Mar 2007 04:27:14 GMT"/>
 
 				      <child>
 					<widget class="GtkAlignment" id="alignment11">
@@ -2177,7 +2178,7 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 				    <widget class="GtkCheckButton" id="explore_timeseries_caption_checkbutton">
 				      <property name="visible">True</property>
 				      <property name="can_focus">True</property>
-				      <property name="label" translatable="yes">Legend</property>
+				      <property name="label" translatable="yes">Caption</property>
 				      <property name="use_underline">True</property>
 				      <property name="relief">GTK_RELIEF_NORMAL</property>
 				      <property name="focus_on_click">True</property>
@@ -2595,7 +2596,7 @@ years</property>
 				  <property name="can_focus">True</property>
 				  <property name="relief">GTK_RELIEF_NORMAL</property>
 				  <property name="focus_on_click">True</property>
-				  <signal name="clicked" handler="on_explore_cdf_button_clicked" last_modification_time="Fri, 09 Mar 2007 03:08:19 GMT"/>
+				  <signal name="clicked" handler=".hs_on_explore_cdf_button_clicked" last_modification_time="Fri, 09 Mar 2007 03:08:19 GMT"/>
 
 				  <child>
 				    <widget class="GtkAlignment" id="alignment14">
@@ -2730,6 +2731,36 @@ years</property>
 				  <property name="padding">0</property>
 				  <property name="expand">True</property>
 				  <property name="fill">True</property>
+				</packing>
+			      </child>
+
+			      <child>
+				<widget class="GtkHSeparator" id="hseparator6">
+				  <property name="visible">True</property>
+				</widget>
+				<packing>
+				  <property name="padding">0</property>
+				  <property name="expand">True</property>
+				  <property name="fill">True</property>
+				</packing>
+			      </child>
+
+			      <child>
+				<widget class="GtkCheckButton" id="explore_cdf_line_checkbutton">
+				  <property name="visible">True</property>
+				  <property name="can_focus">True</property>
+				  <property name="label" translatable="yes">Reference line</property>
+				  <property name="use_underline">True</property>
+				  <property name="relief">GTK_RELIEF_NORMAL</property>
+				  <property name="focus_on_click">True</property>
+				  <property name="active">False</property>
+				  <property name="inconsistent">False</property>
+				  <property name="draw_indicator">True</property>
+				</widget>
+				<packing>
+				  <property name="padding">0</property>
+				  <property name="expand">False</property>
+				  <property name="fill">False</property>
 				</packing>
 			      </child>
 			    </widget>
@@ -2958,7 +2989,7 @@ years</property>
 				  <property name="can_focus">True</property>
 				  <property name="relief">GTK_RELIEF_NORMAL</property>
 				  <property name="focus_on_click">True</property>
-				  <signal name="clicked" handler="on_explore_seasonal_button_clicked" last_modification_time="Fri, 09 Mar 2007 03:10:49 GMT"/>
+				  <signal name="clicked" handler=".hs_on_explore_seasonal_button_clicked" last_modification_time="Fri, 09 Mar 2007 03:10:49 GMT"/>
 
 				  <child>
 				    <widget class="GtkAlignment" id="alignment16">
@@ -3095,6 +3126,89 @@ years</property>
 				  <property name="fill">True</property>
 				</packing>
 			      </child>
+
+			      <child>
+				<widget class="GtkHSeparator" id="hseparator7">
+				  <property name="visible">True</property>
+				</widget>
+				<packing>
+				  <property name="padding">0</property>
+				  <property name="expand">True</property>
+				  <property name="fill">True</property>
+				</packing>
+			      </child>
+
+			      <child>
+				<widget class="GtkHBox" id="hbox47">
+				  <property name="visible">True</property>
+				  <property name="homogeneous">False</property>
+				  <property name="spacing">0</property>
+
+				  <child>
+				    <widget class="GtkRadioButton" id="explore_seasonal_bwplot_radiobutton">
+				      <property name="visible">True</property>
+				      <property name="can_focus">True</property>
+				      <property name="label" translatable="yes">Box-and-whisker plot</property>
+				      <property name="use_underline">True</property>
+				      <property name="relief">GTK_RELIEF_NORMAL</property>
+				      <property name="focus_on_click">True</property>
+				      <property name="active">False</property>
+				      <property name="inconsistent">False</property>
+				      <property name="draw_indicator">True</property>
+				    </widget>
+				    <packing>
+				      <property name="padding">0</property>
+				      <property name="expand">False</property>
+				      <property name="fill">False</property>
+				    </packing>
+				  </child>
+
+				  <child>
+				    <widget class="GtkRadioButton" id="explore_seasonal_stripplot_radiobutton">
+				      <property name="visible">True</property>
+				      <property name="can_focus">True</property>
+				      <property name="label" translatable="yes">Strip plot</property>
+				      <property name="use_underline">True</property>
+				      <property name="relief">GTK_RELIEF_NORMAL</property>
+				      <property name="focus_on_click">True</property>
+				      <property name="active">False</property>
+				      <property name="inconsistent">False</property>
+				      <property name="draw_indicator">True</property>
+				      <property name="group">explore_seasonal_bwplot_radiobutton</property>
+				    </widget>
+				    <packing>
+				      <property name="padding">0</property>
+				      <property name="expand">False</property>
+				      <property name="fill">False</property>
+				    </packing>
+				  </child>
+
+				  <child>
+				    <widget class="GtkRadioButton" id="explore_seasonal_violinplot_radiobutton">
+				      <property name="visible">True</property>
+				      <property name="can_focus">True</property>
+				      <property name="label" translatable="yes">Violin plot (density function)</property>
+				      <property name="use_underline">True</property>
+				      <property name="relief">GTK_RELIEF_NORMAL</property>
+				      <property name="focus_on_click">True</property>
+				      <property name="active">False</property>
+				      <property name="inconsistent">False</property>
+				      <property name="draw_indicator">True</property>
+				      <property name="group">explore_seasonal_bwplot_radiobutton</property>
+				    </widget>
+				    <packing>
+				      <property name="padding">0</property>
+				      <property name="expand">False</property>
+				      <property name="fill">False</property>
+				    </packing>
+				  </child>
+				</widget>
+				<packing>
+				  <property name="padding">0</property>
+				  <property name="expand">True</property>
+				  <property name="fill">True</property>
+				</packing>
+			      </child>
 			    </widget>
 			    <packing>
 			      <property name="padding">0</property>
@@ -3136,7 +3250,7 @@ years</property>
 		</widget>
 		<packing>
 		  <property name="padding">0</property>
-		  <property name="expand">True</property>
+		  <property name="expand">False</property>
 		  <property name="fill">True</property>
 		</packing>
 	      </child>
@@ -3178,6 +3292,7 @@ years</property>
 
 	      <child>
 		<widget class="GtkFrame" id="frame14">
+		  <property name="height_request">120</property>
 		  <property name="visible">True</property>
 		  <property name="label_xalign">0</property>
 		  <property name="label_yalign">0.5</property>
@@ -3243,7 +3358,7 @@ years</property>
 		</widget>
 		<packing>
 		  <property name="padding">0</property>
-		  <property name="expand">True</property>
+		  <property name="expand">False</property>
 		  <property name="fill">True</property>
 		</packing>
 	      </child>
@@ -3251,7 +3366,6 @@ years</property>
 	      <child>
 		<widget class="GtkFrame" id="frame13">
 		  <property name="visible">True</property>
-		  <property name="sensitive">False</property>
 		  <property name="label_xalign">0</property>
 		  <property name="label_yalign">0.5</property>
 		  <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
@@ -3321,7 +3435,7 @@ years</property>
 			      <child>
 				<widget class="GtkLabel" id="label86">
 				  <property name="visible">True</property>
-				  <property name="label" translatable="yes">time steps as accumulation (and accumulated value follows gap)</property>
+				  <property name="label" translatable="yes"> time steps as accumulation (with accumulated value following gap)</property>
 				  <property name="use_underline">False</property>
 				  <property name="use_markup">False</property>
 				  <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -3360,13 +3474,14 @@ years</property>
 				<widget class="GtkRadioButton" id="radiobutton6">
 				  <property name="visible">True</property>
 				  <property name="can_focus">True</property>
-				  <property name="label" translatable="yes">Number of time steps for accumulation is in extra data column number</property>
+				  <property name="label" translatable="yes">Number of time steps for accumulation is in extra data column number </property>
 				  <property name="use_underline">True</property>
 				  <property name="relief">GTK_RELIEF_NORMAL</property>
 				  <property name="focus_on_click">True</property>
 				  <property name="active">False</property>
 				  <property name="inconsistent">False</property>
 				  <property name="draw_indicator">True</property>
+				  <property name="group">radiobutton5</property>
 				</widget>
 				<packing>
 				  <property name="padding">0</property>
@@ -3534,7 +3649,7 @@ years</property>
 		</widget>
 		<packing>
 		  <property name="padding">0</property>
-		  <property name="expand">True</property>
+		  <property name="expand">False</property>
 		  <property name="fill">True</property>
 		</packing>
 	      </child>
@@ -3565,7 +3680,75 @@ years</property>
 			  <property name="spacing">0</property>
 
 			  <child>
-			    <placeholder/>
+			    <widget class="GtkVBox" id="vbox27">
+			      <property name="visible">True</property>
+			      <property name="homogeneous">False</property>
+			      <property name="spacing">0</property>
+
+			      <child>
+				<widget class="GtkRadioButton" id="radiobutton13">
+				  <property name="visible">True</property>
+				  <property name="can_focus">True</property>
+				  <property name="label" translatable="yes">Regression with other sites</property>
+				  <property name="use_underline">True</property>
+				  <property name="relief">GTK_RELIEF_NORMAL</property>
+				  <property name="focus_on_click">True</property>
+				  <property name="active">False</property>
+				  <property name="inconsistent">False</property>
+				  <property name="draw_indicator">True</property>
+				</widget>
+				<packing>
+				  <property name="padding">0</property>
+				  <property name="expand">False</property>
+				  <property name="fill">False</property>
+				</packing>
+			      </child>
+
+			      <child>
+				<widget class="GtkRadioButton" id="radiobutton14">
+				  <property name="visible">True</property>
+				  <property name="can_focus">True</property>
+				  <property name="label" translatable="yes">Inverse distance weighted average</property>
+				  <property name="use_underline">True</property>
+				  <property name="relief">GTK_RELIEF_NORMAL</property>
+				  <property name="focus_on_click">True</property>
+				  <property name="active">False</property>
+				  <property name="inconsistent">False</property>
+				  <property name="draw_indicator">True</property>
+				  <property name="group">radiobutton13</property>
+				</widget>
+				<packing>
+				  <property name="padding">0</property>
+				  <property name="expand">False</property>
+				  <property name="fill">False</property>
+				</packing>
+			      </child>
+
+			      <child>
+				<widget class="GtkRadioButton" id="radiobutton15">
+				  <property name="visible">True</property>
+				  <property name="can_focus">True</property>
+				  <property name="label" translatable="yes">Linear interpolation (univariate)</property>
+				  <property name="use_underline">True</property>
+				  <property name="relief">GTK_RELIEF_NORMAL</property>
+				  <property name="focus_on_click">True</property>
+				  <property name="active">False</property>
+				  <property name="inconsistent">False</property>
+				  <property name="draw_indicator">True</property>
+				  <property name="group">radiobutton13</property>
+				</widget>
+				<packing>
+				  <property name="padding">0</property>
+				  <property name="expand">False</property>
+				  <property name="fill">False</property>
+				</packing>
+			      </child>
+			    </widget>
+			    <packing>
+			      <property name="padding">0</property>
+			      <property name="expand">True</property>
+			      <property name="fill">True</property>
+			    </packing>
 			  </child>
 
 			  <child>
@@ -3578,7 +3761,7 @@ years</property>
 				<widget class="GtkButton" id="button11">
 				  <property name="visible">True</property>
 				  <property name="can_focus">True</property>
-				  <property name="label" translatable="yes">button11</property>
+				  <property name="label" translatable="yes">Perform imputation</property>
 				  <property name="use_underline">True</property>
 				  <property name="relief">GTK_RELIEF_NORMAL</property>
 				  <property name="focus_on_click">True</property>
@@ -3651,7 +3834,7 @@ years</property>
 		</widget>
 		<packing>
 		  <property name="padding">0</property>
-		  <property name="expand">True</property>
+		  <property name="expand">False</property>
 		  <property name="fill">True</property>
 		</packing>
 	      </child>
@@ -3964,7 +4147,7 @@ years</property>
 		      <property name="use_underline">True</property>
 		      <property name="relief">GTK_RELIEF_NORMAL</property>
 		      <property name="focus_on_click">True</property>
-		      <signal name="clicked" handler="on_export_log_button_clicked" last_modification_time="Tue, 20 Feb 2007 09:24:40 GMT"/>
+		      <signal name="clicked" handler=".hs_on_export_log_button_clicked" last_modification_time="Tue, 20 Feb 2007 09:24:40 GMT"/>
 		    </widget>
 		  </child>
 		</widget>
@@ -4104,7 +4287,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA</prope
 	      <property name="visible_horizontal">True</property>
 	      <property name="visible_vertical">True</property>
 	      <property name="is_important">True</property>
-	      <signal name="clicked" handler="on_plot_identify_button_clicked" last_modification_time="Mon, 12 Mar 2007 08:08:50 GMT"/>
+	      <signal name="clicked" handler=".hs_on_plot_identify_button_clicked" last_modification_time="Mon, 12 Mar 2007 08:08:50 GMT"/>
 	    </widget>
 	    <packing>
 	      <property name="expand">False</property>
@@ -4121,7 +4304,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA</prope
 	      <property name="visible_horizontal">True</property>
 	      <property name="visible_vertical">True</property>
 	      <property name="is_important">True</property>
-	      <signal name="clicked" handler="on_plot_centre_button_clicked" last_modification_time="Mon, 12 Mar 2007 08:14:39 GMT"/>
+	      <signal name="clicked" handler=".hs_on_plot_centre_button_clicked" last_modification_time="Mon, 12 Mar 2007 08:14:39 GMT"/>
 	    </widget>
 	    <packing>
 	      <property name="expand">False</property>
@@ -4138,7 +4321,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA</prope
 	      <property name="visible_horizontal">True</property>
 	      <property name="visible_vertical">True</property>
 	      <property name="is_important">True</property>
-	      <signal name="clicked" handler="on_plot_zoomin_button_clicked" last_modification_time="Mon, 12 Mar 2007 08:07:26 GMT"/>
+	      <signal name="clicked" handler=".hs_on_plot_zoomin_button_clicked" last_modification_time="Mon, 12 Mar 2007 08:07:26 GMT"/>
 	    </widget>
 	    <packing>
 	      <property name="expand">False</property>
@@ -4155,7 +4338,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA</prope
 	      <property name="visible_horizontal">True</property>
 	      <property name="visible_vertical">True</property>
 	      <property name="is_important">True</property>
-	      <signal name="clicked" handler="on_plot_zoomout_button_clicked" last_modification_time="Mon, 12 Mar 2007 08:08:19 GMT"/>
+	      <signal name="clicked" handler=".hs_on_plot_zoomout_button_clicked" last_modification_time="Mon, 12 Mar 2007 08:08:19 GMT"/>
 	    </widget>
 	    <packing>
 	      <property name="expand">False</property>
@@ -4173,7 +4356,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA</prope
 	      <property name="visible_vertical">True</property>
 	      <property name="is_important">True</property>
 	      <property name="active">False</property>
-	      <signal name="clicked" handler="on_plot_log_togglebutton_clicked" last_modification_time="Mon, 12 Mar 2007 08:09:24 GMT"/>
+	      <signal name="clicked" handler=".hs_on_plot_log_togglebutton_clicked" last_modification_time="Mon, 12 Mar 2007 08:09:24 GMT"/>
 	    </widget>
 	    <packing>
 	      <property name="expand">False</property>
@@ -4203,7 +4386,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA</prope
 	      <property name="visible_horizontal">True</property>
 	      <property name="visible_vertical">True</property>
 	      <property name="is_important">True</property>
-	      <signal name="clicked" handler="on_plot_save_button_clicked" last_modification_time="Mon, 12 Mar 2007 08:08:36 GMT"/>
+	      <signal name="clicked" handler=".hs_on_plot_save_button_clicked" last_modification_time="Mon, 12 Mar 2007 08:08:36 GMT"/>
 	    </widget>
 	    <packing>
 	      <property name="expand">False</property>

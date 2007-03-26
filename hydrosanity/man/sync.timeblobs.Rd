@@ -2,7 +2,7 @@
 \alias{sync.timeblobs}
 \alias{matchtimes.timeblob}
 \alias{common.timestep.timeblobs}
-\title{ ~~function to do ... ~~ }
+\title{Synchronise Time Series (Timeblobs)}
 \description{
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }

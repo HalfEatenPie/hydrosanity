@@ -5,21 +5,74 @@
 ## Copyright (c) 2007 Felix Andrews <felix@nfrac.org>, GPL
 
 
+timeblob <- function(Time, Data, Qual=NULL, extras=NULL, timestep=NULL, dataname=NULL) {
+	# check types
+	Time <- as.POSIXct(Time)
+	if (any(is.na(Time))) { stop("'Time' must be a vector of valid times (POSIXt)") }
+	if (is.list(Data)) {
+		extras <- Data[-1]
+		Data <- Data[[1]]
+	}
+	if (!inherits(Data, "numeric")) { stop("'Data' must be numeric") }
+	# construct timeblob
+	blob <- data.frame(
+		Time=Time,
+		Data=Data
+	)
+	if (!is.null(Qual)) {
+		blob$Qual <- Qual
+	}
+	if (!is.null(extras) && (length(extras) > 0)) {
+		blob <- cbind(blob, extras)
+	}
+	class(blob) <- c("timeblob", "data.frame")
+	# set timestep
+	if (is.null(timestep)) {
+		timestep <- as.byString(Time[2] - Time[1], digits=1)
+		# check whether series is irregular
+		timeStepDiffs <- diff(as.numeric(Time))
+		# trim by 10% because of anomolies in seq.POSIXt with DSTdays
+		timeStepRange <- c(quantile(timeStepDiffs, c(0.1, 0.9)))
+		# up to 11% difference expected in regular series (feb vs jan)
+		if (timeStepRange[2] > 1.11 * timeStepRange[1]) {
+			timestep <- "irregular"
+		}
+	}
+	attr(blob, "timestep") <- timestep
+	# set dataname
+	if (is.null(dataname)) { dataname <- deparse(substitute(Data)) }
+	attr(blob, "dataname") <- dataname
+	# check that it is.timeblob()!
+	if (!is.timeblob(blob)) { stop("oops, timeblob() function made an invalid timeblob") }
+	return(blob)
+}
+
 is.timeblob <- function(x) {
 	return (!is.null(x) &&
+		is(x, "timeblob") &&
 		is.data.frame(x) &&
 		(ncol(x) >= 2) &&
-		inherits(x[1,1], "POSIXct") &&
-		inherits(x[1,2], "numeric") &&
-		!is.null(x$Time) &&
-		!is.null(attr(x, "timestep")))
+		inherits(x$Time, "POSIXct") &&
+		inherits(x$Data, "numeric") &&
+		!is.null(attr(x, "timestep")) &&
+		!is.null(attr(x, "dataname")))
 }
 
-as.timeblob <- function(x) {
-	if (is.timeblob(x)) { return(x) }
-	else { stop("do not know how to convert to timeblob") }
+lapply.timeblob.data <- function(blob.list, FUN, ...) {
+	# check types
+	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
+	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
+	# lapply to blob data
+	lapply(lapply(blob.list, function(x) { x$Data }), FUN, ...)
 }
 
+sapply.timeblob.data <- function(blob.list, FUN, ...) {
+	# check types
+	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
+	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
+	# sapply to blob data
+	sapply(lapply(blob.list, function(x) { x$Data }), FUN, ...)
+}
 
 redistributeAccumulatedRainfall <- function() {
 	accums <- which(thisBlob[,"Accum days"] > 1)
@@ -42,10 +95,7 @@ redistributeAccumulatedRainfall <- function() {
 	return(thisBlob)
 }
 
-# if readTimesFromFile == FALSE then
-# startTime should be able to be interpreted as a POSIXt, or else be a list like
-# startTime=list(year=1,month=2,day=3,etc) where these give column numbers to read the start time from the first line in file
-read.timeblob <- function(file, skip=1, sep=",", dataName="Data", dataCol=2, qualCol=3, extraCols=c(), extraNames=paste("Extra",extraCols), readTimesFromFile=T, timeCol=1, timeFormat="%d %b %Y", startTime=NA, timeSeqBy="DSTday", ...) {
+read.timeblob <- function(file, skip=1, sep=",", dataname="Data", dataCol=2, qualCol=3, extraCols=c(), extraNames=paste("Extra",extraCols), readTimesFromFile=T, timeCol=1, timeFormat="%d %b %Y", startTime=NA, timeSeqBy="DSTday", ...) {
 	# check types
 	if (!is.numeric(dataCol)) { stop("'dataCol' must be numeric (column number)") }
 	if (readTimesFromFile) {
@@ -73,7 +123,7 @@ read.timeblob <- function(file, skip=1, sep=",", dataName="Data", dataCol=2, qua
 	# define which columns to import and which to ignore
 	fileColClasses <- rep("NULL", fileCols)
 	if (readTimesFromFile) { fileColClasses[timeCol] <- "character" }
-	fileColClasses[dataCol] <- "numeric" #, but then "" gives error
+	fileColClasses[dataCol] <- "numeric" #, but then "" in file gives error
 	fileColClasses[qualCol] <- NA # qualCol may be NULL
 	fileColClasses[extraCols] <- NA # extraCols may be NULL
 	# read file
@@ -119,18 +169,10 @@ read.timeblob <- function(file, skip=1, sep=",", dataName="Data", dataCol=2, qua
 		}
 		myTime <- seq.POSIXt(from=startTime, by=timeSeqBy, length=nrow(rawData))
 	}
-	# make sure first three columns are Time, Data, Qual (in that order)
-	blob <- data.frame(Time=myTime, Data=rawData[[dataIndex]], Qual=myQual, 
-		rawData[,-c(timeIndex, dataIndex, qualIndex)])
-	names(blob) <- c("Time", dataName, "Qual", extraNames)
-	attr(blob, "timestep") <- as.byString(blob$Time[2] - blob$Time[1], digits=1)
-	timeStepDiffs <- diff(as.numeric(blob$Time))
-	# trim by 10% because of anomolies in seq.POSIXt with DSTdays
-	timeStepRange <- c(quantile(timeStepDiffs, c(0.1, 0.9)))
-	if (timeStepRange[2] > 1.11 * timeStepRange[1]) {
-		# up to 11% difference expected in regular series (feb vs jan)
-		attr(blob, "timestep") <- "inst"
-	}
+	extras <- rawData[-c(timeIndex, dataIndex, qualIndex)]
+	names(extras) <- extraNames
+	blob <- timeblob(Time=myTime, Data=rawData[[dataIndex]], Qual=myQual, 
+		extras=extras, dataname=dataname)
 	return(blob)
 }
 
@@ -150,7 +192,7 @@ start.timeblobs <- function(blob.list) {
 	# check types
 	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
 	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
-	globalStart <- as.POSIXct.raw(min(unlist(lapply(blob.list, start.timeblob))))
+	globalStart <- as.POSIXct(min(unlist(lapply(blob.list, start.timeblob))))
 	return(globalStart)
 }
 
@@ -158,7 +200,7 @@ end.timeblobs <- function(blob.list) {
 	# check types
 	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
 	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
-	globalEnd <- as.POSIXct.raw(max(unlist(lapply(blob.list, end.timeblob))))
+	globalEnd <- as.POSIXct(max(unlist(lapply(blob.list, end.timeblob))))
 	return(globalEnd)
 }
 
@@ -268,15 +310,15 @@ sync.timeblobs <- function(blob.list, timestep=NULL, timelim=NULL, extractColumn
 	}
 	times <- NULL
 	times <- seq.POSIXt(min(timelim), max(timelim), by=timestep)
-	syncBlob <- data.frame(
+	syncData <- data.frame(
 		Time=times,
 		lapply(blob.list, function(x) {
 			mySyncIndices <- matchtimes.timeblob(x, times)
 			x[mySyncIndices,extractColumn]
 		})
-		)
-	attr(syncBlob, "timestep") <- timestep
-	return(syncBlob)
+	)
+	attr(syncData, "timestep") <- timestep
+	return(syncData)
 }
 
 common.timestep.timeblobs <- function(blob.list, default="DSTdays") {
@@ -285,7 +327,7 @@ common.timestep.timeblobs <- function(blob.list, default="DSTdays") {
 	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
 	timestep <- NULL
 	for (i in seq(along=blob.list)) {
-		if (identical(attr(blob.list[[i]], "timestep"), "inst")) { next }
+		if (identical(attr(blob.list[[i]], "timestep"), "irregular")) { next }
 		thisStepDelta <- as.numeric.byString(
 			attr(blob.list[[i]], "timestep"))
 		if (is.null(timestep) || (thisStepDelta < timestep)) {
@@ -316,7 +358,7 @@ summary.missing.timeblobs <- function(blob.list, timelim=NULL, timestep=NULL) {
 	}
 	times <- seq.POSIXt(timelim[1], timelim[2], by=timestep)
 	myLengths <- sapply(blob.list, nrow)
-	myNAs <- lapply(blob.list, function(x) { is.na(x[,2]) })
+	myNAs <- lapply(blob.list, function(x) { is.na(x$Data) })
 	myDataPoints <- myLengths - sapply(myNAs, sum)
 	myDataFrac <- myDataPoints / length(times)
 	overallDataFrac <- mean(myDataFrac)
@@ -377,18 +419,17 @@ aggregate.timeblob <- function(blob, by="1 year", FUN=NULL, max.na.proportion=0.
 	dateGroups <- cut.POSIXt(blob$Time, breaks=by)
 	newDates <- as.POSIXct(levels(dateGroups))
 	# aggregate
-	newVals <- aggregate(blob[,2], by=list(dateGroups), FUN=FUN, na.rm=T)[,2]
+	newVals <- aggregate(blob$Data, by=list(dateGroups), FUN=FUN, na.rm=T)[,2]
 	# set NA values
-	eachNA <- aggregate(blob[,2], by=list(dateGroups), FUN=function(x) {sum(is.na(x))})[,2]
+	eachNA <- aggregate(blob$Data, by=list(dateGroups), FUN=function(x) {sum(is.na(x))})[,2]
 	newVals[eachNA > freqN * max.na.proportion] <- NA
 	firstN <- sum(as.integer(dateGroups)==1, na.rm=T)
 	if (firstN < freqN * (1-max.na.proportion)) {
 		newVals[1] <- NA
 	}
 	# construct new blob
-	newBlob <- data.frame(newDates, newVals)
-	names(newBlob) <- names(blob)[1:2]
-	attr(newBlob, "timestep") <- by
+	newBlob <- timeblob(Time=newDates, Data=newVals,
+		timestep=by, dataname=attr(blob, "dataname"))
 	return(newBlob)
 }
 
@@ -403,12 +444,12 @@ running.average.timeblob <- function(blob, by="1 year", max.na.proportion=0.05) 
 	winRear <- ceiling(winSize/2)
 	winFore <- floor(winSize/2)
 	# do smoothing
-	cumSum <- blob[,2]
+	cumSum <- blob$Data
 	cumSum[is.na(cumSum)] <- 0
 	cumSum <- cumsum(cumSum)
-	cumNAs <- cumsum(is.na(blob[,2]))
+	cumNAs <- cumsum(is.na(blob$Data))
 	newBlob <- blob[,1:2]
-	newBlob[,2] <- NA
+	newBlob$Data <- NA
 	winNAs <- cumNAs[seq(1+winSize,nrow(blob))] - cumNAs[seq(1,nrow(blob)-winSize)]
 	winSum <- cumSum[seq(1+winSize,nrow(blob))] - cumSum[seq(1,nrow(blob)-winSize)]
 	winSum[winNAs > max.na.proportion * winSize] <- NA
@@ -417,16 +458,12 @@ running.average.timeblob <- function(blob, by="1 year", max.na.proportion=0.05) 
 }
 
 
-range.timeblob <- function(blob, ...) {
-	return(range(blob[,2], ...))
-}
-
 ## other useful functions not specific to timeblobs
 
 as.byString <- function(x, digits=getOption("digits")) {
 	if (!identical(class(x), "difftime")) {
 		if (!is.numeric(x)) { stop("'x' must be difftime or numeric") }
-		x <- diff(as.POSIXct.raw(c(0,x)))
+		x <- diff(as.POSIXct(c(0,x)))
 	}
 	it <- paste(format(unclass(x), digits=digits), attr(x, "units"))
 	x <- as.numeric.byString(x)
@@ -446,10 +483,7 @@ as.numeric.byString <- function(x) {
 	return(as.numeric(timeseq[2]) - as.numeric(timeseq[1]))
 }
 
-as.POSIXct.raw <- function(secs_since_1970, tz="") {
-	if (is(secs_since_1970, "POSIXt")) {
-		return(as.POSIXct(secs_since_1970))
-	}
+as.POSIXct.numeric <- function(secs_since_1970, tz="") {
 	if (!is.numeric(secs_since_1970)) {
 		stop("'secs_since_1970' must be numeric")
 	}
@@ -483,8 +517,6 @@ trunc.decade <- function(thisPOSIXt) {
 }
 
 one.step.acf <- function(blob) {
-	acf(blob[,2], na.action=na.pass, lag.max=1, plot=F)$acf[2]
+	acf(blob$Data, na.action=na.pass, lag.max=1, plot=F)$acf[2]
 }
-
-nonzeromin <- function(x, ...) { min(x[x>0], ...) }
 
