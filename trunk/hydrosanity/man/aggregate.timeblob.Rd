@@ -1,14 +1,12 @@
 \name{aggregate.timeblob}
 \alias{aggregate.timeblob}
-%- Also NEED an '\alias' for EACH other topic documented here.
-\title{ ~~function to do ... ~~ }
+\title{Aggregate Time Series (Timeblob) Data into Blocks}
 \description{
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
 aggregate.timeblob(blob, by = "1 year", FUN = NULL, max.na.proportion = 0.05)
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{blob}{ ~~Describe \code{blob} here~~ }
   \item{by}{ ~~Describe \code{by} here~~ }

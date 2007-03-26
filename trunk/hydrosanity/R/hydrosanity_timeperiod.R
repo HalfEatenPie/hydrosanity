@@ -45,14 +45,14 @@ updateTimePeriodPage <- function() {
 		if (!is.null(hsp$timePeriod)) {
 			subBlob <- window.timeblob(hsp$data[[i]], hsp$timePeriod[1], hsp$timePeriod[2])
 		}
-		myQuantiles <- format(quantile(subBlob[,2], probs=c(0, 0.25, 0.5, 0.75, 1), na.rm=T), digits=2)
+		myQuantiles <- format(quantile(subBlob$Data, probs=c(0, 0.25, 0.5, 0.75, 1), na.rm=T), digits=2)
 		dfMin[i] <- myQuantiles[1]
 		dfQ25[i] <- myQuantiles[2]
 		dfMedian[i] <- myQuantiles[3]
 		dfQ75[i] <- myQuantiles[4]
 		dfMax[i] <- myQuantiles[5]
 		dfMissing[i] <- sprintf('%.0f%%', missingFrac[i]*100)
-		#sprintf('%.2f%%', sum(is.na(subBlob[,2])) / nrow(subBlob)) i.e. gaps
+		#sprintf('%.2f%%', sum(is.na(subBlob$Data)) / nrow(subBlob)) i.e. gaps
 	}
 	
 	dfModel <- rGtkDataFrame(data.frame(
@@ -73,7 +73,7 @@ updateTimePeriodPage <- function() {
 }
 
 
-on_timeperiod_updateperiod_button_clicked <- function(button) {
+.hs_on_timeperiod_updateperiod_button_clicked <- function(button) {
 	theWidget("hs_window")$setSensitive(F)
 	on.exit(theWidget("hs_window")$setSensitive(T))
 	setStatusBar("")
@@ -96,7 +96,7 @@ on_timeperiod_updateperiod_button_clicked <- function(button) {
 	updateTimePeriodPage()
 }
 
-on_timeperiod_setfromplot_button_clicked <- function(button) {
+.hs_on_timeperiod_setfromplot_button_clicked <- function(button) {
 	theWidget("hs_window")$setSensitive(F)
 	on.exit(theWidget("hs_window")$setSensitive(T))
 	setStatusBar("")
@@ -108,16 +108,16 @@ on_timeperiod_setfromplot_button_clicked <- function(button) {
 	}
 	
 	if (is.null(myCall$xscale)) {
-		on_timeperiod_reset_button_clicked()
+		.hs_on_timeperiod_reset_button_clicked()
 		return()
 	}
-	timelim <- as.POSIXct.raw(myCall$xscale)
+	timelim <- as.POSIXct(myCall$xscale)
 	periodString <- paste(format(round(timelim, "days")), collapse=" to ")
 	theWidget("timeperiod_chosenperiod_entry")$setText(periodString)
-	on_timeperiod_updateperiod_button_clicked()
+	.hs_on_timeperiod_updateperiod_button_clicked()
 }
 
-on_timeperiod_reset_button_clicked <- function(button) {
+.hs_on_timeperiod_reset_button_clicked <- function(button) {
 	theWidget("hs_window")$setSensitive(F)
 	on.exit(theWidget("hs_window")$setSensitive(T))
 	setStatusBar("")
@@ -127,7 +127,7 @@ on_timeperiod_reset_button_clicked <- function(button) {
 }
 
 
-on_timeperiod_viewtimeline_button_clicked <- function(button) {
+.hs_on_timeperiod_viewtimeline_button_clicked <- function(button) {
 	theWidget("hs_window")$setSensitive(F)
 	on.exit(theWidget("hs_window")$setSensitive(T))
 	setStatusBar("")
@@ -155,7 +155,7 @@ on_timeperiod_viewtimeline_button_clicked <- function(button) {
 
 ## NON-ACTIONS, just interface bits and pieces
 
-on_timeperiod_chosenperiod_entry_changed <- function(widget) {
+.hs_on_timeperiod_chosenperiod_entry_changed <- function(widget) {
 	theWidget("timeperiod_updateperiod_button")$setSensitive(TRUE)
 }
 

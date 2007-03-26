@@ -1,14 +1,12 @@
 \name{grid.xaxis.POSIXt}
 \alias{grid.xaxis.POSIXt}
-%- Also NEED an '\alias' for EACH other topic documented here.
-\title{ ~~function to do ... ~~ }
+\title{Time Axis for Grid}
 \description{
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
 grid.xaxis.POSIXt(at = NULL, label = NULL, name = "timeaxis", lim = as.numeric(convertX(unit(c(0, 1), "npc"), "native")), ...)
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{at}{ ~~Describe \code{at} here~~ }
   \item{label}{ ~~Describe \code{label} here~~ }

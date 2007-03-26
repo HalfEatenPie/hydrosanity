@@ -11,9 +11,11 @@ grid.timeline.plot <- function(blob.list, xscale=NULL, colMap=list(good="black",
 	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
 	if (is.null(xscale)) {
 		xscale <- c(start.timeblobs(blob.list), end.timeblobs(blob.list))
+	} else {
+		xscale <- as.POSIXct(xscale)
+		if (any(is.na(xscale))) { stop("'xscale' must be a pair of valid times (POSIXt)") }
+		blob.list <- lapply(blob.list, window.timeblob, xscale[1], xscale[2], inclusive=T)
 	}
-	xscale <- as.POSIXct(xscale)
-	if (any(is.na(xscale))) { stop("'xscale' must be a pair of valid times (POSIXt)") }
 	# setup
 	n <- length(blob.list)
 	ylabs <- sapply(names(blob.list), toString, width=maxLabelChars)
@@ -52,18 +54,15 @@ grid.timeline.plot <- function(blob.list, xscale=NULL, colMap=list(good="black",
 }
 
 #if colMap=NULL then ignore quality codes, just plot non-NA values as black
-grid.timeline.bar <- function(blob, colMap=NULL, name="timeline.bar") {
+grid.timeline.bar <- function(blob, colMap=NULL, name="timeline.bar", vp=NULL) {
 	# check types
 	if (!is.timeblob(blob)) { stop("blob must be a timeblob") }
-	xscale <- as.POSIXct.raw(convertX(unit(c(0,1), "npc"), "native"))
-	# set up plot data
-	subBlob <- window.timeblob(blob, xscale[1], xscale[2], inclusive=T)
-	if (nrow(subBlob)==0) { return() }
-	thisNA <- is.na(subBlob[,2])
+	if (nrow(blob)==0) { return() }
+	thisNA <- is.na(blob$Data)
 	# default, if not plotting Qual codes
-	thisCol <- rep(as.factor("black"), nrow(subBlob))
-	if (!is.null(colMap) && !is.null(subBlob$Qual)) {
-		thisCol <- applyColourMap(subBlob$Qual, colMap)
+	thisCol <- rep(as.factor("black"), nrow(blob))
+	if (!is.null(colMap) && !is.null(blob$Qual)) {
+		thisCol <- applyColourMap(blob$Qual, colMap)
 	}
 	# vector of integer codes for each colour as well as NA
 	colIntCodes <- as.integer(thisCol)
@@ -72,18 +71,18 @@ grid.timeline.bar <- function(blob, colMap=NULL, name="timeline.bar") {
 	# i.e. divide into blocks of continuous colour (for efficient plotting)
 	blockStart <- which(c(1,diff(colIntCodes))!=0)
 	nBlock <- length(blockStart)
-	blockEnd <- c(blockStart[-1], nrow(subBlob))
-	blockWidth <- (as.numeric(subBlob$Time[blockEnd]) - 
-		as.numeric(subBlob$Time[blockStart]))
+	blockEnd <- c(blockStart[-1], nrow(blob))
+	blockWidth <- (as.numeric(blob$Time[blockEnd]) - 
+		as.numeric(blob$Time[blockStart]))
 	# should extend last block with 1 timestep (from attr)
 	# get subset of colours and convert to character strings
 	blockCol <- levels(thisCol)[ thisCol[blockStart] ]
 	# set colour to NA where data is NA
 	blockCol[thisNA[blockStart]] <- NA
 	# draw it
-	grid.rect(x=subBlob$Time[blockStart], width=blockWidth, just="left",
+	grid.rect(x=blob$Time[blockStart], width=blockWidth, just="left",
 		default.units="native", gp=gpar(fill=blockCol, col=NA),
-		name=name)
+		name=name, vp=vp)
 }
 
 
@@ -109,16 +108,17 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 			xscale <- c(start.timeblobs(blob.list), end.timeblobs(blob.list))
 		} else {
 			depth <- downViewport("time.vp")
-			xscale <- as.POSIXct.raw(convertX(unit(c(0,1), "npc"), "native"))
+			xscale <- as.POSIXct.numeric(convertX(unit(c(0,1), "npc"), "native"))
 			upViewport(depth)
 		}
+	} else {
+		xscale <- as.POSIXct(xscale)
+		if (any(is.na(xscale))) { stop("'xscale' must be a pair of valid times (POSIXt)") }
+		blob.list <- lapply(blob.list, window.timeblob, xscale[1], xscale[2], inclusive=T)
 	}
-	xscale <- as.POSIXct(xscale)
-	if (any(is.na(xscale))) { stop("'xscale' must be a pair of valid times (POSIXt)") }
 	if (!is.null(yscale) && !is.numeric(yscale)) { stop("'yscale' must be numeric") }
 	# setup
 	n <- length(blob.list)
-	blob.list <- lapply(blob.list, window.timeblob, xscale[1], xscale[2], inclusive=T)
 	ylabs <- sapply(names(blob.list), toString, width=maxLabelChars)
 	if (newpage) { grid.newpage() }
 	# layout for plot
@@ -141,12 +141,12 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 	}
 	# calculate common yscale
 	if (is.null(yscale) && sameScales) {
-		allRanges <- sapply(blob.list, range.timeblob, na.rm=T)
+		allRanges <- sapply.timeblob.data(blob.list, range, na.rm=T)
 		yscale <- range(allRanges[is.finite(allRanges)])
 		if (logScale && (yscale[1] <= 0)) {
 			# limit by minimum non-zero value (for log scale)
-			allMins <- sapply(blob.list, function(x){
-				min(x[,2][x[,2]>0], na.rm=T)})
+			allMins <- sapply.timeblob.data(blob.list, 
+				function(x){ min(x[x>0], na.rm=T) })
 			yscale[1] <- min(allMins[is.finite(allMins)])
 		}
 	}
@@ -161,12 +161,13 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 			myYScale <- c(0, 1)
 		}
 		if (is.null(myYScale)) {
-			myYScale <- range.timeblob(blob.list[[k]], na.rm=T)
+			myYScale <- range(blob.list[[k]]$Data, na.rm=T)
 			# need to ensure yscale > 0 for log scale
 			if (logScale) {
 				if (is.null(zeroLevel)) {
 					if (myYScale[1] <= 0) {
-						myYScale[1] <- nonzeromin(blob.list[[k]][,2], na.rm=T)
+						x <- blob.list[[k]]$Data
+						myYScale[1] <- min(x[x>0], na.rm=T)
 					}
 				} else {
 					myYScale[1] <- max(myYScale[1], zeroLevel)
@@ -233,19 +234,18 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 grid.timeseries.steps <- function(blob, logScale=F, name="timeseries", gp=NULL, vp=NULL) {
 	# check types
 	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
-	# setup
 	if (nrow(blob)==0) { return() }
 	# draw as steps (note: plot type="s" fails to draw horiz line preceding NA points)
 	iDates <- seq(1, nrow(blob))
 	iVals <- iDates
 	iDates <- c(rep(iDates,each=2)[-1], NA)
 	iVals <- rep(iVals,each=2)
-	myData <- blob[,2]
+	myData <- blob$Data
 	if (logScale) {
 		myData <- log10(myData)
 		# set log(0)==-Inf to a finite value off bottom of plot
 		yscale <- as.numeric(convertY(unit(c(0,1), "npc"), "native"))
-		myData[na.omit(blob[,2]==0)] <- yscale[1] - diff(yscale)
+		myData[na.omit(blob$Data==0)] <- yscale[1] - diff(yscale)
 	}
 	grid.lines(x=blob$Time[iDates], y=myData[iVals],
 		default.units="native", name=name, gp=gp, vp=vp)
@@ -311,7 +311,7 @@ grid.yaxis.log <- function(at=NULL, label=NULL, name="yaxis", lim=as.numeric(con
 }
 
 grid.xaxis.POSIXt <- function(at=NULL, label=NULL, name="timeaxis", lim=as.numeric(convertX(unit(c(0,1), "npc"), "native")), ...) {
-	timelim <- as.POSIXct.raw(lim)
+	timelim <- as.POSIXct.numeric(lim)
 	if (is.null(at)) {
 		myBy <- "1 hour"
 		myStart <- trunc(min(timelim), units="hours")
@@ -356,7 +356,7 @@ grid.xaxis.POSIXt <- function(at=NULL, label=NULL, name="timeaxis", lim=as.numer
 			label <- format(at, format=myFormat)
 			atYears <- sapply(at, function(x) {
 				# TODO: make this stand-alone
-				x == trunc.year(as.POSIXct.raw(x))
+				x == trunc.year(as.POSIXct.numeric(x))
 			})
 			label[atYears] <- format(at[atYears], format="%Y")
 		}

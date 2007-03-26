@@ -4,10 +4,10 @@
 ##
 ## Copyright (c) 2007 Felix Andrews <felix@nfrac.org>, GPL
 
-on_menu_new_activate <- function(action, window) {hydrosanity()}
-on_menu_open_activate <- function(action, window) {openProject()}
-on_menu_save_activate <- function(action, window) {saveProject()}
-on_menu_saveas_activate <- function(action, window) {saveProject(saveAs=T)}
+.hs_on_menu_new_activate <- function(action, window) {hydrosanity()}
+.hs_on_menu_open_activate <- function(action, window) {openProject()}
+.hs_on_menu_save_activate <- function(action, window) {saveProject()}
+.hs_on_menu_saveas_activate <- function(action, window) {saveProject(saveAs=T)}
 
 openProject <- function() {
 	theWidget("hs_window")$setSensitive(F)
@@ -30,7 +30,7 @@ openProject <- function() {
 	
 	# switch to first page and trigger update
 	theWidget("notebook")$setCurrentPage(0)
-	on_notebook_switch_page(theWidget("notebook"), theWidget("hs_window"), 0)
+	.hs_on_notebook_switch_page(theWidget("notebook"), theWidget("hs_window"), 0)
 	
 	theWidget("import_options_expander")$setExpanded(FALSE)
 	theWidget("import_makechanges_expander")$setExpanded(TRUE)
@@ -43,10 +43,12 @@ saveProject <- function(saveAs=F) {
 	on.exit(theWidget("hs_window")$setSensitive(T))
 	setStatusBar("")
 	
+	ff <- c("Hydrosanity projects (.hydrosanity)", "*.hydrosanity")
 	filename <- hsp$projectFile
 	if (is.null(filename)) { filename <- "" }
 	if (saveAs==T || filename=="") {
-		filename <- choose.file.save(filename, caption="Save project")
+		filename <- choose.file.save(filename, caption="Save project",
+			filters=ff)
 		theWidget("hs_window")$present()
 		if (is.na(filename)) { return() }
 	}
