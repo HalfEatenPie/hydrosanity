@@ -185,14 +185,19 @@ updateExplorePage <- function() {
 	if (myN == length(hsp$data)) { rawdata.cmd <- 'hsp$data' }
 	
 	doNormal <- theWidget("explore_cdf_normal_radiobutton")$getActive()
+	doUniform <- theWidget("explore_cdf_uniform_radiobutton")$getActive()
+	doCDF <- doNormal || doUniform
 	doLine <- theWidget("explore_cdf_line_checkbutton")$getActive()
-	doRawData <- theWidget("explore_cdf_rawdata_checkbutton")$getActive()
-	doAggr1 <- theWidget("explore_cdf_aggr1_checkbutton")$getActive()
-	doAggr2 <- theWidget("explore_cdf_aggr2_checkbutton")$getActive()
+	doBoxPlot <- theWidget("explore_cdf_bwplot_radiobutton")$getActive()
+	doStripPlot <- theWidget("explore_cdf_stripplot_radiobutton")$getActive()
+	doViolinPlot <- theWidget("explore_cdf_violinplot_radiobutton")$getActive()
+	doRawData <- theWidget("explore_cdf_rawdata_radiobutton")$getActive()
+	doAggr1 <- theWidget("explore_cdf_aggr1_radiobutton")$getActive()
+	doAggr2 <- theWidget("explore_cdf_aggr2_radiobutton")$getActive()
 	aggr1By <- theWidget("explore_cdf_aggr1_comboboxentry")$getActiveText()
 	aggr2By <- theWidget("explore_cdf_aggr2_comboboxentry")$getActiveText()
 	
-	addLogComment("Generate CDF plot")
+	addLogComment("Generate distribution plot")
 	
 	tmpObjs <- c()
 	
@@ -325,12 +330,13 @@ updateExplorePage <- function() {
 	data.formula.cmd <- paste(names(tmp.data)[-c(1,ncol(tmp.data))], collapse=" + ")
 	layout.cmd <- if (doMonths) { sprintf(', layout=c(1, %i)', myN) } else { '' }
 	plotfn.cmd <- if (doStripPlot) { 'stripplot' } else { 'bwplot' }
-	panel.cmd <- if (doViolinPlot) { ', panel=panel.violin' } else { '' }
+	jitter.cmd <- if (doStripPlot) { ', jitter=T' } else { '' }
+	panel.cmd <- if (doViolinPlot) { ', panel=function(...){ panel.violin(...); panel.stripplot(jitter=T, ...) }' } else { '' }
 	
 	setPlotDevice("seasonality")
 	
-	plot.cmd <- sprintf('%s(%s ~ Season, data=tmp.data, outer=T%s%s)',
-		plotfn.cmd, data.formula.cmd, panel.cmd, layout.cmd)
+	plot.cmd <- sprintf('%s(%s ~ Season, data=tmp.data, outer=T%s%s%s)',
+		plotfn.cmd, data.formula.cmd, panel.cmd, layout.cmd, jitter.cmd)
 	result <- guiTryEval(plot.cmd)
 	if (inherits(result, "error")) { return() }
 	print(result) # plot trellis object

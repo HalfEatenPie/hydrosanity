@@ -2636,7 +2636,7 @@ years</property>
 					  <child>
 					    <widget class="GtkLabel" id="label72">
 					      <property name="visible">True</property>
-					      <property name="label" translatable="yes">&lt;b&gt;View distribution (cdf)&lt;/b&gt;</property>
+					      <property name="label" translatable="yes">&lt;b&gt;View distribution&lt;/b&gt;</property>
 					      <property name="use_underline">True</property>
 					      <property name="use_markup">True</property>
 					      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -2735,17 +2735,6 @@ years</property>
 			      </child>
 
 			      <child>
-				<widget class="GtkHSeparator" id="hseparator6">
-				  <property name="visible">True</property>
-				</widget>
-				<packing>
-				  <property name="padding">0</property>
-				  <property name="expand">True</property>
-				  <property name="fill">True</property>
-				</packing>
-			      </child>
-
-			      <child>
 				<widget class="GtkCheckButton" id="explore_cdf_line_checkbutton">
 				  <property name="visible">True</property>
 				  <property name="can_focus">True</property>
@@ -2761,6 +2750,90 @@ years</property>
 				  <property name="padding">0</property>
 				  <property name="expand">False</property>
 				  <property name="fill">False</property>
+				</packing>
+			      </child>
+
+			      <child>
+				<widget class="GtkHSeparator" id="hseparator8">
+				  <property name="visible">True</property>
+				</widget>
+				<packing>
+				  <property name="padding">0</property>
+				  <property name="expand">True</property>
+				  <property name="fill">True</property>
+				</packing>
+			      </child>
+
+			      <child>
+				<widget class="GtkHBox" id="hbox48">
+				  <property name="visible">True</property>
+				  <property name="homogeneous">False</property>
+				  <property name="spacing">0</property>
+
+				  <child>
+				    <widget class="GtkRadioButton" id="explore_cdf_bwplot_radiobutton">
+				      <property name="visible">True</property>
+				      <property name="can_focus">True</property>
+				      <property name="label" translatable="yes">Box-and-whisker plot</property>
+				      <property name="use_underline">True</property>
+				      <property name="relief">GTK_RELIEF_NORMAL</property>
+				      <property name="focus_on_click">True</property>
+				      <property name="active">False</property>
+				      <property name="inconsistent">False</property>
+				      <property name="draw_indicator">True</property>
+				      <property name="group">explore_cdf_uniform_radiobutton</property>
+				    </widget>
+				    <packing>
+				      <property name="padding">0</property>
+				      <property name="expand">False</property>
+				      <property name="fill">False</property>
+				    </packing>
+				  </child>
+
+				  <child>
+				    <widget class="GtkRadioButton" id="explore_cdf_stripplot_radiobutton">
+				      <property name="visible">True</property>
+				      <property name="can_focus">True</property>
+				      <property name="label" translatable="yes">Strip plot</property>
+				      <property name="use_underline">True</property>
+				      <property name="relief">GTK_RELIEF_NORMAL</property>
+				      <property name="focus_on_click">True</property>
+				      <property name="active">False</property>
+				      <property name="inconsistent">False</property>
+				      <property name="draw_indicator">True</property>
+				      <property name="group">explore_cdf_uniform_radiobutton</property>
+				    </widget>
+				    <packing>
+				      <property name="padding">0</property>
+				      <property name="expand">False</property>
+				      <property name="fill">False</property>
+				    </packing>
+				  </child>
+
+				  <child>
+				    <widget class="GtkRadioButton" id="explore_cdf_violinplot_radiobutton">
+				      <property name="visible">True</property>
+				      <property name="can_focus">True</property>
+				      <property name="label" translatable="yes">Violin plot</property>
+				      <property name="use_underline">True</property>
+				      <property name="relief">GTK_RELIEF_NORMAL</property>
+				      <property name="focus_on_click">True</property>
+				      <property name="active">False</property>
+				      <property name="inconsistent">False</property>
+				      <property name="draw_indicator">True</property>
+				      <property name="group">explore_cdf_uniform_radiobutton</property>
+				    </widget>
+				    <packing>
+				      <property name="padding">0</property>
+				      <property name="expand">False</property>
+				      <property name="fill">False</property>
+				    </packing>
+				  </child>
+				</widget>
+				<packing>
+				  <property name="padding">0</property>
+				  <property name="expand">True</property>
+				  <property name="fill">True</property>
 				</packing>
 			      </child>
 			    </widget>
@@ -2789,7 +2862,7 @@ years</property>
 			      <property name="spacing">0</property>
 
 			      <child>
-				<widget class="GtkCheckButton" id="explore_cdf_rawdata_checkbutton">
+				<widget class="GtkRadioButton" id="explore_cdf_rawdata_radiobutton">
 				  <property name="visible">True</property>
 				  <property name="can_focus">True</property>
 				  <property name="label" translatable="yes">raw data</property>
@@ -2814,7 +2887,7 @@ years</property>
 				  <property name="spacing">0</property>
 
 				  <child>
-				    <widget class="GtkCheckButton" id="explore_cdf_aggr1_checkbutton">
+				    <widget class="GtkRadioButton" id="explore_cdf_aggr1_radiobutton">
 				      <property name="visible">True</property>
 				      <property name="can_focus">True</property>
 				      <property name="label" translatable="yes">aggregated:</property>
@@ -2824,6 +2897,7 @@ years</property>
 				      <property name="active">False</property>
 				      <property name="inconsistent">False</property>
 				      <property name="draw_indicator">True</property>
+				      <property name="group">explore_cdf_rawdata_radiobutton</property>
 				    </widget>
 				    <packing>
 				      <property name="padding">0</property>
@@ -2866,16 +2940,17 @@ years</property>
 				  <property name="spacing">0</property>
 
 				  <child>
-				    <widget class="GtkCheckButton" id="explore_cdf_aggr2_checkbutton">
+				    <widget class="GtkRadioButton" id="explore_cdf_aggr2_radiobutton">
 				      <property name="visible">True</property>
 				      <property name="can_focus">True</property>
 				      <property name="label" translatable="yes">aggregated:</property>
 				      <property name="use_underline">True</property>
 				      <property name="relief">GTK_RELIEF_NORMAL</property>
 				      <property name="focus_on_click">True</property>
-				      <property name="active">True</property>
+				      <property name="active">False</property>
 				      <property name="inconsistent">False</property>
 				      <property name="draw_indicator">True</property>
+				      <property name="group">explore_cdf_rawdata_radiobutton</property>
 				    </widget>
 				    <packing>
 				      <property name="padding">0</property>
@@ -3187,7 +3262,7 @@ years</property>
 				    <widget class="GtkRadioButton" id="explore_seasonal_violinplot_radiobutton">
 				      <property name="visible">True</property>
 				      <property name="can_focus">True</property>
-				      <property name="label" translatable="yes">Violin plot (density function)</property>
+				      <property name="label" translatable="yes">Violin plot</property>
 				      <property name="use_underline">True</property>
 				      <property name="relief">GTK_RELIEF_NORMAL</property>
 				      <property name="focus_on_click">True</property>
@@ -3320,7 +3395,7 @@ years</property>
 			  <property name="window_placement">GTK_CORNER_TOP_LEFT</property>
 
 			  <child>
-			    <widget class="GtkIconView" id="iconview1">
+			    <widget class="GtkIconView" id="impute_iconview">
 			      <property name="visible">True</property>
 			      <property name="can_focus">True</property>
 			      <property name="selection_mode">GTK_SELECTION_MULTIPLE</property>
@@ -4349,7 +4424,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA</prope
 	  <child>
 	    <widget class="GtkToggleToolButton" id="plot_log_togglebutton">
 	      <property name="visible">True</property>
-	      <property name="label" translatable="yes"> Log</property>
+	      <property name="label" translatable="yes"> Log scale</property>
 	      <property name="use_underline">True</property>
 	      <property name="stock_id">gtk-goto-top</property>
 	      <property name="visible_horizontal">True</property>

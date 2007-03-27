@@ -69,18 +69,17 @@ grid.timeline.bar <- function(blob, colMap=NULL, name="timeline.bar", vp=NULL) {
 	colIntCodes[thisNA] <- -1 # unique code for NA
 	# find indices (time steps) where colour (or is.na) changes
 	# i.e. divide into blocks of continuous colour (for efficient plotting)
-	blockStart <- which(c(1,diff(colIntCodes))!=0)
-	nBlock <- length(blockStart)
-	blockEnd <- c(blockStart[-1], nrow(blob))
-	blockWidth <- (as.numeric(blob$Time[blockEnd]) - 
-		as.numeric(blob$Time[blockStart]))
-	# should extend last block with 1 timestep (from attr)
+	blockStartIndex <- which(c(1,diff(colIntCodes))!=0)
+	nBlock <- length(blockStartIndex)
+	blockStart <- as.numeric(blob$Time[blockStartIndex])
+	blockEnd <- c(blockStart[-1], end(blob))
+	blockWidth <- blockEnd - blockStart
 	# get subset of colours and convert to character strings
-	blockCol <- levels(thisCol)[ thisCol[blockStart] ]
+	blockCol <- levels(thisCol)[ thisCol[blockStartIndex] ]
 	# set colour to NA where data is NA
-	blockCol[thisNA[blockStart]] <- NA
+	blockCol[thisNA[blockStartIndex]] <- NA
 	# draw it
-	grid.rect(x=blob$Time[blockStart], width=blockWidth, just="left",
+	grid.rect(x=blockStart, width=blockWidth, just="left",
 		default.units="native", gp=gpar(fill=blockCol, col=NA),
 		name=name, vp=vp)
 }

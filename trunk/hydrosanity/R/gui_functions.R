@@ -290,7 +290,11 @@ newCairoWindow <- function(name) {
 		ps(filename, width=myWidth*myScale, height=myHeight*myScale)
 	}
 	else if (ext %in% "png") {
-		png(filename, width=myWidth*2, height=myHeight*2, pointsize=12*2, res=144)
+		#oldDev <- dev.cur()
+		#dev.set(.hydrosanity$dev[[myName]])
+		#dev.copy(png, filename, width=myWidth*2, height=myHeight*2, pointsize=12*2, res=144)
+		png(filename, width=myWidth, height=myHeight)
+		#dev.set(oldDev)
 	}
 	else if (ext %in% c("jpeg", "jpg")) {
 		jpeg(filename, width=myWidth*2, height=myHeight*2, pointsize=12*2, res=144)
