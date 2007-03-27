@@ -185,7 +185,14 @@ start.timeblob <- function(blob) {
 # returns length 0 if blob is empty
 end.timeblob <- function(blob) {
 	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
-	blob$Time[nrow(blob)]
+	if (identical(attr(blob, "timestep"), "irregular")) {
+		blob$Time[nrow(blob)]
+	} else {
+		if (nrow(blob)==0) { return(blob$Time[0]) }
+		# extrapolate last time step
+		seq.POSIXt(from=blob$Time[nrow(blob)], by=attr(blob, "timestep"), 
+			length=2)[2]
+	}
 }
 
 start.timeblobs <- function(blob.list) {
@@ -212,8 +219,11 @@ window.timeblob <- function(blob, start, end, inclusive=F, extend=F) {
 	end <- as.POSIXct(end)
 	if (any(is.na(c(start, end)))) { stop("'start' and 'end' must be valid times (POSIXt)") }
 	if (extend) {
+		# pad with NA values out to specified limits
 		timestep <- attr(blob, "timestep")
-		if (is.null(timestep)) { stop("'blob' needs a timestep attribute for 'extend=T'") }
+		if (is.null(timestep)) {
+			stop("'blob' needs a timestep attribute for 'extend=T'")
+		}
 		negTimestep <- paste("-1", timestep)
 		if (length(grep("^[0-9]", timestep)>0)) {
 			negTimestep <- paste("-", timestep, sep='')
@@ -233,66 +243,42 @@ window.timeblob <- function(blob, start, end, inclusive=F, extend=F) {
 		}
 	}
 	
-	if (start > end.timeblob(blob)) {
-		# entire window is after end
-		return(blob[0,])
-	}
-	if (end < start.timeblob(blob)) {
-		# entire window is before start
-		return(blob[0,])
-	}
+	windowIdx <- findIntervalPeriod(start, end, blob$Time, inclusive=inclusive)
 	
-	windowIdx <- findInterval(c(start,end), blob$Time)
-	
-	if (inclusive == F) {
-		testDate <- blob$Time[windowIdx[1]]
-		if ((length(testDate) > 0) && (testDate != start) && (windowIdx[1] < nrow(blob))) {
-			# round up at start (findInterval rounds down)
-			windowIdx[1] <- windowIdx[1] + 1
-		}
-	} else {
-		testDate <- blob$Time[windowIdx[2]]
-		if ((length(testDate) > 0) && (testDate != end) && (windowIdx[2] < nrow(blob))) {
-			# round up at end (findInterval rounds down)
-			windowIdx[2] <- windowIdx[2] + 1
-		}
+	if (!identical(attr(blob, "timestep"), "irregular")) {
+		# TODO: need to handle last time step inclusive
 	}
 	return(blob[seq(windowIdx[1],windowIdx[2]),])
 }
 
-
-# find indices into timeblob 'blob' for each time in 'times'
-# values of NA are used for times outside 'blob'
-#
-# it resamples blob$Time to correspond to each time in 'times'
-#
-matchtimes.timeblob <- function(blob, times) {
-	# check types
-	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
-	times <- as.POSIXct(times)
-	if (any(is.na(times))) { stop("'times' must be a vector of valid times (POSIXt)") }
-	# default for indices is NA
-	periodIndices <- rep(as.integer(NA), length(times))
-	# each blob here may be outside 'times', and may be empty
-	if ((nrow(blob)==0)
-	  || (start.timeblob(blob) > times[length(times)])
-	  || (end.timeblob(blob) < times[1])) {
-		return(periodIndices)
+findIntervalPeriod <- function(xLo, xHi, vec, inclusive=F) {
+	if (xLo > xHi) { stop("'xHi' must be greater than 'xLo'") }
+	# check whether the period intersects at all with 'vec'
+	if ((xHi < vec[1]) || (xLo > vec[length(vec)])) {
+		return(c(0,0))
 	}
-	# each blob here is not entirely outside 'times'
-	blobBounds <- findInterval(c(start.timeblob(blob), end.timeblob(blob)), times)
-	# make sure blobBounds are really within blob$Time (findInterval rounds down)
-	if (times[blobBounds[1]] < start.timeblob(blob)) {
-		blobBounds[1] <- blobBounds[1] + 1
+	windowIdx <- findInterval(c(xLo,xHi), vec)
+	if (inclusive) {
+		# round up at end (findInterval rounds down)
+		test <- vec[windowIdx[2]]
+		if ((length(test)>0) && (test != xHi) && (windowIdx[2] < length(vec))) {
+			windowIdx[2] <- windowIdx[2] + 1
+		}
+	} else {
+		# round up at start (findInterval rounds down)
+		test <- vec[windowIdx[1]]
+		if ((length(test)>0) && (test != xLo) && (windowIdx[1] < length(vec))) {
+			windowIdx[1] <- windowIdx[1] + 1
+		}
 	}
-	blobWindowIndices <- seq(blobBounds[1], blobBounds[2])
-	# now times[blobWindowIndices] is not outside blob$Time
-	periodIndices[blobWindowIndices] <- findInterval(times[blobWindowIndices], blob$Time)
-	return(periodIndices)
+	# if there are no complete intervals (inclusive==F)
+	if (windowIdx[1] > windowIdx[2]) { return(c(0,0)) }
+	return(windowIdx)
 }
 
 
-sync.timeblobs <- function(blob.list, timestep=NULL, timelim=NULL, extractColumn=2) {
+# timestep needs to be fast enough for all blobs (does not aggregate to slower time steps)
+sync.timeblobs <- function(blob.list, timestep=NULL, timelim=NULL, extractColumn="Data") {
 	# check types
 	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
 	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
@@ -308,17 +294,54 @@ sync.timeblobs <- function(blob.list, timestep=NULL, timelim=NULL, extractColumn
 	if (is.null(timestep)) {
 		timestep <- common.timestep.timeblobs(blob.list)
 	}
-	times <- NULL
 	times <- seq.POSIXt(min(timelim), max(timelim), by=timestep)
 	syncData <- data.frame(
 		Time=times,
 		lapply(blob.list, function(x) {
 			mySyncIndices <- matchtimes.timeblob(x, times)
-			x[mySyncIndices,extractColumn]
+			x[mySyncIndices, extractColumn]
 		})
 	)
 	attr(syncData, "timestep") <- timestep
 	return(syncData)
+}
+
+# find indices into timeblob 'blob' for each time in 'times'
+# values of NA are used for times outside 'blob'
+#
+# it resamples blob$Time to correspond to each time in 'times'
+#
+# x <- seq(as.POSIXct("1970-01-01"), by="2 years", length=5)
+# blob <- timeblob(Time=x, Data=seq(70, by=2, length=5))
+# yearseq <- seq(as.POSIXct("1965-01-01"), by="years", length=10)
+# data.frame(yearseq, 
+# 	blob.index=matchtimes.timeblob(blob, yearseq), 
+# 	blob.data=blob$Data[matchtimes.timeblob(blob, yearseq)])
+#
+# sixseq <- seq(as.POSIXct("1970-06-06"), as.POSIXct("1981-06-06"), by="6 months")
+# data.frame(sixseq, 
+# 	blob.index=matchtimes.timeblob(blob, sixseq), 
+# 	blob.data=blob$Data[matchtimes.timeblob(blob, sixseq)])
+
+matchtimes.timeblob <- function(blob, times) {
+	# check types
+	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
+	times <- as.POSIXct(times)
+	if (any(is.na(times))) { stop("'times' must be a vector of valid times (POSIXt)") }
+	# default for indices is NA
+	periodIndices <- rep(as.integer(NA), length(times))
+	# each blob here may be outside 'times', and may be empty
+	if ((nrow(blob)==0)
+	  || (start.timeblob(blob) > times[length(times)])
+	  || (end.timeblob(blob) < times[1])) {
+		return(periodIndices)
+	}
+	# each blob here is not entirely outside 'times'
+	blobBounds <- findIntervalPeriod(start(blob), end(blob), times)
+	blobWindowIndices <- seq(blobBounds[1], blobBounds[2])
+	# now times[blobWindowIndices] is not outside blob$Time
+	periodIndices[blobWindowIndices] <- findInterval(times[blobWindowIndices], blob$Time)
+	return(periodIndices)
 }
 
 common.timestep.timeblobs <- function(blob.list, default="DSTdays") {
@@ -423,9 +446,14 @@ aggregate.timeblob <- function(blob, by="1 year", FUN=NULL, max.na.proportion=0.
 	# set NA values
 	eachNA <- aggregate(blob$Data, by=list(dateGroups), FUN=function(x) {sum(is.na(x))})[,2]
 	newVals[eachNA > freqN * max.na.proportion] <- NA
-	firstN <- sum(as.integer(dateGroups)==1, na.rm=T)
+	# check that first and last groups have enough data points
+	firstN <- sum(dateGroups==dateGroups[1], na.rm=T)
 	if (firstN < freqN * (1-max.na.proportion)) {
 		newVals[1] <- NA
+	}
+	lastN <- sum(dateGroups==dateGroups[length(dateGroups)], na.rm=T)
+	if (lastN < freqN * (1-max.na.proportion)) {
+		newVals[length(newVals)] <- NA
 	}
 	# construct new blob
 	newBlob <- timeblob(Time=newDates, Data=newVals,
@@ -479,6 +507,7 @@ as.byString <- function(x, digits=getOption("digits")) {
 }
 
 as.numeric.byString <- function(x) {
+	if (identical(x, "irregular")) { return(0) }
 	timeseq <- seq.POSIXt(from=ISOdate(1970,1,1,0,0,0), by=x, length=2)
 	return(as.numeric(timeseq[2]) - as.numeric(timeseq[1]))
 }
