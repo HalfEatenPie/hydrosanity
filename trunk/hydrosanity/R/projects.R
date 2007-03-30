@@ -28,6 +28,9 @@ openProject <- function() {
 	setTextview("log_textview", hsp$log)
 	addLogSeparator()
 	
+	hsp$log <<- NULL
+	hsp$version <<- NULL
+	
 	# switch to first page and trigger update
 	theWidget("notebook")$setCurrentPage(0)
 	.hs_on_notebook_switch_page(theWidget("notebook"), theWidget("hs_window"), 0)
@@ -59,6 +62,9 @@ saveProject <- function(saveAs=F) {
 	hsp$log <<- getTextviewText("log_textview")
 	hsp$version <<- VERSION
 	save(hsp, file=filename, compress=TRUE)
+	hsp$log <<- NULL
+	hsp$version <<- NULL
+	
 	hsp$projectFile <<- filename
 	.hydrosanity$modified <<- F
 	

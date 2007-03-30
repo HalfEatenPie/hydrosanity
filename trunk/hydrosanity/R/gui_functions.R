@@ -228,7 +228,6 @@ newCairoWindow <- function(name) {
 	if (is.na(myIndex)) { return() }
 	myName <- names(.hydrosanity$win)[myIndex]
 	if (myName %notin% names(.hydrosanity$call)) {
-		errorDialog("No call for this window.")
 		return()
 	}
 	myCallName <- deparse(.hydrosanity$call[[myName]][[1]])
@@ -297,7 +296,7 @@ newCairoWindow <- function(name) {
 		#dev.set(oldDev)
 	}
 	else if (ext %in% c("jpeg", "jpg")) {
-		jpeg(filename, width=myWidth*2, height=myHeight*2, pointsize=12*2, res=144)
+		jpeg(filename, width=myWidth, height=myHeight, quality=95)
 	}
 	else {
 		errorDialog("Unrecognised filename extension")
@@ -357,16 +356,24 @@ iconViewGetSelectedNames <- function(iconView) {
 
 ## ERROR CATCHING STUFF
 
-guiTryEval <- function(commandText, doLog=T, doFailureDialog=T, doFailureLog=T) {
+guiTryEval <- function(command, doLog=T, doFailureDialog=T, doFailureLog=doLog, doParse=T) {
+	if (length(command)==0) { command <- "" }
 	setCursor("watch")
-	if (length(commandText)==0) { commandText <- "" }
-	result <- tryCatch(eval(parse(text=commandText)), error=function(e)e)
+	result <- NULL
+	if (doParse) {
+		result <- tryCatch(eval(parse(text=command)), error=function(e)e)
+	} else {
+		result <- tryCatch(eval(command), error=function(e)e)
+	}
 	setCursor()
 	if (doLog) {
-		commandExpr <- try(parse(text=commandText))
+		commandExpr <- command
+		if (doParse) {
+			commandExpr <- try(parse(text=command))
+		}
 		if (inherits(commandExpr, "try-error")) {
 			# syntax error
-			addToLog(commandText)
+			addToLog(command)
 		} else {
 			commandPretty <- paste(capture.output(
 				lapply(commandExpr, print)
@@ -376,6 +383,8 @@ guiTryEval <- function(commandText, doLog=T, doFailureDialog=T, doFailureLog=T) 
 	}
 	if (inherits(result, "error") && doFailureDialog) {
 		setStatusBar("")
+		commandText <- command
+		if (!doParse) { commandText <- deparse(command) }
 		msgText <- conditionMessage(result)
 		callText <- deparse(conditionCall(result), width.cutoff=500)[1]
 		if (length(msgText)==0) { msgText <- "" }

@@ -52,11 +52,11 @@ updateImportPage <- function() {
 	
 	dfModel <- rGtkDataFrame(data.frame(
 		Name=dfName,
+		Data=dfData,
 		Start=dfStart,
 		End=dfEnd,
 		Length=dfLength,
 		Timestep=dfFreq,
-		Data=dfData,
 		Qual=dfQual,
 		Extra_data=dfExtra,
 		Role=dfRole,
@@ -238,11 +238,27 @@ updateImportPage <- function() {
 	blobIndex <- as.numeric(path.string)+1
 	blobName <- names(hsp$data)[blobIndex]
 	if (new.text == blobName) { return() }
-	mv.cmd <- sprintf('names(hsp$data)[%i] <<- "%s"', blobIndex, new.text)
+	if (new.text == "") { return() }
 	addLogComment(paste("Rename data object", blobName))
-	result <- guiTryEval(mv.cmd)
-	if (inherits(result, "error")) { return() }
+	cmd <- sprintf('names(hsp$data)[%i] <<- "%s"', blobIndex, new.text)
+	if (inherits(guiTryEval(cmd), "error")) { return() }
+	
 	setStatusBar(sprintf('Renamed data object "%s" to "%s"', blobName, new.text))
+	.hydrosanity$modified <<- T
+	updateImportPage()
+}
+
+.hs_on_import_summary_treeview_dataname_edited <- function(cell, path.string, new.text, user.data) {
+	blobIndex <- as.numeric(path.string)+1
+	blobName <- names(hsp$data)[blobIndex]
+	blobDataName <- attr(hsp$data[[blobIndex]], "dataname")
+	if (new.text == blobDataName) { return() }
+	if (new.text == "") { return() }
+	addLogComment(paste("Set data name for object", blobName))
+	cmd <- sprintf('attr(hsp$data[["%s"]], "dataname") <<- "%s"', blobName, new.text)
+	if (inherits(guiTryEval(cmd), "error")) { return() }
+	
+	setStatusBar(sprintf('Set data name for object "%s" to "%s"', blobName, new.text))
 	.hydrosanity$modified <<- T
 	updateImportPage()
 }
@@ -271,10 +287,10 @@ updateImportPage <- function() {
 	if (is.null(questionDialog("Remove item(s) ", paste(blobNames,collapse=', '), "?"))) {
 		return()
 	}
-	rm.cmd <- sprintf('hsp$data[c(%s)] <<- NULL', paste(blobIndices,collapse=','))
 	addLogComment("Remove data object(s)")
-	result <- guiTryEval(rm.cmd)
-	if (inherits(result, "error")) { return() }
+	cmd <- sprintf('hsp$data[c(%s)] <<- NULL', paste(blobIndices,collapse=','))
+	if (inherits(guiTryEval(cmd), "error")) { return() }
+	
 	setStatusBar(sprintf('Removed data object(s) %s', paste(blobNames,collapse=', ')))
 	.hydrosanity$modified <<- T
 	updateImportPage()

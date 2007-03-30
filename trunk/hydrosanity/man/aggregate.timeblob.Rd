@@ -5,7 +5,7 @@
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-aggregate.timeblob(blob, by = "1 year", FUN = NULL, max.na.proportion = 0.05)
+\method{aggregate}{timeblob}(blob, by = "1 year", FUN = NULL, max.na.proportion = 0.05)
 }
 \arguments{
   \item{blob}{ ~~Describe \code{blob} here~~ }
