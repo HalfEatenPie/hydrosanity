@@ -1,12 +1,19 @@
 export(
 	hydrosanity,
+	
+	## timeblob_plots.R
 	grid.timeline.plot,
 	grid.timeline.bar,
 	grid.timeseries.plot,
 	grid.timeseries.plot.superpose,
 	grid.timeseries.steps,
+	hydrosanity.caption,
 	grid.yaxis.log,
 	grid.xaxis.POSIXt,
+	lattice.y.prettylog,
+	prepanel.qqmath.fix
+	
+	## timeblob.R
 	timeblob,
 	is.timeblob,
 	lapply.timeblob.data,

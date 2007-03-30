@@ -99,8 +99,9 @@ hydrosanity <- function() {
 	# set up table format on import page
 	importTreeView <- theWidget("import_summary_treeview")
 	insertTreeViewTextColumns(importTreeView, 
-		colNames=c("Name", "Start", "End", "Length", "Timestep", "Data", "Qual", "Extra_data", "Role"),
+		colNames=c("Name", "Data", "Start", "End", "Length", "Timestep", "Qual", "Extra_data", "Role"),
 		editors=list(Name=.hs_on_import_summary_treeview_name_edited,
+			Data=.hs_on_import_summary_treeview_dataname_edited,
 			Role=.hs_on_import_summary_treeview_role_edited),
 		combo=list(Role=data.frame(c("RAIN","FLOW","OTHER"))) )
 	importTreeView$getSelection()$setMode("multiple")

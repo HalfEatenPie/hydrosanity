@@ -58,6 +58,7 @@ updateExplorePage <- function() {
 	doAggr2 <- theWidget("explore_timeseries_aggr2_checkbutton")$getActive()
 	aggr1By <- theWidget("explore_timeseries_aggr1_comboboxentry")$getActiveText()
 	aggr2By <- theWidget("explore_timeseries_aggr2_comboboxentry")$getActiveText()
+	yearStartMonthNum <- theWidget("explore_timeseries_yearstart_combobox")$getActive()
 	myM <- (doRawData + doAggr1 + doAggr2)
 	if (myM == 0) { return() }
 	
@@ -135,11 +136,13 @@ updateExplorePage <- function() {
 		yscale.cmd <- ', yscale=tmp.yscale'
 	}
 	
-	log.cmd <- if (doLog) { ', logScale=T' } else { '' }
-	samescale.cmd <- if (doCommonScale) { '' } else { ', sameScales=F' }
-	newscale.cmd <- if (doCommonScale && doSuperpose) { ', newScale=F' } else { '' }
+	log.cmd <- if (doLog) { ', logScale=T' } else {''}
+	samescale.cmd <- if (doCommonScale) {''} else { ', sameScales=F' }
+	newscale.cmd <- if (doCommonScale && doSuperpose) { ', newScale=F' } else {''}
 	
 	setPlotDevice("timeseries")
+	.hydrosanity$call[["timeseries"]] <<- NULL
+	.hydrosanity$win.gui[["timeseries"]]$getWidget("plot_log_togglebutton")$setActive(doLog)
 	
 	# do initial plot (may be multiple plots, but none superposed)
 	addToLog("## Plot")
@@ -159,8 +162,6 @@ updateExplorePage <- function() {
 	
 	tmpCall <- parse(text=plot.cmd)[[1]]
 	.hydrosanity$call[["timeseries"]] <<- evalCallArgs(tmpCall, pattern="^tmp")
-	
-	.hydrosanity$win.gui[["timeseries"]]$getWidget("plot_log_togglebutton")$setActive(doLog)
 	
 	if (length(tmpObjs) > 0) {
 		addToLog(paste('rm(', paste(tmpObjs, collapse=', '), ')', sep=''))
@@ -199,87 +200,90 @@ updateExplorePage <- function() {
 	
 	addLogComment("Generate distribution plot")
 	
-	tmpObjs <- c()
+	tmpObjs <- c('tmp.data')
+	
+	# initalise data
+	cmd <- sprintf('tmp.data <<- %s', rawdata.cmd)
+	if (inherits(guiTryEval(cmd), "error")) { return() }
+	
+	# apply time period window
+	if (!is.null(hsp$timePeriod)) {
+		if (inherits(guiTryEval(
+			'tmp.data <<- lapply(tmp.data, window, hsp$timePeriod[1], hsp$timePeriod[2])'
+		), "error")) { return() }
+	}
 	
 	# compute and store aggregated series
 	if (doAggr1 || doAggr2) {
-		addToLog("## Compute and store aggregated series")
-	}
-	if (doAggr1) {
-		tmpObjs <- c(tmpObjs, 'tmp.aggr1')
-		pre_plot.cmd <- sprintf(
-			'tmp.aggr1 <<- lapply(%s, aggregate.timeblob, by="%s")',
-			rawdata.cmd, aggr1By)
-		
-		result <- guiTryEval(pre_plot.cmd)
-		if (inherits(result, "error")) { return() }
-	}
-	if (doAggr2) {
-		tmpObjs <- c(tmpObjs, 'tmp.aggr2')
-		pre_plot.cmd <- sprintf(
-			'tmp.aggr2 <<- lapply(%s, aggregate.timeblob, by="%s")',
-			rawdata.cmd, aggr2By)
-		result <- guiTryEval(pre_plot.cmd)
-		if (inherits(result, "error")) { return() }
+		cmd <- sprintf(
+			'tmp.data <<- lapply(tmp.data, aggregate.timeblob, by="%s")', 
+			if (doAggr1) { aggr1By } else { aggr2By }
+		)
+		if (inherits(guiTryEval(cmd), "error")) { return() }
 	}
 	
-	data.cmd <- c(
-		if(doRawData){paste('"',selNames, '"=hsp$data[["',selNames,'"]]',sep='')},
-		if(doAggr1){paste('"',selNames,'.',aggr1By,'"=tmp.aggr1[["',selNames,'"]]',sep='')},
-		if(doAggr2){paste('"',selNames,'.',aggr2By,'"=tmp.aggr2[["',selNames,'"]]',sep='')}
-	)
-	data.list.cmd <- paste(data.cmd, collapse=", ")
+	# make.groups
+	tmpObjs <- c(tmpObjs, 'tmp.groups')
+	cmd <- 'tmp.groups <<- do.call(make.groups, lapply(tmp.data, function(x) x$Data ))'
+	if (inherits(guiTryEval(cmd), "error")) { return() }
 	
-	# make synchronised data frame
-	tmpObjs <- c(tmpObjs, 'tmp.data')
-	pre_plot.cmd <- sprintf(
-		'tmp.data <<- sync.timeblobs(list(%s), timelim=hsp$timePeriod)',
-		data.list.cmd)
-	result <- guiTryEval(pre_plot.cmd)
-	if (inherits(result, "error")) { return() }
-		
-	data.formula.cmd <- paste(names(tmp.data)[-1], collapse=" + ")
-	dist.cmd <- if (doNormal) { ', distribution=qnorm' } else { ', distribution=qunif' }
+	# plot type specifications
 	
-	# set up y scale (lattice default clips off the bottom!)
-	addToLog("## Find global range of data")
-	tmpObjs <- c(tmpObjs, 'tmp.yscale')
-	makescale.cmd <- paste(sep="\n",
-		'tmp.yscale <<- range(tmp.data[-1], na.rm=T)',
-		'tmp.yscale[2] <<- tmp.yscale[2] + diff(tmp.yscale)*0.05')
-	addToLog("## and limit by minimum non-zero value (for log scale)")
-	makescale.cmd <- paste(makescale.cmd, "\n", 
-		'tmp.yscale[1] <<- min((tmp.data[-1])[tmp.data[-1]>0], na.rm=T)')
-	result <- guiTryEval(makescale.cmd)
-	if (inherits(result, "error")) { return() }
-	yscale.cmd <- ', ylim=tmp.yscale'
-	
-	panel.cmd <- if (doLine) {
+	plotfn.cmd <- if (doCDF) { 'qqmath' } else 
+		if (doStripPlot) { 'stripplot' } else { 'bwplot' }
+	formula.cmd <- if (doCDF) { '~ data, groups=which' } else
+		{ 'data ~ which' }
+	dist.cmd <- if (doNormal) { ', distribution=qnorm' } else 
+		if (doUniform) { ', distribution=qunif' } else {''}
+	panel.cmd <- if (doCDF && doLine) {
 		', panel=function(...) { panel.qqmathline(...); panel.qqmath(...) }'
-	} else { '' }
+		} else if (doViolinPlot) {
+		', panel=function(...){ panel.violin(varwidth=T, ...); panel.stripplot(pch=3, ...) }'
+		} else {''}
+	prepanel.cmd <- if (doCDF) { ', prepanel=prepanel.qqmath.fix' } else {''}
+	jitter.cmd <- if (doStripPlot) { ', jitter=T' } else {''}
 	
-	# make axis components
-	tmpObjs <- c(tmpObjs, 'tmp.probs', 'tmp.xaxis')
-	pre_plot.cmd <- paste(sep='\n',
-		'tmp.probs <<- c(0.01, 0.1, 0.25, 0.5, 0.75, 0.9, 0.99)',
-		sprintf(
-		'tmp.xaxis <<- list(at=%s(tmp.probs), labels=as.character(tmp.probs*100))',
-			if (doNormal) { 'qnorm' } else { '' } ))
-	result <- guiTryEval(pre_plot.cmd)
-	if (inherits(result, "error")) { return() }
+	if (doCDF) {
+		tmpObjs <- c(tmpObjs, 'tmp.probs')
+		if (inherits(guiTryEval(
+			'tmp.probs <<- c(0.01, 0.1, 0.3, 0.5, 0.7, 0.9, 0.99)'
+		), "error")) { return() }
+	}
+	
+	# scale and annotation specifications
+	
+	xscale.cmd <- if (doCDF) { sprintf(
+		'x=list(at=%s(tmp.probs), labels=tmp.probs*100), ',
+			if (doNormal) { 'qnorm' } else {'c'} )
+		} else { '' }
+	yscale.cmd <- 'y=list(log=T)'
+	xlab.cmd <- if (doCDF) { ', xlab="Probability of non-exceedence (%)"' } else {''}
+	ylab.cmd <- sprintf(', ylab="%s"', attr(hsp$data[[selNames[1]]], "dataname"))
+	
+	# hydrosanity caption
+	tmpObjs <- c(tmpObjs, 'tmp.timelim', 'tmp.n')
+	if (inherits(guiTryEval(
+		'tmp.timelim <<- c(start.timeblobs(tmp.data), end.timeblobs(tmp.data))'
+	), "error")) { return() }
+	if (inherits(guiTryEval(
+		'tmp.n <<- sum(sapply.timeblob.data(tmp.data, is.na)==F)'
+	), "error")) { return() }
+	sub.cmd <- sprintf(', sub=hydrosanity.caption(%s, by="%s", n=%s, series=%s)',
+		'tmp.timelim', attr(tmp.data[[1]], "timestep"), 'tmp.n', myN)
 	
 	setPlotDevice("distribution")
+	.hydrosanity$call[["distribution"]] <<- NULL
+	.hydrosanity$win.gui[["distribution"]]$getWidget("plot_log_togglebutton")$setActive(T)
 	
-	plot.cmd <- sprintf('qqmath(~ %s, data=tmp.data%s%s%s, scales=list(x=tmp.xaxis, y=list(log=T)), xlab="Probability of non-exceedence (%%)", auto.key=T)',
-		data.formula.cmd, dist.cmd, panel.cmd, yscale.cmd)
-
+	plot.cmd <- sprintf('%s(%s, data=tmp.groups%s%s%s, scales=list(%s%s)%s%s%s, yscale.components=lattice.y.prettylog%s, auto.key=T)',
+		plotfn.cmd, formula.cmd, dist.cmd, panel.cmd, jitter.cmd, xscale.cmd, yscale.cmd, xlab.cmd, ylab.cmd, sub.cmd, prepanel.cmd)
+	
 	result <- guiTryEval(plot.cmd)
 	if (inherits(result, "error")) { return() }
 	print(result) # plot trellis object
+	
 	tmpCall <- parse(text=plot.cmd)[[1]]
 	.hydrosanity$call[["distribution"]] <<- evalCallArgs(tmpCall, pattern="^tmp")
-	
-	.hydrosanity$win.gui[["distribution"]]$getWidget("plot_log_togglebutton")$setActive(T)
 	
 	if (length(tmpObjs) > 0) {
 		addToLog(paste('rm(', paste(tmpObjs, collapse=', '), ')', sep=''))
@@ -306,44 +310,60 @@ updateExplorePage <- function() {
 	
 	addLogComment("Generate seasonal plot")
 	
-	tmpObjs <- c()
+	tmpObjs <- c('tmp.data')
 	
-	pre_plot.cmd <- ''
-	tmpObjs <- c(tmpObjs, 'tmp.data')
+	# initalise data
+	cmd <- sprintf('tmp.data <<- %s', rawdata.cmd)
+	if (inherits(guiTryEval(cmd), "error")) { return() }
+	
+	cmd <- ''
 	if (doMonths) {
-		pre_plot.cmd <- paste(sep='\n', 
-			sprintf('tmp.data <<- sync.timeblobs(lapply(%s, aggregate.timeblob, by="months"))',
-				rawdata.cmd),
+		cmd <- paste(sep='\n', 
+			'tmp.data <<- sync.timeblobs(lapply(tmp.data, aggregate.timeblob, by="months"), timelim=hsp$timePeriod)',
 			'tmp.data$Season <<- factor(months(tmp.data$Time, abbreviate=TRUE),',
 			'	levels=c("Jan","Feb","Mar","Apr","May","Jun",',
 			'	"Jul","Aug","Sep","Oct","Nov","Dec"), ordered=T)')
 	} else {
-		pre_plot.cmd <- paste(sep='\n', 
-			sprintf('tmp.data <<- lapply(%s, function(x) {', rawdata.cmd),
-			'	window.timeblob(x, trunc.year(start.timeblob(x)), end.timeblob(x), extend=T) })',
-			'tmp.data <<- sync.timeblobs(lapply(tmp.data, aggregate.timeblob, by="3 months"))',
+		cmd <- paste(sep='\n', 
+			'tmp.data <<- lapply(tmp.data, function(x) {',
+			'	window(x, trunc.year(start(x)), end(x), extend=T) })',
+			'tmp.data <<- sync.timeblobs(lapply(tmp.data, aggregate.timeblob, by="3 months"), timelim=hsp$timePeriod)',
 			'tmp.data$Season <<- factor(quarters(tmp.data$Time), ordered=T)')
 	}
-	result <- guiTryEval(pre_plot.cmd)
-	if (inherits(result, "error")) { return() }
+	if (inherits(guiTryEval(cmd), "error")) { return() }
 	
 	data.formula.cmd <- paste(names(tmp.data)[-c(1,ncol(tmp.data))], collapse=" + ")
-	layout.cmd <- if (doMonths) { sprintf(', layout=c(1, %i)', myN) } else { '' }
 	plotfn.cmd <- if (doStripPlot) { 'stripplot' } else { 'bwplot' }
-	jitter.cmd <- if (doStripPlot) { ', jitter=T' } else { '' }
-	panel.cmd <- if (doViolinPlot) { ', panel=function(...){ panel.violin(...); panel.stripplot(jitter=T, ...) }' } else { '' }
+	panel.cmd <- if (doViolinPlot) {
+		', panel=function(...){ panel.violin(varwidth=T, ...); panel.stripplot(pch=3, ...) }'
+	} else {''}
+	jitter.cmd <- if (doStripPlot) { ', jitter=T' } else {''}
+	layout.cmd <- if (doMonths) { sprintf(', layout=c(1, %i)', myN) } else {''}
+	ylab.cmd <- sprintf(', ylab="%s"', attr(hsp$data[[selNames[1]]], "dataname"))
+	
+	# hydrosanity caption
+	tmpObjs <- c(tmpObjs, 'tmp.timelim', 'tmp.n')
+	if (inherits(guiTryEval(
+		'tmp.timelim <<- range(tmp.data$Time)' # TODO: should add timestep to this
+	), "error")) { return() }
+	if (inherits(guiTryEval(
+		sprintf('tmp.n <<- sum(sapply(tmp.data[2:%i], is.na)==F)', myN+1)
+	), "error")) { return() }
+	sub.cmd <- sprintf(', sub=hydrosanity.caption(%s, by="%s", n=%s, series=%s)',
+		'tmp.timelim', attr(tmp.data, "timestep"), 'tmp.n', myN)
 	
 	setPlotDevice("seasonality")
+	.hydrosanity$call[["seasonality"]] <<- NULL
+	.hydrosanity$win.gui[["seasonality"]]$getWidget("plot_log_togglebutton")$setActive(T)
 	
-	plot.cmd <- sprintf('%s(%s ~ Season, data=tmp.data, outer=T%s%s%s)',
-		plotfn.cmd, data.formula.cmd, panel.cmd, layout.cmd, jitter.cmd)
+	plot.cmd <- sprintf('%s(%s ~ Season, tmp.data, outer=T%s%s%s, scales=list(y=list(log=T))%s%s, yscale.components=lattice.y.prettylog)',
+		plotfn.cmd, data.formula.cmd, panel.cmd, layout.cmd, jitter.cmd, ylab.cmd, sub.cmd)
 	result <- guiTryEval(plot.cmd)
 	if (inherits(result, "error")) { return() }
 	print(result) # plot trellis object
+	
 	tmpCall <- parse(text=plot.cmd)[[1]]
 	.hydrosanity$call[["seasonality"]] <<- evalCallArgs(tmpCall, pattern="^tmp")
-	
-	.hydrosanity$win.gui[["seasonality"]]$getWidget("plot_log_togglebutton")$setActive(F)
 	
 	if (length(tmpObjs) > 0) {
 		addToLog(paste('rm(', paste(tmpObjs, collapse=', '), ')', sep=''))

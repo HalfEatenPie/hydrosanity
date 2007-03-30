@@ -177,8 +177,7 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 			myYScale <- log10(myYScale)
 		}
 		# extend yscale for clarity
-		myYScale[2] <- myYScale[2] + 0.05*diff(myYScale)
-		if (!logScale) { myYScale[1] <- myYScale[1] - 0.05*diff(myYScale) }
+		myYScale <- extendrange(myYScale)
 		# do plot
 		if (superPos == 1) {
 			# create viewport for timeseries number k
@@ -248,6 +247,22 @@ grid.timeseries.steps <- function(blob, logScale=F, name="timeseries", gp=NULL, 
 	}
 	grid.lines(x=blob$Time[iDates], y=myData[iVals],
 		default.units="native", name=name, gp=gp, vp=vp)
+}
+
+
+hydrosanity.caption <- function(timelim, by, n, series=NA, x=1, just="right", gp=gpar(cex=0.5)) {
+	timelim <- as.POSIXct(timelim)
+	if (any(is.na(timelim))) { stop("'timelim' must be a pair of valid times (POSIXt)") }
+	if (!identical(by, "irregular") && !is.na(series)) {
+		allN <- length(seq(timelim[1], timelim[2], by=by)) * series
+		pctN <- round(100*(n/allN), digits=1)
+		n <- sprintf('%s=%s%%', n, pctN)
+	}
+	vRSimple <- paste(R.version$major, R.version$minor, sep='.')
+	textGrob(sprintf(
+		"Data: %s to %s by %s (N=%s). Hydrosanity %s, R %s ",
+		timelim[1], timelim[2], by, n, VERSION, vRSimple),
+		x=x, just=just, gp=gp, name="hydrosanity.caption")
 }
 
 
@@ -364,4 +379,70 @@ grid.xaxis.POSIXt <- function(at=NULL, label=NULL, name="timeaxis", lim=as.numer
 	return(list(at=at, label=label))
 }
 
+
+lattice.y.prettylog <- function(lim, ...) {
+	arglist <- list(...)
+	have.log <- (!is.null(arglist$logsc)) && (!identical(arglist$logsc, F))
+	tmp <- yscale.components.default(lim, ...)
+	if (have.log) {
+		stuff <- grid.yaxis.log(lim=lim, draw=F)
+		tmp$left$ticks$at <- stuff$at
+		tmp$left$labels$at <- stuff$at
+		tmp$left$labels$labels <- stuff$label
+	}
+	return(tmp)
+}
+
+# prepanel.default.qqmath fails to take range(x, finite=T)
+prepanel.qqmath.fix <- function(x, ...) {
+	tmp <- prepanel.default.qqmath(x, ...)
+	tmp$ylim <- extendrange(r=range(x, finite=T))
+	tmp
+}
+
+# copied from lattice package because it is not exported
+prepanel.default.qqmath <- function (x, f.value = NULL, distribution = qnorm, qtype = 7, 
+    groups = NULL, subscripts, ...) 
+{
+    if (!is.numeric(x)) 
+        x <- as.numeric(x)
+    distribution <- if (is.function(distribution)) 
+        distribution
+    else if (is.character(distribution)) 
+        get(distribution)
+    else eval(distribution)
+    nobs <- sum(!is.na(x))
+    getxx <- function(x, f.value = NULL, nobs = sum(!is.na(x))) {
+        if (is.null(f.value)) 
+            distribution(ppoints(nobs))
+        else if (is.numeric(f.value)) 
+            distribution(f.value)
+        else distribution(f.value(nobs))
+    }
+    getyy <- function(x, f.value = NULL, nobs = sum(!is.na(x))) {
+        if (is.null(f.value)) 
+            sort(x)
+        else if (is.numeric(f.value)) 
+            fast.quantile(x, f.value, names = FALSE, type = qtype, 
+                na.rm = TRUE)
+        else fast.quantile(x, f.value(nobs), names = FALSE, type = qtype, 
+            na.rm = TRUE)
+    }
+    if (!nobs) 
+        list(xlim = c(NA, NA), ylim = c(NA, NA), dx = NA, dy = NA)
+    else if (!is.null(groups)) {
+        sx <- split(x, groups[subscripts])
+        xxlist <- lapply(sx, getxx, f.value = f.value)
+        yylist <- lapply(sx, getyy, f.value = f.value)
+        list(xlim = range(unlist(xxlist), na.rm = TRUE), ylim = range(unlist(yylist), 
+            na.rm = TRUE), dx = unlist(lapply(xxlist, diff)), 
+            dy = unlist(lapply(yylist, diff)))
+    }
+    else {
+        xx <- getxx(x, f.value, nobs)
+        yy <- getyy(x, f.value, nobs)
+        list(xlim = range(xx), ylim = range(yy), dx = diff(xx), 
+            dy = diff(yy))
+    }
+}
 

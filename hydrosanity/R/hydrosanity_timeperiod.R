@@ -17,6 +17,7 @@ updateTimePeriodPage <- function() {
 	
 	# time period for analysis
 	chosenPeriodString <- wholePeriodString
+	theWidget("timeperiod_updateperiod_button")$setSensitive(TRUE)
 	if (!is.null(hsp$timePeriod)) {
 		chosenPeriodString <- sprintf('%s to %s', 
 			format(hsp$timePeriod[1]), format(hsp$timePeriod[2]))
@@ -24,10 +25,14 @@ updateTimePeriodPage <- function() {
 	}
 	theWidget("timeperiod_chosenperiod_entry")$setText(chosenPeriodString)
 	
-	# generate summary
 	TV <- "timeperiod_summary_textview"
 	setTextview(TV, "")
+	theWidget("timeperiod_summary_treeview")$setModel(rGtkDataFrame())
 	
+	# don't generate summary until period has been set explicitly
+	if (is.null(hsp$timePeriod)) { return() }
+	
+	# generate summary
 	summmary.cmd <- sprintf('summary.missing.timeblobs(hsp$data, timelim=hsp$timePeriod)')
 	addToLog("## View summary of data coverage in selected period")
 	missingSummary <- capture.output(
@@ -45,7 +50,9 @@ updateTimePeriodPage <- function() {
 		if (!is.null(hsp$timePeriod)) {
 			subBlob <- window.timeblob(hsp$data[[i]], hsp$timePeriod[1], hsp$timePeriod[2])
 		}
-		myQuantiles <- format(quantile(subBlob$Data, probs=c(0, 0.25, 0.5, 0.75, 1), na.rm=T), digits=2)
+		myQuantiles <- format(quantile(
+			subBlob$Data, probs=c(0, 0.25, 0.5, 0.75, 1), na.rm=T), 
+			digits=2, scientific=2)
 		dfMin[i] <- myQuantiles[1]
 		dfQ25[i] <- myQuantiles[2]
 		dfMedian[i] <- myQuantiles[3]
@@ -65,8 +72,7 @@ updateTimePeriodPage <- function() {
 		Missing=dfMissing,
 		stringsAsFactors=F)
 		)
-	myTreeView <- theWidget("timeperiod_summary_treeview")
-	myTreeView$setModel(dfModel)
+	theWidget("timeperiod_summary_treeview")$setModel(dfModel)
 	
 	.hydrosanity$update$timeperiod <<- F
 	theWidget("hs_window")$present()
@@ -103,7 +109,10 @@ updateTimePeriodPage <- function() {
 	
 	myCall <- .hydrosanity$call$timeline
 	if (is.null(myCall)) {
-		errorDialog("Could not find an active timeline plot.")
+		myCall <- .hydrosanity$call$timeseries
+	}
+	if (is.null(myCall)) {
+		errorDialog("Could not find an active timeline plot or timeseries plot.")
 		return()
 	}
 	

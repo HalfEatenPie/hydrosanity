@@ -1517,11 +1517,10 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 				  <child>
 				    <widget class="GtkButton" id="timeperiod_updateperiod_button">
 				      <property name="visible">True</property>
-				      <property name="sensitive">False</property>
 				      <property name="can_default">True</property>
 				      <property name="has_default">True</property>
 				      <property name="can_focus">True</property>
-				      <property name="label" translatable="yes">Update</property>
+				      <property name="label" translatable="yes">Set</property>
 				      <property name="use_underline">True</property>
 				      <property name="relief">GTK_RELIEF_NORMAL</property>
 				      <property name="focus_on_click">True</property>
@@ -1532,10 +1531,9 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;maybe&quot;,&quot;
 				  <child>
 				    <widget class="GtkButton" id="timeperiod_setfromplot_button">
 				      <property name="visible">True</property>
-				      <property name="sensitive">False</property>
 				      <property name="can_default">True</property>
 				      <property name="can_focus">True</property>
-				      <property name="label" translatable="yes">Set from timeline</property>
+				      <property name="label" translatable="yes">Set from plot</property>
 				      <property name="use_underline">True</property>
 				      <property name="relief">GTK_RELIEF_NORMAL</property>
 				      <property name="focus_on_click">True</property>
@@ -2510,6 +2508,70 @@ years</property>
 				      <property name="fill">True</property>
 				    </packing>
 				  </child>
+
+				  <child>
+				    <widget class="GtkHBox" id="hbox49">
+				      <property name="visible">True</property>
+				      <property name="homogeneous">False</property>
+				      <property name="spacing">0</property>
+
+				      <child>
+					<widget class="GtkLabel" id="label88">
+					  <property name="visible">True</property>
+					  <property name="label" translatable="yes">     with years starting in </property>
+					  <property name="use_underline">False</property>
+					  <property name="use_markup">False</property>
+					  <property name="justify">GTK_JUSTIFY_LEFT</property>
+					  <property name="wrap">False</property>
+					  <property name="selectable">False</property>
+					  <property name="xalign">0.5</property>
+					  <property name="yalign">0.5</property>
+					  <property name="xpad">0</property>
+					  <property name="ypad">0</property>
+					  <property name="ellipsize">PANGO_ELLIPSIZE_NONE</property>
+					  <property name="width_chars">-1</property>
+					  <property name="single_line_mode">False</property>
+					  <property name="angle">0</property>
+					</widget>
+					<packing>
+					  <property name="padding">0</property>
+					  <property name="expand">False</property>
+					  <property name="fill">False</property>
+					</packing>
+				      </child>
+
+				      <child>
+					<widget class="GtkComboBox" id="explore_timeseries_yearstart_combobox">
+					  <property name="width_request">60</property>
+					  <property name="visible">True</property>
+					  <property name="items" translatable="yes">Jan
+Feb
+Mar
+Apr
+May
+Jun
+Jul
+Aug
+Sep
+Oct
+Nov
+Dec</property>
+					  <property name="add_tearoffs">False</property>
+					  <property name="focus_on_click">True</property>
+					</widget>
+					<packing>
+					  <property name="padding">0</property>
+					  <property name="expand">False</property>
+					  <property name="fill">True</property>
+					</packing>
+				      </child>
+				    </widget>
+				    <packing>
+				      <property name="padding">0</property>
+				      <property name="expand">True</property>
+				      <property name="fill">True</property>
+				    </packing>
+				  </child>
 				</widget>
 				<packing>
 				  <property name="padding">0</property>
@@ -2689,10 +2751,48 @@ years</property>
 				  <property name="spacing">0</property>
 
 				  <child>
+				    <widget class="GtkLabel" id="label89">
+				      <property name="visible">True</property>
+				      <property name="label" translatable="yes"> Quantile plot (cumulative distribution): </property>
+				      <property name="use_underline">False</property>
+				      <property name="use_markup">False</property>
+				      <property name="justify">GTK_JUSTIFY_LEFT</property>
+				      <property name="wrap">False</property>
+				      <property name="selectable">False</property>
+				      <property name="xalign">0.5</property>
+				      <property name="yalign">0.5</property>
+				      <property name="xpad">0</property>
+				      <property name="ypad">0</property>
+				      <property name="ellipsize">PANGO_ELLIPSIZE_NONE</property>
+				      <property name="width_chars">-1</property>
+				      <property name="single_line_mode">False</property>
+				      <property name="angle">0</property>
+				    </widget>
+				    <packing>
+				      <property name="padding">0</property>
+				      <property name="expand">False</property>
+				      <property name="fill">False</property>
+				    </packing>
+				  </child>
+				</widget>
+				<packing>
+				  <property name="padding">0</property>
+				  <property name="expand">True</property>
+				  <property name="fill">True</property>
+				</packing>
+			      </child>
+
+			      <child>
+				<widget class="GtkHBox" id="hbox50">
+				  <property name="visible">True</property>
+				  <property name="homogeneous">False</property>
+				  <property name="spacing">0</property>
+
+				  <child>
 				    <widget class="GtkRadioButton" id="explore_cdf_uniform_radiobutton">
 				      <property name="visible">True</property>
 				      <property name="can_focus">True</property>
-				      <property name="label" translatable="yes">Uniform probability scale</property>
+				      <property name="label" translatable="yes">Uniform probability</property>
 				      <property name="use_underline">True</property>
 				      <property name="relief">GTK_RELIEF_NORMAL</property>
 				      <property name="focus_on_click">True</property>
@@ -2711,7 +2811,7 @@ years</property>
 				    <widget class="GtkRadioButton" id="explore_cdf_normal_radiobutton">
 				      <property name="visible">True</property>
 				      <property name="can_focus">True</property>
-				      <property name="label" translatable="yes">Normal probability scale</property>
+				      <property name="label" translatable="yes">Normal probability</property>
 				      <property name="use_underline">True</property>
 				      <property name="relief">GTK_RELIEF_NORMAL</property>
 				      <property name="focus_on_click">True</property>
@@ -2726,25 +2826,25 @@ years</property>
 				      <property name="fill">False</property>
 				    </packing>
 				  </child>
-				</widget>
-				<packing>
-				  <property name="padding">0</property>
-				  <property name="expand">True</property>
-				  <property name="fill">True</property>
-				</packing>
-			      </child>
 
-			      <child>
-				<widget class="GtkCheckButton" id="explore_cdf_line_checkbutton">
-				  <property name="visible">True</property>
-				  <property name="can_focus">True</property>
-				  <property name="label" translatable="yes">Reference line</property>
-				  <property name="use_underline">True</property>
-				  <property name="relief">GTK_RELIEF_NORMAL</property>
-				  <property name="focus_on_click">True</property>
-				  <property name="active">False</property>
-				  <property name="inconsistent">False</property>
-				  <property name="draw_indicator">True</property>
+				  <child>
+				    <widget class="GtkCheckButton" id="explore_cdf_line_checkbutton">
+				      <property name="visible">True</property>
+				      <property name="can_focus">True</property>
+				      <property name="label" translatable="yes">Reference line</property>
+				      <property name="use_underline">True</property>
+				      <property name="relief">GTK_RELIEF_NORMAL</property>
+				      <property name="focus_on_click">True</property>
+				      <property name="active">False</property>
+				      <property name="inconsistent">False</property>
+				      <property name="draw_indicator">True</property>
+				    </widget>
+				    <packing>
+				      <property name="padding">0</property>
+				      <property name="expand">False</property>
+				      <property name="fill">False</property>
+				    </packing>
+				  </child>
 				</widget>
 				<packing>
 				  <property name="padding">0</property>

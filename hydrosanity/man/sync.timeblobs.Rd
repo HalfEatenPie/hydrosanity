@@ -7,13 +7,12 @@
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-sync.timeblobs(blob.list, timestep = NULL, timelim = NULL, extractColumn = 2)
+sync.timeblobs(blob.list, timestep = NULL, timelim = NULL, extractColumn = "Data")
 
 matchtimes.timeblob(blob, times)
 
 common.timestep.timeblobs(blob.list, default = "DSTdays")
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{blob.list}{ ~~Describe \code{blob.list} here~~ }
   \item{timestep}{ ~~Describe \code{timestep} here~~ }
