@@ -9,7 +9,7 @@
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-\method{window}{timeblob}(blob, start, end, inclusive = F, extend = F)
+\method{window}{timeblob}(blob, start = NULL, end = NULL, inclusive = F, extend = F)
 
 \method{start}{timeblob}(blob)
 \method{end}{timeblob}(blob)

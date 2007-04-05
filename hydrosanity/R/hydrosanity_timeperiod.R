@@ -1,12 +1,13 @@
 ## Hydrosanity: an interface for exploring hydrological time series in R
 ##
-## Time-stamp: <2007-03-05 00:00:00 Felix>
-##
 ## Copyright (c) 2007 Felix Andrews <felix@nfrac.org>, GPL
 
 updateTimePeriodPage <- function() {
+	TXV <- "timeperiod_summary_textview"
+	TRV <- "timeperiod_summary_treeview"
 	if (length(hsp$data) == 0) {
-		setTextview("timeperiod_summary_textview", "")
+		setTextview(TXV, "")
+		theWidget(TRV)$setModel(rGtkDataFrame())
 		return()
 	}
 	# overall time period
@@ -25,22 +26,20 @@ updateTimePeriodPage <- function() {
 	}
 	theWidget("timeperiod_chosenperiod_entry")$setText(chosenPeriodString)
 	
-	TV <- "timeperiod_summary_textview"
-	setTextview(TV, "")
-	theWidget("timeperiod_summary_treeview")$setModel(rGtkDataFrame())
+	setTextview(TXV, "")
+	theWidget(TRV)$setModel(rGtkDataFrame())
 	
 	# don't generate summary until period has been set explicitly
 	if (is.null(hsp$timePeriod)) { return() }
 	
 	# generate summary
-	summmary.cmd <- sprintf('summary.missing.timeblobs(hsp$data, timelim=hsp$timePeriod)')
 	addToLog("## View summary of data coverage in selected period")
 	missingSummary <- capture.output(
-		missingFrac <- guiTryEval(summmary.cmd)
+		missingFrac <- guiDo(summary.missing.timeblobs(hsp$data, 
+			timelim=hsp$timePeriod))
 	)
-	if (inherits(missingFrac, "error")) { return() }
 	
-	addTextview(TV, paste(missingSummary, collapse="\n"), "\n")
+	addTextview(TXV, paste(missingSummary, collapse="\n"), "\n")
 	
 	dfName <- dfMin <- dfQ25 <- dfMedian <- dfQ75 <- dfMax <- dfMissing <- character(length(hsp$data))
 	
@@ -58,8 +57,7 @@ updateTimePeriodPage <- function() {
 		dfMedian[i] <- myQuantiles[3]
 		dfQ75[i] <- myQuantiles[4]
 		dfMax[i] <- myQuantiles[5]
-		dfMissing[i] <- sprintf('%.0f%%', missingFrac[i]*100)
-		#sprintf('%.2f%%', sum(is.na(subBlob$Data)) / nrow(subBlob)) i.e. gaps
+		dfMissing[i] <- sprintf('%.1f%%', missingFrac[i]*100)
 	}
 	
 	dfModel <- rGtkDataFrame(data.frame(
@@ -72,7 +70,7 @@ updateTimePeriodPage <- function() {
 		Missing=dfMissing,
 		stringsAsFactors=F)
 		)
-	theWidget("timeperiod_summary_treeview")$setModel(dfModel)
+	theWidget(TRV)$setModel(dfModel)
 	
 	.hydrosanity$update$timeperiod <<- F
 	theWidget("hs_window")$present()
@@ -90,40 +88,13 @@ updateTimePeriodPage <- function() {
 		errorDialog("Give time period in form \"START to END\".")
 		return()
 	}
-	update.cmd <- sprintf('hsp$timePeriod <<- as.POSIXct(c("%s", "%s"))',
-		myTimeStrings[1], myTimeStrings[2])
-	
 	addLogComment("Set time period for analysis")
-	result <- guiTryEval(update.cmd)
-	if (inherits(result, "error")) { return() }
-	setStatusBar("Set time period for analysis:", 
-		myTimeStrings[1], "to", myTimeStrings[2])
+	guiDo(isExpression=T, bquote(
+		hsp$timePeriod <- as.POSIXct(.(myTimeStrings))
+	))
+	setStatusBar("Set time period for analysis:", myText)
 	
-	updateTimePeriodPage()
-}
-
-.hs_on_timeperiod_setfromplot_button_clicked <- function(button) {
-	theWidget("hs_window")$setSensitive(F)
-	on.exit(theWidget("hs_window")$setSensitive(T))
-	setStatusBar("")
-	
-	myCall <- .hydrosanity$call$timeline
-	if (is.null(myCall)) {
-		myCall <- .hydrosanity$call$timeseries
-	}
-	if (is.null(myCall)) {
-		errorDialog("Could not find an active timeline plot or timeseries plot.")
-		return()
-	}
-	
-	if (is.null(myCall$xscale)) {
-		.hs_on_timeperiod_reset_button_clicked()
-		return()
-	}
-	timelim <- as.POSIXct(myCall$xscale)
-	periodString <- paste(format(round(timelim, "days")), collapse=" to ")
-	theWidget("timeperiod_chosenperiod_entry")$setText(periodString)
-	.hs_on_timeperiod_updateperiod_button_clicked()
+	timeperiodModificationUpdate()
 }
 
 .hs_on_timeperiod_reset_button_clicked <- function(button) {
@@ -131,8 +102,9 @@ updateTimePeriodPage <- function() {
 	on.exit(theWidget("hs_window")$setSensitive(T))
 	setStatusBar("")
 	
-	hsp$timePeriod <<- NULL
-	updateTimePeriodPage()
+	guiDo(hsp$timePeriod <- NULL)
+	
+	timeperiodModificationUpdate()
 }
 
 
@@ -141,22 +113,20 @@ updateTimePeriodPage <- function() {
 	on.exit(theWidget("hs_window")$setSensitive(T))
 	setStatusBar("")
 	
-	# generate timeline image
-	
-	setPlotDevice("timeline")
-	
 	plotQualCodes <- theWidget("timeperiod_plotqualitycodes_checkbutton")$getActive()
 	colMapText <- theWidget("timeperiod_colmap_entry")$getText()
+	
+	addLogComment("Generate timeline plot")
+	
 	plot.cmd <- sprintf('grid.timeline.plot(hsp$data, xscale=hsp$timePeriod, colMap=%s)',
 		if (plotQualCodes) { colMapText } else { 'NULL' }
 	)
 	
-	addLogComment("Generate timeline plot")
-	result <- guiTryEval(plot.cmd)
-	if (inherits(result, "error")) { return() }
-	.hydrosanity$call[["timeline"]] <<- parse(text=plot.cmd)[[1]]
+	setPlotDevice("timeline")
+	setCairoWindowButtons("timeline", centre=T, zoomin=T, setperiod=T)
 	
-	theWidget("timeperiod_setfromplot_button")$setSensitive(T)
+	guiDo(isParseString=T, plot.cmd)
+	.hydrosanity$call[["timeline"]] <<- parse(text=plot.cmd)[[1]]
 	
 	setStatusBar("Generated timeline plot")
 }

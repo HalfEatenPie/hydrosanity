@@ -1,7 +1,5 @@
 ## Hydrosanity: an interface for exploring hydrological time series in R
 ##
-## Time-stamp: <2007-03-05 00:00:00 Felix>
-##
 ## Copyright (c) 2007 Felix Andrews <felix@nfrac.org>, GPL
 
 .hs_on_menu_new_activate <- function(action, window) {hydrosanity()}

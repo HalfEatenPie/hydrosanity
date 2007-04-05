@@ -1,7 +1,5 @@
 ## Hydrosanity: an interface for exploring hydrological time series in R
 ##
-## Time-stamp: <2007-03-05 00:00:00 Felix>
-##
 ## Copyright (c) 2007 Felix Andrews <felix@nfrac.org>, GPL
 ## based on Rattle, (c) 2006 Graham.Williams@togaware.com
 ##
@@ -11,6 +9,7 @@ MINOR <- "4"
 REVISION <- unlist(strsplit("$Revision: 0 $", split=" "))[2]
 VERSION <- paste(MAJOR, MINOR, REVISION, sep=".")
 COPYRIGHT <- "(c) 2007 Felix Andrews <felix@nfrac.org>, GPL\n based on Rattle, (c) 2006 Graham.Williams@togaware.com"
+WEBSITE <- "http://code.google.com/p/hydrosanity/"
 
 ## LICENSE
 ##
@@ -57,7 +56,9 @@ hydrosanity <- function() {
 		update=list(
 			import=T,
 			timeperiod=T,
-			explore=T
+			explore=T,
+			impute=T,
+			corr=T
 		)
 	)
 	
@@ -69,7 +70,6 @@ hydrosanity <- function() {
 	gSignalConnect(theWidget("hs_window"), "delete-event", .hs_on_menu_quit_activate)
 	
 	# set up log page
-	setTextviewMonospace("log_textview")
 	addInitialLogMessage()
 	
 	# create empty project variable
@@ -95,6 +95,10 @@ hydrosanity <- function() {
 	theWidget("explore_timeseries_aggr2_comboboxentry")$setActive(4)
 	theWidget("explore_cdf_aggr1_comboboxentry")$setActive(2)
 	theWidget("explore_cdf_aggr2_comboboxentry")$setActive(4)
+	theWidget("corr_smoothed_by_comboboxentry")$setActive(1)
+	
+	setTextviewMonospace("log_textview")
+	setTextviewMonospace("impute_textview")
 	
 	# set up table format on import page
 	importTreeView <- theWidget("import_summary_treeview")
@@ -132,26 +136,52 @@ library(hydrosanity)
 ## The variable hsp is used to store the current Hydrosanity Project. At any 
 ## time, type \"str(hsp)\" in the R Console to see what is stored there!
 
-hsp <- list(data=list())
-")
+hsp <- list(data=list())")
 	addLogSeparator()
 }
 
+datasetModificationUpdate <- function() {
+	.hydrosanity$modified <<- T
+	
+	.hydrosanity$update$import <<- T
+	.hydrosanity$update$timeperiod <<- T
+	.hydrosanity$update$explore <<- T
+	.hydrosanity$update$impute <<- T
+	
+	.hs_on_notebook_switch_page(
+		page.num=theWidget("notebook")$getCurrentPage())
+}
 
-.hs_on_notebook_switch_page <- function(notebook, window, page) {
+timeperiodModificationUpdate <- function() {
+	.hydrosanity$modified <<- T
+	
+	.hydrosanity$update$timeperiod <<- T
+	.hydrosanity$update$impute <<- T
+	
+	.hs_on_notebook_switch_page(
+		page.num=theWidget("notebook")$getCurrentPage())
+}
+
+
+.hs_on_notebook_switch_page <- function(widget, page, page.num, ...) {
 	theWidget("hs_window")$setSensitive(F)
 	on.exit(theWidget("hs_window")$setSensitive(T))
 	setStatusBar("")
 	
-	# page is the index of the page switched to.
-	if (page == 0) {
+	if (page.num == 0) {
 		if (.hydrosanity$update$import) { updateImportPage() }
 	}
-	if (page == 1) {
+	if (page.num == 1) {
 		if (.hydrosanity$update$timeperiod) { updateTimePeriodPage() }
 	}
-	if (page == 2) {
+	if (page.num == 2) {
 		if (.hydrosanity$update$explore) { updateExplorePage() }
+	}
+	if (page.num == 3) {
+		if (.hydrosanity$update$impute) { updateImputePage() }
+	}
+	if (page.num == 4) {
+		if (.hydrosanity$update$corr) { updateCorrPage() }
 	}
 	theWidget("hs_window")$present()
 }
@@ -177,6 +207,7 @@ hsp <- list(data=list())
 		root="aboutdialog")
 	about$getWidget("aboutdialog")$setVersion(VERSION)
 	about$getWidget("aboutdialog")$setCopyright(COPYRIGHT)
+	about$getWidget("aboutdialog")$setWebsite(WEBSITE)
 }
 
 .hs_on_export_log_button_clicked <- function(button) {
@@ -258,10 +289,12 @@ getpackagefile <- function(filename) {
 
 evalCallArgs <- function(myCall, pattern=".*") {
 	for (i in seq(along=myCall)) {
-		if (i == 1) { next } # don't eval function itself
+		if ((mode(myCall) %in% "call") && (i == 1)) {
+			next # don't eval function itself
+		}
 		if (length(grep(pattern, deparse(myCall[[i]])))>0) {
 			myCall[[i]] <- eval(myCall[[i]], parent.frame(2))
-		} else if (identical(mode(myCall[[i]]), "call")) {
+		} else if (mode(myCall[[i]]) %in% c("call","list")) {
 			myCall[[i]] <- evalCallArgs(myCall[[i]], pattern)
 		}
 	}

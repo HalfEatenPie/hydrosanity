@@ -1,7 +1,5 @@
 ## Hydrosanity: an interface for exploring hydrological time series in R
 ##
-## Time-stamp: <2007-03-05 00:00:00 Felix>
-##
 ## Copyright (c) 2007 Felix Andrews <felix@nfrac.org>, GPL
 
 updateImportPage <- function() {
@@ -66,10 +64,6 @@ updateImportPage <- function() {
 	myTreeView$setModel(dfModel)
 	myTreeView$columnsAutosize()
 	
-	# this call to updateImportPage means dataset was modified
-	.hydrosanity$update$timeperiod <<- T
-	.hydrosanity$update$explore <<- T
-	
 	.hydrosanity$update$import <<- F
 	theWidget("hs_window")$present()
 }
@@ -119,8 +113,7 @@ updateImportPage <- function() {
 			errorDialog(data.cmd, "is not a data frame with first column \"Time\" of type POSIXct, and third column \"Qual\", or a list of these.")
 		}
 	}
-	.hydrosanity$modified <<- T
-	updateImportPage()
+	datasetModificationUpdate()
 }
 
 .hs_on_import_displayfile_button_clicked <- function(button) {
@@ -157,8 +150,7 @@ updateImportPage <- function() {
 	if (!identical(tmp, tmp2)) {
 		hsp$data[[thisIndex]][,-1] <<- tmp2
 		setStatusBar(sprintf('Edited data object "%s"', blobName))
-		.hydrosanity$modified <<- T
-		updateImportPage()
+		datasetModificationUpdate()
 	}
 }
 
@@ -230,8 +222,7 @@ updateImportPage <- function() {
 	theWidget("import_options_expander")$setExpanded(FALSE)
 	theWidget("import_makechanges_expander")$setExpanded(TRUE)
 	
-	.hydrosanity$modified <<- T
-	#updateImportPage()
+	datasetModificationUpdate()
 }
 
 .hs_on_import_summary_treeview_name_edited <- function(cell, path.string, new.text, user.data) {
@@ -244,8 +235,7 @@ updateImportPage <- function() {
 	if (inherits(guiTryEval(cmd), "error")) { return() }
 	
 	setStatusBar(sprintf('Renamed data object "%s" to "%s"', blobName, new.text))
-	.hydrosanity$modified <<- T
-	updateImportPage()
+	datasetModificationUpdate()
 }
 
 .hs_on_import_summary_treeview_dataname_edited <- function(cell, path.string, new.text, user.data) {
@@ -259,8 +249,7 @@ updateImportPage <- function() {
 	if (inherits(guiTryEval(cmd), "error")) { return() }
 	
 	setStatusBar(sprintf('Set data name for object "%s" to "%s"', blobName, new.text))
-	.hydrosanity$modified <<- T
-	updateImportPage()
+	datasetModificationUpdate()
 }
 
 .hs_on_import_summary_treeview_role_edited <- function(cell, path.string, new.text, user.data) {
@@ -268,8 +257,7 @@ updateImportPage <- function() {
 	blobName <- names(hsp$data)[blobIndex]
 	if (attr(hsp$data[[blobIndex]], "role") == new.text) { return() }
 	setDataRole(blobName, new.text)
-	.hydrosanity$modified <<- T
-	updateImportPage()
+	datasetModificationUpdate()
 }
 
 .hs_on_import_remove_blob_button_clicked <- function(button) {
@@ -288,12 +276,11 @@ updateImportPage <- function() {
 		return()
 	}
 	addLogComment("Remove data object(s)")
-	cmd <- sprintf('hsp$data[c(%s)] <<- NULL', paste(blobIndices,collapse=','))
+	cmd <- sprintf('hsp$data[c("%s")] <<- NULL', paste(blobNames,collapse='", "'))
 	if (inherits(guiTryEval(cmd), "error")) { return() }
 	
 	setStatusBar(sprintf('Removed data object(s) %s', paste(blobNames,collapse=', ')))
-	.hydrosanity$modified <<- T
-	updateImportPage()
+	datasetModificationUpdate()
 }
 
 .hs_on_import_makefactor_button_clicked <- function(button) {
@@ -323,8 +310,7 @@ updateImportPage <- function() {
 	}
 	addToLog('rm(tmp.factor)')
 	rm(tmp.factor, envir=.GlobalEnv)
-	.hydrosanity$modified <<- T
-	updateImportPage()
+	datasetModificationUpdate()
 }
 
 
