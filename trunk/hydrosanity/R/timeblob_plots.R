@@ -1,11 +1,9 @@
 ## Hydrosanity: an interface for exploring hydrological time series in R
 ##
-## Time-stamp: <2007-03-14 00:00:00 Felix>
-##
 ## Copyright (c) 2007 Felix Andrews <felix@nfrac.org>, GPL
 
 
-grid.timeline.plot <- function(blob.list, xscale=NULL, colMap=list(good="black",maybe="orange",poor="red"), thickness=unit(1.5,"lines"), maxLabelChars=20, pad=unit(4,"mm"), grill=T, newpage=T) {
+grid.timeline.plot <- function(blob.list, xscale=NULL, colMap=list(good="black",maybe="orange",poor="red"), thickness=unit(1.5,"lines"), maxLabelChars=20, pad=unit(4,"mm"), grill=T, main=NULL, sub=T, newpage=T) {
 	# check types
 	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
 	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
@@ -20,9 +18,29 @@ grid.timeline.plot <- function(blob.list, xscale=NULL, colMap=list(good="black",
 	n <- length(blob.list)
 	ylabs <- sapply(names(blob.list), toString, width=maxLabelChars)
 	maxlab <- ylabs[ which.max(nchar(ylabs, "width")) ]
+	mainHeight <- unit(0, "npc")
+	subHeight <- unit(0, "npc")
+	if (!is.null(main) && !identical(main, F)) {
+		if (is.character(main)) { main <- textGrob(main) }
+		mainHeight <- grobHeight(mainHeight)
+	}
+	if (!is.null(sub) && !identical(sub, F)) {
+		if (identical(sub, T)) {
+			mySync <- sync.timeblobs(blob.list)
+			dataPoints <- sum(is.na(unlist(mySync[-1]))==F)
+			sub <- hydrosanity.caption(c(start.timeblobs(blob.list), end.timeblobs(blob.list)),
+				by=attr(mySync, "timestep"), n=dataPoints, series=n)
+		}
+		if (is.character(sub)) { sub <- textGrob(sub) }
+		subHeight <- grobHeight(sub)
+	}
 	if (newpage) { grid.newpage() }
 	# layout for plot
+	pushViewport(viewport(name="titles.layout",
+		layout=grid.layout(3, 1,
+			heights=unit.c(mainHeight, unit(1,"null"), subHeight))))
 	pushViewport(viewport(name="timeline.plot.layout",
+		layout.pos.row=2, 
 		layout=grid.layout(3, 3,
 			widths=unit.c(stringWidth(maxlab)+pad, unit(1,"null"), pad),
 			heights=unit.c(pad, unit(1,"null"), unit(3, "lines")))))
@@ -42,15 +60,29 @@ grid.timeline.plot <- function(blob.list, xscale=NULL, colMap=list(good="black",
 	for (k in 1:n) {
 		# draw timeline bar number k
 		pushViewport(viewport(name=paste("timeline.bar",k,".vp",sep=''),
-			layout.pos.row=k*2, xscale=xscale))
+			layout.pos.row=k*2, xscale=xscale, clip="on"))
 		grid.timeline.bar(blob.list[[k]], colMap=colMap)
 		# draw label number k
+		pushViewport(viewport(clip="off"))
 		grid.text(ylabs[k], x=0, just="right",
 			name=paste("label",k,sep=''))
+		upViewport()
 		upViewport()
 	}
 	# come back up
 	upViewport(2)
+	# draw titles
+	if (!is.null(main) && !identical(main, F)) {
+		pushViewport(viewport(name="main.vp", layout.pos.row=1))
+		grid.draw(main)
+		upViewport()
+	}
+	if (!is.null(sub) && !identical(sub, F)) {
+		pushViewport(viewport(name="sub.vp", layout.pos.row=3))
+		grid.draw(sub)
+		upViewport()
+	}
+	upViewport(1)
 }
 
 #if colMap=NULL then ignore quality codes, just plot non-NA values as black
@@ -85,20 +117,60 @@ grid.timeline.bar <- function(blob, colMap=NULL, name="timeline.bar", vp=NULL) {
 }
 
 
-grid.timeseries.plot.superpose <- function(superpose.blob.list, ...) {
+grid.timeseries.plot.superpose <- function(superpose.blob.list, sameScalesGlobal=F, xscale=NULL, yscale=NULL, sub=T, ...) {
+	# check types
+	if (!identical(class(superpose.blob.list),"list")) {
+		stop("'superpose.blob.list' must be a list of lists of timeblobs")
+	}
+	for (i in seq(along=superpose.blob.list)) {
+		if (!identical(class(superpose.blob.list[[i]]),"list")) {
+			stop("'superpose.blob.list' must be a list of lists of timeblobs")
+		}
+	}
+	if (is.null(xscale)) {
+		xscale <- c(min(lapply(superpose.blob.list, start.timeblobs)),
+			max(lapply(superpose.blob.list, end.timeblobs)))
+	} else {
+		xscale <- as.POSIXct(xscale)
+		if (any(is.na(xscale))) { stop("'xscale' must be a pair of valid times (POSIXt)") }
+		for (i in seq(along=superpose.blob.list)) {
+			superpose.blob.list[[i]] <- lapply(superpose.blob.list[[i]],
+				window.timeblob, xscale[1], xscale[2], inclusive=T)
+		}
+	}
+	# make common yscale
+	if (sameScalesGlobal && is.null(yscale)) {
+		allRanges <- sapply.timeblob.data(blob.list, range, na.rm=T)
+		yscale <- range(allRanges[is.finite(allRanges)])
+		if (logScale && (yscale[1] <= 0)) {
+			# limit by minimum non-zero value (for log scale)
+			allMins <- sapply.timeblob.data(blob.list, 
+				function(x){ min(x[x>0], na.rm=T) })
+			yscale[1] <- min(allMins[is.finite(allMins)])
+		}
+	}
+	# make caption
+	if (identical(sub, T)) {
+		mySync <- sync.timeblobs(c(unlist(superpose.blob.list, recursive=F)))
+		dataPoints <- sum(is.na(unlist(mySync[-1]))==F)
+		sub <- hydrosanity.caption(range(mySync$Time),
+			by=attr(mySync, "timestep"), n=dataPoints, series=ncol(mySync)-1)
+	}
+	# call grid.timeseries.plot for each superposed layer
 	for (layer in seq(along=superpose.blob.list)) {
 		this.args <- list(...)
-		blob.list <- superpose.blob.list[[layer]]
-		this.args$blob.list <- blob.list
+		this.args$blob.list <- superpose.blob.list[[layer]]
 		this.args$superPos <- layer
 		this.args$nSuperpose <- length(superpose.blob.list)
+		this.args$yscale <- yscale
 		if (!is.null(this.args$yscale)) { this.args$newScale <- F }
+		this.args$sub <- sub
 		do.call(grid.timeseries.plot, this.args)
 	}
 }
 
 
-grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales=T, logScale=F, zeroLevel=NULL, maxLabelChars=20, pad=unit(5,"mm"), superPos=1, newScale=T, newpage=(superPos==1), nSuperpose=1, gp=gpar(col=colSet[superPos]), colSet=c("#0080ff", "#ff00ff", "darkgreen", "#ff0000", "orange", "#00ff00")) {
+grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales=T, logScale=F, zeroLevel=NULL, maxLabelChars=20, pad=unit(5,"mm"), superPos=1, newScale=T, main=NULL, sub=T, newpage=(superPos==1), nSuperpose=1, gp=gpar(col=colSet[superPos]), colSet=c("#0080ff", "#ff00ff", "darkgreen", "#ff0000", "orange", "#00ff00")) {
 	# check types
 	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
 	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
@@ -119,6 +191,22 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 	# setup
 	n <- length(blob.list)
 	ylabs <- sapply(names(blob.list), toString, width=maxLabelChars)
+	mainHeight <- unit(0, "npc")
+	subHeight <- unit(0, "npc")
+	if (!is.null(main) && !identical(main, F)) {
+		if (is.character(main)) { main <- textGrob(main) }
+		mainHeight <- grobHeight(mainHeight)
+	}
+	if (!is.null(sub) && !identical(sub, F)) {
+		if (identical(sub, T)) {
+			mySync <- sync.timeblobs(blob.list)
+			dataPoints <- sum(is.na(unlist(mySync[-1]))==F)
+			sub <- hydrosanity.caption(c(start.timeblobs(blob.list), end.timeblobs(blob.list)),
+				by=attr(mySync, "timestep"), n=dataPoints, series=n)
+		}
+		if (is.character(sub)) { sub <- textGrob(sub) }
+		subHeight <- grobHeight(sub)
+	}
 	if (newpage) { grid.newpage() }
 	# layout for plot
 	yLabSpace <- unit(1.5, "lines")
@@ -126,7 +214,11 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 	yAxesSpace <- yAxisWidth
 	if (newScale) { yAxesSpace <- yAxisWidth * nSuperpose }
 	if (superPos == 1) {
+		pushViewport(viewport(name="titles.layout",
+		layout=grid.layout(3, 1,
+			heights=unit.c(mainHeight, unit(1,"null"), subHeight))))
 		pushViewport(viewport(name="timeseries.plot.layout",
+			layout.pos.row=2, 
 			layout=grid.layout(3, 3,
 			widths=unit.c(yLabSpace+yAxesSpace, unit(1,"null"), pad),
 			heights=unit.c(pad, unit(1,"null"), unit(3, "lines")))))
@@ -226,6 +318,20 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 	}
 	# come back up
 	upViewport(2)
+	# draw titles
+	if (superPos == 1) {
+		if (!is.null(main) && !identical(main, F)) {
+			pushViewport(viewport(name="main.vp", layout.pos.row=1))
+			grid.draw(main)
+			upViewport()
+		}
+		if (!is.null(sub) && !identical(sub, F)) {
+			pushViewport(viewport(name="sub.vp", layout.pos.row=3))
+			grid.draw(sub)
+			upViewport()
+		}
+	}
+	upViewport(1)
 }
 
 
@@ -250,19 +356,21 @@ grid.timeseries.steps <- function(blob, logScale=F, name="timeseries", gp=NULL, 
 }
 
 
-hydrosanity.caption <- function(timelim, by, n, series=NA, x=1, just="right", gp=gpar(cex=0.5)) {
+hydrosanity.caption <- function(timelim, by, n, series=NA, x=unit(1,"npc")-unit(1,"mm"), y=unit(1,"mm"), just=c("right","bottom"), gp=gpar(cex=0.6, col=grey(0.3))) {
 	timelim <- as.POSIXct(timelim)
 	if (any(is.na(timelim))) { stop("'timelim' must be a pair of valid times (POSIXt)") }
 	if (!identical(by, "irregular") && !is.na(series)) {
-		allN <- length(seq(timelim[1], timelim[2], by=by)) * series
-		pctN <- round(100*(n/allN), digits=1)
-		n <- sprintf('%s=%s%%', n, pctN)
+		allN <- (length(seq(timelim[1], timelim[2], by=by))-1) * series
+		pctN <- round(100*(n/allN), digits=0)
+		if (pctN < 100) {
+			n <- sprintf('%s=%s%%', n, pctN)
+		}
 	}
 	vRSimple <- paste(R.version$major, R.version$minor, sep='.')
 	textGrob(sprintf(
-		"Data: %s to %s by %s (N=%s). Hydrosanity %s, R %s ",
+		"Data: %s to %s by %s (N=%s). Hydrosanity %s, R %s",
 		timelim[1], timelim[2], by, n, VERSION, vRSimple),
-		x=x, just=just, gp=gp, name="hydrosanity.caption")
+		x=x, y=y, just=just, gp=gp, name="hydrosanity.caption")
 }
 
 
@@ -396,7 +504,7 @@ lattice.y.prettylog <- function(lim, ...) {
 # prepanel.default.qqmath fails to take range(x, finite=T)
 prepanel.qqmath.fix <- function(x, ...) {
 	tmp <- prepanel.default.qqmath(x, ...)
-	tmp$ylim <- extendrange(r=range(x, finite=T))
+	tmp$ylim <- range(x, finite=T) #extendrange(r=range(x, finite=T))
 	tmp
 }
 

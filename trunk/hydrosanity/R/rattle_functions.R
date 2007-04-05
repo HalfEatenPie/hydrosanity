@@ -1,7 +1,5 @@
 ## Hydrosanity: an interface for exploring hydrological time series in R
 ##
-## Time-stamp: <2007-03-05 00:00:00 Felix>
-##
 ## These functions were copied from Rattle v2.1
 ## Copyright (c) 2006 Graham Williams, Togaware.com, GPL Version 2
 ## Graham.Williams@togaware.com

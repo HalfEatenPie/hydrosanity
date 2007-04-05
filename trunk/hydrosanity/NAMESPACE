@@ -30,6 +30,7 @@ export(
 	summary.missing.timeblobs,
 	aggregate.timeblob,
 	running.average.timeblob,
+	gaps,
 	trunc.month,
 	trunc.year,
 	trunc.decade

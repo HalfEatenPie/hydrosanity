@@ -1,7 +1,5 @@
 ## Hydrosanity: an interface for exploring hydrological time series in R
 ##
-## Time-stamp: <2007-03-05 00:00:00 Felix>
-##
 ## Copyright (c) 2007 Felix Andrews <felix@nfrac.org>, GPL
 
 
@@ -212,9 +210,11 @@ end.timeblobs <- function(blob.list) {
 }
 
 
-window.timeblob <- function(blob, start, end, inclusive=F, extend=F) {
+window.timeblob <- function(blob, start=NULL, end=NULL, inclusive=F, return.indices=F, extend=F) {
 	# check types
 	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
+	if (is.null(start)) { start <- start(blob) }
+	if (is.null(end)) { end <- end(blob) }
 	start <- as.POSIXct(start)
 	end <- as.POSIXct(end)
 	if (any(is.na(c(start, end)))) { stop("'start' and 'end' must be valid times (POSIXt)") }
@@ -247,6 +247,9 @@ window.timeblob <- function(blob, start, end, inclusive=F, extend=F) {
 	
 	if (!identical(attr(blob, "timestep"), "irregular")) {
 		# TODO: need to handle last time step inclusive
+	}
+	if (return.indices) {
+		return(windowIdx)
 	}
 	return(blob[seq(windowIdx[1],windowIdx[2]),])
 }
@@ -422,7 +425,6 @@ summary.missing.timeblobs <- function(blob.list, timelim=NULL, timestep=NULL) {
 }
 
 
-
 # this only handles regular series (the calculation of NA proportion requires it)
 # column 3 = "Quality (mode)"; cols 4+ = "%good", "%maybe", "%poor", "%disaccumulated", "%imputed"
 aggregate.timeblob <- function(blob, by="1 year", FUN=NULL, max.na.proportion=0.05) {
@@ -469,6 +471,9 @@ running.average.timeblob <- function(blob, by="1 year", max.na.proportion=0.05) 
 	delta <- as.numeric.byString(attr(blob, "timestep"))
 	smoothDelta <- as.numeric.byString(by)
 	winSize <- round(smoothDelta / delta)
+	if (winSize <= 1) {
+		stop("'by' must be a longer interval than 'blob' timestep")
+	}
 	winRear <- ceiling(winSize/2)
 	winFore <- floor(winSize/2)
 	# do smoothing
@@ -483,6 +488,24 @@ running.average.timeblob <- function(blob, by="1 year", max.na.proportion=0.05) 
 	winSum[winNAs > max.na.proportion * winSize] <- NA
 	newBlob[seq(1+winRear,nrow(blob)-winFore)] <- winSum / (winSize - winNAs)
 	return(newBlob)
+}
+
+gaps <- function(x) {
+	seriesNA <- is.na(x)
+	# diffNA is 1 at start of gap, -1 at end of gap, 0 otherwise
+	diffNA <- c(0, diff(seriesNA))
+	preDataGap <- match(F, seriesNA) - 1
+	postDataGap <- match(F, rev(seriesNA)) - 1
+	# so we don't detect a gap-end at start of data:
+	diffNA[preDataGap+1] <- 0
+	# find indices where NA is followed by data
+	gapEnd <- which(diffNA==-1) - 1
+	nGaps <- length(gapEnd)
+	naCumSum <- cumsum(seriesNA)
+	gapLength <- naCumSum[gapEnd] - 
+		naCumSum[c(1,gapEnd[-nGaps])]
+	return(list(gapLength=gapLength, gapEnd=gapEnd, 
+		preDataGap=preDataGap, postDataGap=postDataGap))
 }
 
 

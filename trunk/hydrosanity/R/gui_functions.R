@@ -1,7 +1,5 @@
 ## Hydrosanity: an interface for exploring hydrological time series in R
 ##
-## Time-stamp: <2007-03-05 00:00:00 Felix>
-##
 ## Copyright (c) 2007 Felix Andrews <felix@nfrac.org>, GPL
 
 
@@ -38,6 +36,23 @@ newCairoWindow <- function(name) {
 	myWin$setTitle(paste("Hydrosanity: ", name, " plot", sep=''))
 }
 
+setCairoWindowButtons <- function(name, identify=NA, centre=NA, zoomin=NA, zoomout=zoomin, log=NA, setperiod=NA) {
+	# check that the window exists
+	if (is.null(.hydrosanity$win[[name]])) { return() }
+	# first set the call to NULL so that toggle-button updates can be ignored
+	.hydrosanity$call[[name]] <<- NULL
+	# set which buttons are visible
+	.hydrosanity$win.gui[[name]]$getWidget("plot_identify_button")$setSensitive(!is.na(identify))
+	.hydrosanity$win.gui[[name]]$getWidget("plot_centre_button")$setSensitive(!is.na(centre))
+	.hydrosanity$win.gui[[name]]$getWidget("plot_zoomin_button")$setSensitive(!is.na(zoomin))
+	.hydrosanity$win.gui[[name]]$getWidget("plot_zoomout_button")$setSensitive(!is.na(zoomout))
+	.hydrosanity$win.gui[[name]]$getWidget("plot_log_togglebutton")$setSensitive(!is.na(log))
+	.hydrosanity$win.gui[[name]]$getWidget("plot_setperiod_button")$setSensitive(!is.na(setperiod))
+	if (!is.na(log)) {
+		.hydrosanity$win.gui[[name]]$getWidget("plot_log_togglebutton")$setActive(log)
+	}
+}
+
 .hs_on_plot_delete_event <- function(widget, event, user.data) {
 	myWin <- widget
 	myIndex <- NA
@@ -55,6 +70,27 @@ newCairoWindow <- function(name) {
 	theWidget("hs_window")$present()
 }
 
+.hs_on_plot_setperiod_button_clicked <- function(button) {
+	# look up information about this window in '.hydrosanity'
+	myWin <- button$getParent()$getParent()$getParent()
+	myIndex <- NA
+	for (i in seq(along=.hydrosanity$win)) {
+		if (myWin == .hydrosanity$win[[i]]) { myIndex <- i; break }
+	}
+	if (is.na(myIndex)) { return() }
+	myName <- names(.hydrosanity$win)[myIndex]
+	myCall <- .hydrosanity$call[[myName]]
+	if (is.null(myCall$xscale)) {
+		.hs_on_timeperiod_reset_button_clicked()
+		return()
+	}
+	timelim <- as.POSIXct(myCall$xscale)
+	periodString <- paste(format(round(timelim, "days")), collapse=" to ")
+	theWidget("timeperiod_chosenperiod_entry")$setText(periodString)
+	.hs_on_timeperiod_updateperiod_button_clicked()
+	infoDialog("Set time period for analysis: ", periodString)
+}
+
 .hs_on_plot_identify_button_clicked <- function(button) {
 	infoDialog("not implemented")
 }
@@ -68,10 +104,6 @@ newCairoWindow <- function(name) {
 	}
 	if (is.na(myIndex)) { return() }
 	myName <- names(.hydrosanity$win)[myIndex]
-	if (is.null(.hydrosanity$call[[myName]])) {
-		errorDialog("No call for this window.")
-		return()
-	}
 	depth <- try(downViewport("time.vp"), silent=T)
 	if (inherits(depth, "try-error")) {
 		errorDialog("No suitable time scales were found.")
@@ -119,10 +151,6 @@ newCairoWindow <- function(name) {
 	}
 	if (is.na(myIndex)) { return() }
 	myName <- names(.hydrosanity$win)[myIndex]
-	if (is.null(.hydrosanity$call[[myName]])) {
-		errorDialog("No call for this window.")
-		return()
-	}
 	depth <- try(downViewport("time.vp"), silent=T)
 	if (inherits(depth, "try-error")) {
 		errorDialog("No suitable time scales were found.")
@@ -193,10 +221,6 @@ newCairoWindow <- function(name) {
 	}
 	if (is.na(myIndex)) { return() }
 	myName <- names(.hydrosanity$win)[myIndex]
-	if (is.null(.hydrosanity$call[[myName]])) {
-		errorDialog("No call for this window.")
-		return()
-	}
 	depth <- try(downViewport("time.vp"), silent=T)
 	if (inherits(depth, "try-error")) {
 		errorDialog("No suitable time scales were found.")
@@ -227,9 +251,6 @@ newCairoWindow <- function(name) {
 	}
 	if (is.na(myIndex)) { return() }
 	myName <- names(.hydrosanity$win)[myIndex]
-	if (myName %notin% names(.hydrosanity$call)) {
-		return()
-	}
 	myCallName <- deparse(.hydrosanity$call[[myName]][[1]])
 	if (myCallName == "grid.timeline.plot") { return() }
 	# get new value of log argument
@@ -338,8 +359,40 @@ treeViewGetSelectedIndices <- function(treeView) {
 	indices <- sapply(selPaths, function(x) x$getIndices()) + 1
 }
 
-# it's not enough to get the item indices since user can re-order them!
+setupIconView <- function(iconView) {
+	rainPixbuf <- gdkPixbufNewFromFile(getpackagefile("icon_RAIN.png"))$retval
+	flowPixbuf <- gdkPixbufNewFromFile(getpackagefile("icon_FLOW.png"))$retval
+	otherPixbuf <- gdkPixbufNewFromFile(getpackagefile("icon_OTHER.png"))$retval
+	# (or NULL)
+	
+	list_store <- gtkListStore("character", "GdkPixbuf")
+	
+	for (i in seq(along=hsp$data)) {
+		iter <- list_store$append()$iter
+		list_store$set(iter, 0, names(hsp$data)[i])
+		list_store$set(iter, 1, switch(attr(hsp$data[[i]], "role"),
+			"RAIN"=rainPixbuf,
+			"FLOW"=flowPixbuf,
+			otherPixbuf)
+		)
+	}
+	selPaths <- NULL
+	if (!is.null(iconView$getModel())) {
+		selPaths <- iconView$getSelectedItems()
+	}
+	iconView$setModel(list_store)
+	iconView$setTextColumn(0)
+	iconView$setPixbufColumn(1)
+	iconView$setItemWidth(75)
+	if (is.null(selPaths)) {
+		iconView$selectPath(gtkTreePathNewFromString("0"))
+	} else {
+		for (p in selPaths) { iconView$selectPath(p) }
+	}
+}
+
 iconViewGetSelectedNames <- function(iconView) {
+	# it's not enough to get the item indices since user can re-order them!
 	selPaths <- iconView$getSelectedItems()
 	if (length(selPaths)==0) { return(NULL) }
 	# these are returned in reverse order, strangely
@@ -356,55 +409,69 @@ iconViewGetSelectedNames <- function(iconView) {
 
 ## ERROR CATCHING STUFF
 
-guiTryEval <- function(command, doLog=T, doFailureDialog=T, doFailureLog=doLog, doParse=T) {
-	if (length(command)==0) { command <- "" }
+guiTryEval <- function(...) {
+	guiDo(..., isParseString=T, doStop=F)
+}
+
+guiDo <- function(expr, isExpression=F, isParseString=F, doLog=T, doFailureDialog=T, doFailureLog=doLog, doStop=T) {
 	setCursor("watch")
 	result <- NULL
-	if (doParse) {
-		result <- tryCatch(eval(parse(text=command)), error=function(e)e)
+	if (!isExpression && !isParseString) {
+		expr <- substitute(expr)
+	}
+	if (isParseString) {
+		result <- tryCatch(eval(parse(text=expr)), ###### envir=.GlobalEnv
+			error=function(e)e)
 	} else {
-		result <- tryCatch(eval(command), error=function(e)e)
+		result <- tryCatch(eval(expr, envir=.GlobalEnv), 
+			error=function(e)e)
 	}
 	setCursor()
 	if (doLog) {
-		commandExpr <- command
-		if (doParse) {
-			commandExpr <- try(parse(text=command))
+		exprOK <- expr
+		if (isParseString) {
+			exprOK <- try(parse(text=expr)[[1]])
 		}
-		if (inherits(commandExpr, "try-error")) {
+		if (isParseString && inherits(exprOK, "try-error")) {
 			# syntax error
-			addToLog(command)
+			addToLog(expr)
 		} else {
-			commandPretty <- paste(capture.output(
-				lapply(commandExpr, print)
+			exprPretty <- paste(capture.output(
+				# if the code is in a simple block, omit braces
+				if (identical(exprOK[[1]], as.symbol("{"))) {
+					for (i in 2:length(exprOK)) {
+						print(exprOK[[i]])
+					}
+				} else {
+					print(exprOK)
+				}
 			), collapse="\n")
-			addToLog(commandPretty)
+			addToLog(exprPretty)
 		}
 	}
 	if (inherits(result, "error") && doFailureDialog) {
 		setStatusBar("")
-		commandText <- command
-		if (!doParse) { commandText <- deparse(command) }
+		commandText <- if (isParseString) { expr } else { deparse(expr) }
 		msgText <- conditionMessage(result)
 		callText <- deparse(conditionCall(result), width.cutoff=500)[1]
 		if (length(msgText)==0) { msgText <- "" }
 		if (length(callText)==0) { callText <- "" }
+		vRSimple <- paste(R.version$major, R.version$minor, sep='.')
 		errorDialog(paste(sep='',
 	"A command has failed. The error was: \n\n<span foreground=\"#aa0000\">", msgText,
 	"</span>\n\n", "The error occurred in: \n\n<tt>", callText, "</tt>\n\n", 
 	"The original command was: \n\n<tt>", commandText, "</tt>\n\n",
-	"If this is not your fault, you might want to select this text and copy it into a bug report."))
+	"If this is not your fault, you might want to select this text and copy it into a bug report.",
+	" [HS=", VERSION, ";R=", vRSimple, "]"))
 	}
-	if (inherits(result, "error") && doFailureLog) { addToLog("# FAILED") }
+	if (inherits(result, "error") && doFailureLog) {
+		addToLog("# FAILED")
+	}
+	# propagate the error
+	if (inherits(result, "error") && doStop) {
+		stop(result)
+	}
 	return(result)
-}
-
-guiTryEvalSink <- function(...) {
-	cmdOutput <- capture.output(result <- guiTryEval(...))
-	if (inherits(result, "error")) {
-		return("FAILED")
-	}
-	return(cmdOutput)
 }
 
 
