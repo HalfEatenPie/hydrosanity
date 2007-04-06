@@ -117,7 +117,7 @@ grid.timeline.bar <- function(blob, colMap=NULL, name="timeline.bar", vp=NULL) {
 }
 
 
-grid.timeseries.plot.superpose <- function(superpose.blob.list, sameScalesGlobal=F, xscale=NULL, yscale=NULL, sub=T, ...) {
+grid.timeseries.plot.superpose <- function(superpose.blob.list, sameScalesGlobal=F, xscale=NULL, yscale=NULL, logScale=F, sub=T, ...) {
 	# check types
 	if (!identical(class(superpose.blob.list),"list")) {
 		stop("'superpose.blob.list' must be a list of lists of timeblobs")
@@ -140,11 +140,14 @@ grid.timeseries.plot.superpose <- function(superpose.blob.list, sameScalesGlobal
 	}
 	# make common yscale
 	if (sameScalesGlobal && is.null(yscale)) {
-		allRanges <- sapply.timeblob.data(blob.list, range, na.rm=T)
+		allRanges <- sapply.timeblob.data(
+			c(unlist(superpose.blob.list, recursive=F)), 
+			range, finite=T)
 		yscale <- range(allRanges[is.finite(allRanges)])
 		if (logScale && (yscale[1] <= 0)) {
 			# limit by minimum non-zero value (for log scale)
-			allMins <- sapply.timeblob.data(blob.list, 
+			allMins <- sapply.timeblob.data(
+				c(unlist(superpose.blob.list, recursive=F)), 
 				function(x){ min(x[x>0], na.rm=T) })
 			yscale[1] <- min(allMins[is.finite(allMins)])
 		}
@@ -162,7 +165,9 @@ grid.timeseries.plot.superpose <- function(superpose.blob.list, sameScalesGlobal
 		this.args$blob.list <- superpose.blob.list[[layer]]
 		this.args$superPos <- layer
 		this.args$nSuperpose <- length(superpose.blob.list)
+		this.args$xscale <- xscale
 		this.args$yscale <- yscale
+		this.args$logScale <- logScale
 		if (!is.null(this.args$yscale)) { this.args$newScale <- F }
 		this.args$sub <- sub
 		do.call(grid.timeseries.plot, this.args)
@@ -170,7 +175,7 @@ grid.timeseries.plot.superpose <- function(superpose.blob.list, sameScalesGlobal
 }
 
 
-grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales=T, logScale=F, zeroLevel=NULL, maxLabelChars=20, pad=unit(5,"mm"), superPos=1, newScale=T, main=NULL, sub=T, newpage=(superPos==1), nSuperpose=1, gp=gpar(col=colSet[superPos]), colSet=c("#0080ff", "#ff00ff", "darkgreen", "#ff0000", "orange", "#00ff00")) {
+grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales=T, logScale=F, maxLabelChars=20, pad=unit(5,"mm"), superPos=1, newScale=T, main=NULL, sub=T, newpage=(superPos==1), nSuperpose=1, gp=gpar(col=colSet[superPos]), colSet=c("#0080ff", "#ff00ff", "darkgreen", "#ff0000", "orange", "#00ff00")) {
 	# check types
 	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
 	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
@@ -232,7 +237,7 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 	}
 	# calculate common yscale
 	if (is.null(yscale) && sameScales) {
-		allRanges <- sapply.timeblob.data(blob.list, range, na.rm=T)
+		allRanges <- sapply.timeblob.data(blob.list, range, finite=T)
 		yscale <- range(allRanges[is.finite(allRanges)])
 		if (logScale && (yscale[1] <= 0)) {
 			# limit by minimum non-zero value (for log scale)
@@ -252,16 +257,12 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 			myYScale <- c(0, 1)
 		}
 		if (is.null(myYScale)) {
-			myYScale <- range(blob.list[[k]]$Data, na.rm=T)
+			myYScale <- range(blob.list[[k]]$Data, finite=T)
 			# need to ensure yscale > 0 for log scale
 			if (logScale) {
-				if (is.null(zeroLevel)) {
-					if (myYScale[1] <= 0) {
-						x <- blob.list[[k]]$Data
-						myYScale[1] <- min(x[x>0], na.rm=T)
-					}
-				} else {
-					myYScale[1] <- max(myYScale[1], zeroLevel)
+				if (myYScale[1] <= 0) {
+					x <- blob.list[[k]]$Data
+					myYScale[1] <- min(x[x>0], na.rm=T)
 				}
 			}
 		}

@@ -118,15 +118,16 @@ updateTimePeriodPage <- function() {
 	
 	addLogComment("Generate timeline plot")
 	
-	plot.cmd <- sprintf('grid.timeline.plot(hsp$data, xscale=hsp$timePeriod, colMap=%s)',
+	plot.cmd.str <- sprintf(
+		'grid.timeline.plot(hsp$data, xscale=hsp$timePeriod, colMap=%s)',
 		if (plotQualCodes) { colMapText } else { 'NULL' }
 	)
 	
 	setPlotDevice("timeline")
 	setCairoWindowButtons("timeline", centre=T, zoomin=T, setperiod=T)
 	
-	guiDo(isParseString=T, plot.cmd)
-	.hydrosanity$call[["timeline"]] <<- parse(text=plot.cmd)[[1]]
+	guiDo(isParseString=T, plot.cmd.str)
+	.hydrosanity$call[["timeline"]] <<- parse(text=plot.cmd.str)[[1]]
 	
 	setStatusBar("Generated timeline plot")
 }

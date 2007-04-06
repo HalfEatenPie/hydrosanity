@@ -79,8 +79,7 @@ updateImportPage <- function() {
 	dataName <- make.names(data.cmd)
 	addLogComment("Import data from R object ", data.cmd)
 	# first set a local variable x and do checks
-	x <- guiTryEval(data.cmd, doLog=F)
-	if (inherits(x, "error")) { return() }
+	x <- guiDo(data.cmd, isParseString=T, doLog=F)
 	# check the user-defined object
 	if (is.list(x) && !is.data.frame(x)) {
 		# it should be a list of timeblobs
@@ -141,13 +140,14 @@ updateImportPage <- function() {
 	blobName <- names(hsp$data)[thisIndex]
 	if (length(blobIndices) > 1) {
 		infoDialog("Only the first selected item (",
-			names(hsp$data)[thisIndex], ") will be shown.")
+			blobName, ") will be shown.")
 	}
 	tmp <- hsp$data[[thisIndex]][,-1]
 	row.names(tmp) <- make.unique(format(hsp$data[[thisIndex]]$Time))
 	tmp2 <- edit(tmp, title=blobName)
 	attributes(tmp2) <- attributes(tmp)
 	if (!identical(tmp, tmp2)) {
+		addLogComment("Edited data object ", blobName, " interactively.")
 		hsp$data[[thisIndex]][,-1] <<- tmp2
 		setStatusBar(sprintf('Edited data object "%s"', blobName))
 		datasetModificationUpdate()
@@ -163,7 +163,7 @@ updateImportPage <- function() {
 	theWidget("hs_window")$present()
 	if (length(filenames)==0) { return() }
 	
-	import.cmd <- rep("", length(filenames))
+	import.cmd.str <- rep("", length(filenames))
 	dataName <- rep("", length(filenames))
 	
 	## Fix filename for MS - otherwise eval/parse strip the \\.
@@ -180,18 +180,20 @@ updateImportPage <- function() {
 	if (theWidget("import_known_format_radio")$getActive()) {
 		kfIndex <- theWidget("import_known_format_combobox")$getActive()+1
 		importSpec <- .KNOWN_FORMATS[[kfIndex]]
-		myImportFnName <- importSpec[1]
+		importFn <- importSpec[1]
 		# user may have changed options in GUI, so use myOptionString
 		for (i in seq(along=filenames)) {
-			import.cmd[i] <- sprintf('hsp$data[["%s"]] <<- %s("%s"%s)', 
-				dataName[i], myImportFnName, filenames[i], myOptionString)
+			import.cmd.str[i] <- sprintf(
+				'hsp$data[["%s"]] <- %s("%s"%s)', 
+				dataName[i], importFn, filenames[i], myOptionString)
 		}
 	}
 	else if (theWidget("import_file_with_time_radio")$getActive()) {
 		myTimeCol <- theWidget("import_time_column_spinbutton")$getValue()
 		myTimeFormat <- theWidget("import_time_format_comboboxentry")$getActiveText()
 		for (i in seq(along=filenames)) {
-			import.cmd[i] <- sprintf('hsp$data[["%s"]] <<- read.timeblob("%s", timeCol=%i, timeFormat="%s"%s)',
+			import.cmd.str[i] <- sprintf(
+				'hsp$data[["%s"]] <- read.timeblob("%s", timeCol=%i, timeFormat="%s"%s)',
 				dataName[i], filenames[i], myTimeCol, myTimeFormat, myOptionString)
 		}
 	}
@@ -199,16 +201,17 @@ updateImportPage <- function() {
 		myStartTime <- theWidget("import_time_start_entry")$getText()
 		myTimeSeqBy <- theWidget("import_time_step_comboboxentry")$getActiveText()
 		for (i in seq(along=filenames)) {
-			import.cmd[i] <- sprintf('hsp$data[["%s"]] <<- read.timeblob("%s", startTime="%i", timeSeqBy="%s"%s)',
+			import.cmd.str[i] <- sprintf(
+				'hsp$data[["%s"]] <- read.timeblob("%s", startTime="%i", timeSeqBy="%s"%s)',
 				dataName[i], filenames[i], myStartTime, myTimeSeqBy, myOptionString)
 		}
 	}
 	
 	addLogComment("Import data from file")
 	for (i in seq(along=filenames)) {
-		result <- guiTryEval(import.cmd[i])
-		if (inherits(result, "error")) { return() }
-		setStatusBar(sprintf('Imported file "%s" to hsp$data[["%s"]]', basename(filenames[i]), dataName[i]))
+		result <- guiDo(import.cmd.str[i], isParseString=T)
+		setStatusBar(sprintf('Imported file "%s" to hsp$data[["%s"]]', 
+			basename(filenames[i]), dataName[i]))
 		# mark as rain/flow/etc
 		setDataRole(dataName[i], doLogComment=F)
 		# update table etc: inefficient, but gives user more feedback
@@ -231,8 +234,9 @@ updateImportPage <- function() {
 	if (new.text == blobName) { return() }
 	if (new.text == "") { return() }
 	addLogComment(paste("Rename data object", blobName))
-	cmd <- sprintf('names(hsp$data)[%i] <<- "%s"', blobIndex, new.text)
-	if (inherits(guiTryEval(cmd), "error")) { return() }
+	guiDo(isExpression=T, bquote(
+		names(hsp$data)[.(blobIndex)] <- .(new.text)
+	))
 	
 	setStatusBar(sprintf('Renamed data object "%s" to "%s"', blobName, new.text))
 	datasetModificationUpdate()
@@ -245,8 +249,9 @@ updateImportPage <- function() {
 	if (new.text == blobDataName) { return() }
 	if (new.text == "") { return() }
 	addLogComment(paste("Set data name for object", blobName))
-	cmd <- sprintf('attr(hsp$data[["%s"]], "dataname") <<- "%s"', blobName, new.text)
-	if (inherits(guiTryEval(cmd), "error")) { return() }
+	guiDo(isExpression=T, bquote(
+		attr(hsp$data[[.(blobName)]], "dataname") <- .(new.text)
+	))
 	
 	setStatusBar(sprintf('Set data name for object "%s" to "%s"', blobName, new.text))
 	datasetModificationUpdate()
@@ -272,12 +277,14 @@ updateImportPage <- function() {
 	}
 	
 	blobNames <- names(hsp$data)[blobIndices]
-	if (is.null(questionDialog("Remove item(s) ", paste(blobNames,collapse=', '), "?"))) {
+	if (is.null(questionDialog("Remove item(s) ", 
+		paste(blobNames,collapse=', '), "?"))) {
 		return()
 	}
 	addLogComment("Remove data object(s)")
-	cmd <- sprintf('hsp$data[c("%s")] <<- NULL', paste(blobNames,collapse='", "'))
-	if (inherits(guiTryEval(cmd), "error")) { return() }
+	guiDo(isExpression=T, bquote(
+		hsp$data[.(blobNames)] <- NULL
+	))
 	
 	setStatusBar(sprintf('Removed data object(s) %s', paste(blobNames,collapse=', ')))
 	datasetModificationUpdate()
@@ -293,19 +300,17 @@ updateImportPage <- function() {
 		errorDialog("No items selected.")
 		return()
 	}
+	factorCmdRaw <- theWidget("import_makefactor_comboboxentry")$getActiveText()
 	
 	addLogComment("Convert quality codes")
-	factorCmdRaw <- theWidget("import_makefactor_comboboxentry")$getActiveText()
-	factor_fn.cmd <- sprintf("tmp.factor <<- function(x){ %s }", factorCmdRaw)
-	result <- guiTryEval(factor_fn.cmd)
-	if (inherits(result, "error")) { return() }
+	factor_fn.cmd.str <- sprintf("tmp.factor <- function(x){ %s }", factorCmdRaw)
+	guiDo(factor_fn.cmd.str, isParseString=T)
 	
-	for (blobIndex in blobIndices) {
-		blobName <- names(hsp$data)[blobIndex]
-		data.cmd <- sprintf("hsp$data[[%i]]$Qual", blobIndex)
-		factor.cmd <- sprintf("%s <<- factor(tmp.factor(%s), exclude=NULL)", data.cmd, data.cmd)
-		result <- guiTryEval(factor.cmd)
-		if (inherits(result, "error")) { return() }
+	for (i in blobIndices) {
+		blobName <- names(hsp$data)[i]
+		guiDo(isExpression=T, bquote(
+			hsp$data[[.(i)]]$Qual <- factor(tmp.factor(hsp$data[[.(i)]]$Qual), exclude=NULL)
+		))
 		setStatusBar(sprintf('Converted quality codes of object "%s"', blobName))
 	}
 	addToLog('rm(tmp.factor)')
@@ -325,10 +330,11 @@ setDataRole <- function(blobName, role=NULL, doLogComment=T) {
 		}
 	}
 	
-	mv.cmd <- sprintf('attr(hsp$data[["%s"]], "role") <<- "%s"', blobName, role)
 	if (doLogComment) { addLogComment("Set data role") }
-	result <- guiTryEval(mv.cmd)
-	if (inherits(result, "error")) { return() }
+	
+	guiDo(isExpression=T, bquote(
+		attr(hsp$data[[.(blobName)]], "role") <- .(role)
+	))
 	setStatusBar(sprintf('Set data role for object "%s" to "%s"', blobName, role))
 }
 
