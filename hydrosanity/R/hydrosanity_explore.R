@@ -35,6 +35,8 @@ updateExplorePage <- function() {
 	
 	addLogComment("Generate timeseries plot")
 	
+	tmpObjs <- c()
+	
 	rawdata.cmd <- if (myN == length(hsp$data)) {
 		quote(hsp$data)
 	} else {
@@ -319,13 +321,13 @@ updateExplorePage <- function() {
 		paste(make.names(selNames), collapse=" + "), "~ Season"
 	))[[1]]
 	plot.cmd[[3]] <- quote(tmp.data)
-	plot.cmd$outer <- T
+	plot.cmd$outer <- if (myN > 1) { T }
 	plot.cmd$panel <- if (doViolinPlot) {
 		function(...) {
 			panel.violin(varwidth=T, ...)
 			panel.stripplot(pch=3, ...)
 		}}
-	plot.cmd$layout <- if (doMonths) { bquote(c(1, .(myN))) }
+	plot.cmd$layout <- if (doMonths && (myN > 1)) { c(1, myN) }
 	plot.cmd$jitter <- if (doStripPlot) { T }
 	
 	# plot scales and annotation specifications

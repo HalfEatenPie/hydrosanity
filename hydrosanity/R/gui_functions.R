@@ -409,10 +409,6 @@ iconViewGetSelectedNames <- function(iconView) {
 
 ## ERROR CATCHING STUFF
 
-guiTryEval <- function(...) {
-	guiDo(..., isParseString=T, doStop=F)
-}
-
 guiDo <- function(expr, isExpression=F, isParseString=F, doLog=T, doFailureDialog=T, doFailureLog=doLog, doStop=T) {
 	setCursor("watch")
 	result <- NULL
@@ -420,7 +416,7 @@ guiDo <- function(expr, isExpression=F, isParseString=F, doLog=T, doFailureDialo
 		expr <- substitute(expr)
 	}
 	if (isParseString) {
-		result <- tryCatch(eval(parse(text=expr)), ###### envir=.GlobalEnv
+		result <- tryCatch(eval(parse(text=expr), envir=.GlobalEnv), 
 			error=function(e)e)
 	} else {
 		result <- tryCatch(eval(expr, envir=.GlobalEnv), 
