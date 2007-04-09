@@ -12,10 +12,10 @@ grid.timeline.plot <- function(blob.list, xscale=NULL, colMap=list(good="black",
 	} else {
 		xscale <- as.POSIXct(xscale)
 		if (any(is.na(xscale))) { stop("'xscale' must be a pair of valid times (POSIXt)") }
-		blob.list <- lapply(blob.list, window.timeblob, xscale[1], xscale[2], inclusive=T)
+		blob.list <- lapply(blob.list, window, xscale[1], xscale[2], inclusive=T)
 	}
 	# setup
-	n <- length(blob.list)
+	nBlobs <- length(blob.list)
 	ylabs <- sapply(names(blob.list), toString, width=maxLabelChars)
 	maxlab <- ylabs[ which.max(nchar(ylabs, "width")) ]
 	mainHeight <- unit(0, "npc")
@@ -28,8 +28,9 @@ grid.timeline.plot <- function(blob.list, xscale=NULL, colMap=list(good="black",
 		if (identical(sub, T)) {
 			mySync <- sync.timeblobs(blob.list)
 			dataPoints <- sum(is.na(unlist(mySync[-1]))==F)
-			sub <- hydrosanity.caption(c(start.timeblobs(blob.list), end.timeblobs(blob.list)),
-				by=attr(mySync, "timestep"), n=dataPoints, series=n)
+			sub <- hydrosanity.caption(
+				c(start.timeblobs(blob.list), end.timeblobs(blob.list)),
+				by=attr(mySync, "timestep"), n=dataPoints, series=)
 		}
 		if (is.character(sub)) { sub <- textGrob(sub) }
 		subHeight <- grobHeight(sub)
@@ -47,9 +48,9 @@ grid.timeline.plot <- function(blob.list, xscale=NULL, colMap=list(good="black",
 	# overall plot viewport, and layout for timeline bars
 	pushViewport(viewport(name="time.vp", 
 		layout.pos.col=2, layout.pos.row=2, xscale=xscale,
-		layout=grid.layout(n*2+1, 1,
+		layout=grid.layout(nBlobs*2+1, 1,
 			heights=unit.c(unit(1,"null"), 
-				rep(unit.c(thickness, unit(1,"null")), n)))))
+				rep(unit.c(thickness, unit(1,"null")), nBlobs)))))
 	# draw axis and grill
 	grid.lines(y=unit(0,"npc"))
 	tickX <- grid.xaxis.POSIXt(name="timeline.xaxis")$at
@@ -57,7 +58,7 @@ grid.timeline.plot <- function(blob.list, xscale=NULL, colMap=list(good="black",
 		grid.segments(tickX, unit(0,"npc"), tickX, unit(1,"npc")-pad,
 			default.units="native", gp=gpar(col="grey"))
 	}
-	for (k in 1:n) {
+	for (k in 1:nBlobs) {
 		# draw timeline bar number k
 		pushViewport(viewport(name=paste("timeline.bar",k,".vp",sep=''),
 			layout.pos.row=k*2, xscale=xscale, clip="on"))
@@ -135,7 +136,7 @@ grid.timeseries.plot.superpose <- function(superpose.blob.list, sameScalesGlobal
 		if (any(is.na(xscale))) { stop("'xscale' must be a pair of valid times (POSIXt)") }
 		for (i in seq(along=superpose.blob.list)) {
 			superpose.blob.list[[i]] <- lapply(superpose.blob.list[[i]],
-				window.timeblob, xscale[1], xscale[2], inclusive=T)
+				window, xscale[1], xscale[2], inclusive=T)
 		}
 	}
 	# make common yscale
@@ -151,6 +152,7 @@ grid.timeseries.plot.superpose <- function(superpose.blob.list, sameScalesGlobal
 				function(x){ min(x[x>0], na.rm=T) })
 			yscale[1] <- min(allMins[is.finite(allMins)])
 		}
+		if (!logScale) { yscale[1] <- 0 }
 	}
 	# make caption
 	if (identical(sub, T)) {
@@ -175,7 +177,7 @@ grid.timeseries.plot.superpose <- function(superpose.blob.list, sameScalesGlobal
 }
 
 
-grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales=T, logScale=F, maxLabelChars=20, pad=unit(5,"mm"), superPos=1, newScale=T, main=NULL, sub=T, newpage=(superPos==1), nSuperpose=1, gp=gpar(col=colSet[superPos]), colSet=c("#0080ff", "#ff00ff", "darkgreen", "#ff0000", "orange", "#00ff00")) {
+grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales=T, logScale=F, maxLabelChars=20, pad=unit(5,"mm"), superPos=1, newScale=T, main=NULL, sub=T, newpage=(superPos==1), nSuperpose=1, gp=gpar(col=trellis.par.get("superpose.line")$col[superPos], lty=trellis.par.get("superpose.line")$lty[superPos])) {
 	# check types
 	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
 	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
@@ -190,11 +192,11 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 	} else {
 		xscale <- as.POSIXct(xscale)
 		if (any(is.na(xscale))) { stop("'xscale' must be a pair of valid times (POSIXt)") }
-		blob.list <- lapply(blob.list, window.timeblob, xscale[1], xscale[2], inclusive=T)
+		blob.list <- lapply(blob.list, window, xscale[1], xscale[2], inclusive=T)
 	}
 	if (!is.null(yscale) && !is.numeric(yscale)) { stop("'yscale' must be numeric") }
 	# setup
-	n <- length(blob.list)
+	nBlobs <- length(blob.list)
 	ylabs <- sapply(names(blob.list), toString, width=maxLabelChars)
 	mainHeight <- unit(0, "npc")
 	subHeight <- unit(0, "npc")
@@ -207,7 +209,7 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 			mySync <- sync.timeblobs(blob.list)
 			dataPoints <- sum(is.na(unlist(mySync[-1]))==F)
 			sub <- hydrosanity.caption(c(start.timeblobs(blob.list), end.timeblobs(blob.list)),
-				by=attr(mySync, "timestep"), n=dataPoints, series=n)
+				by=attr(mySync, "timestep"), n=dataPoints, series=nBlobs)
 		}
 		if (is.character(sub)) { sub <- textGrob(sub) }
 		subHeight <- grobHeight(sub)
@@ -230,8 +232,8 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 		# overall plot viewport, and layout for timeseries plots
 		pushViewport(viewport(name="time.vp", 
 			layout.pos.col=2, layout.pos.row=2, xscale=xscale,
-			layout=grid.layout(n*2-1, 1,
-			heights=unit.c(rep(unit.c(unit(1,"null"), pad), n), unit(1,"null")) )))
+			layout=grid.layout(nBlobs*2-1, 1,
+			heights=unit.c(rep(unit.c(unit(1,"null"), pad), nBlobs), unit(1,"null")) )))
 		# draw time axis with labels at bottom of plot
 		grid.xaxis.POSIXt(name="timeseries.xaxis")
 	}
@@ -245,9 +247,10 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 				function(x){ min(x[x>0], na.rm=T) })
 			yscale[1] <- min(allMins[is.finite(allMins)])
 		}
+		if (!logScale) { yscale[1] <- 0 }
 	}
 	# plot each timeblob in the list
-	for (k in 1:n) {
+	for (k in 1:nBlobs) {
 		# allow skipping for superposed series
 		if (is.null(blob.list[[k]])) { next }
 		# set up vertical scale for timeseries number k
@@ -265,6 +268,7 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 					myYScale[1] <- min(x[x>0], na.rm=T)
 				}
 			}
+			if (!logScale) { myYScale[1] <- 0 }
 		}
 		if (logScale) {
 			myYScale <- log10(myYScale)
@@ -368,9 +372,10 @@ hydrosanity.caption <- function(timelim, by, n, series=NA, x=unit(1,"npc")-unit(
 		}
 	}
 	vRSimple <- paste(R.version$major, R.version$minor, sep='.')
+	seriesPrefix <- if (!is.na(series) && (series > 1)) { series } else { '' }
 	textGrob(sprintf(
-		"Data: %s to %s by %s (N=%s). Hydrosanity %s, R %s",
-		timelim[1], timelim[2], by, n, VERSION, vRSimple),
+		"Data: %s to %s by %s (%sN=%s). Hydrosanity %s, R %s",
+		timelim[1], timelim[2], by, seriesPrefix, n, VERSION, vRSimple),
 		x=x, y=y, just=just, gp=gp, name="hydrosanity.caption")
 }
 
@@ -448,7 +453,7 @@ grid.xaxis.POSIXt <- function(at=NULL, label=NULL, name="timeaxis", lim=as.numer
 			myFormat <- "%Y-%m-%d"
 		}
 		if (diff(lim) > 7 * 24*60*60) {
-			myBy <- "4 days"
+			myBy <- "4 days" # "1 day"
 		}
 		if (diff(lim) > 30 * 24*60*60) {
 			myBy <- "1 month"
@@ -456,7 +461,7 @@ grid.xaxis.POSIXt <- function(at=NULL, label=NULL, name="timeaxis", lim=as.numer
 			myFormat <- "%Y-%m"
 		}
 		if (diff(lim) > 6 * 30*24*60*60) {
-			myBy <- "3 months"
+			myBy <- "3 months" # "1 month"
 			myStart <- trunc.year(myStart)
 			myFormat <- "%b"
 		}
@@ -489,6 +494,50 @@ grid.xaxis.POSIXt <- function(at=NULL, label=NULL, name="timeaxis", lim=as.numer
 }
 
 
+panel.identify.qqmath <- function(panel.args = trellis.panelArgs(), ...) {
+	x <- panel.args$x
+	y <- x
+	groups <- panel.args$groups
+	callArgs <- list(...)
+	subscripts <- callArgs$subscripts
+	if (is.null(subscripts)) { subscripts <- seq_along(x) }
+	labels <- callArgs$labels
+	if (is.null(labels)) { labels <- subscripts }
+	# compute x locations (currently does not handle 'f' argument))
+	getxx <- function(x, nobs=sum(!is.na(x))) {
+		panel.args$distribution(ppoints(nobs))
+	}
+	if (is.null(groups)) {
+		x <- getxx(x)
+		ii <- order(y, na.last=NA)
+		y <- y[ii]
+		labels <- labels[ii]
+		subscripts <- subscripts[ii]
+	} else {
+		subg <- groups[subscripts]
+		ok <- !is.na(subg)
+		xnew <- ynew <- lnew <- snew <- c()
+		for (g in levels(factor(groups))) {
+			id <- ok & (subg == g) & !is.na(x)
+			xnew <- c(xnew, getxx(x[id]))
+			ii <- order(y[id])
+			ynew <- c(ynew, y[id][ii])
+			lnew <- c(lnew, labels[id][ii])
+			snew <- c(snew, subscripts[id][ii])
+		}
+		x <- xnew
+		y <- ynew
+		labels <- lnew
+		subscripts <- snew
+	}
+	callArgs$x <- x
+	callArgs$y <- y
+	callArgs$labels <- labels
+	callArgs$subscripts <- subscripts
+	callArgs$panel.args <- NULL
+	do.call(panel.identify, callArgs)
+}
+
 lattice.y.prettylog <- function(lim, ...) {
 	arglist <- list(...)
 	have.log <- (!is.null(arglist$logsc)) && (!identical(arglist$logsc, F))
@@ -498,6 +547,19 @@ lattice.y.prettylog <- function(lim, ...) {
 		tmp$left$ticks$at <- stuff$at
 		tmp$left$labels$at <- stuff$at
 		tmp$left$labels$labels <- stuff$label
+	}
+	return(tmp)
+}
+
+lattice.x.prettylog <- function(lim, ...) {
+	arglist <- list(...)
+	have.log <- (!is.null(arglist$logsc)) && (!identical(arglist$logsc, F))
+	tmp <- xscale.components.default(lim, ...)
+	if (have.log) {
+		stuff <- grid.yaxis.log(lim=lim, draw=F)
+		tmp$bottom$ticks$at <- stuff$at
+		tmp$bottom$labels$at <- stuff$at
+		tmp$bottom$labels$labels <- stuff$label
 	}
 	return(tmp)
 }

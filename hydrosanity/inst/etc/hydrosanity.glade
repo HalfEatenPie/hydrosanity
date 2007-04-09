@@ -2522,6 +2522,7 @@ years</property>
 					<widget class="GtkComboBox" id="explore_timeseries_yearstart_combobox">
 					  <property name="width_request">60</property>
 					  <property name="visible">True</property>
+					  <property name="sensitive">False</property>
 					  <property name="items" translatable="yes">Jan
 Feb
 Mar
@@ -3900,6 +3901,7 @@ years</property>
 			      <child>
 				<widget class="GtkRadioButton" id="impute_missing_corr_radiobutton">
 				  <property name="visible">True</property>
+				  <property name="sensitive">False</property>
 				  <property name="can_focus">True</property>
 				  <property name="label" translatable="yes">Correlation weighted average (squared), limited to three sites</property>
 				  <property name="use_underline">True</property>
@@ -3919,6 +3921,7 @@ years</property>
 			      <child>
 				<widget class="GtkRadioButton" id="impute_missing_linear_radiobutton">
 				  <property name="visible">True</property>
+				  <property name="sensitive">False</property>
 				  <property name="can_focus">True</property>
 				  <property name="label" translatable="yes">Linear interpolation (univariate)</property>
 				  <property name="use_underline">True</property>
@@ -3944,7 +3947,7 @@ years</property>
 				  <property name="use_underline">True</property>
 				  <property name="relief">GTK_RELIEF_NORMAL</property>
 				  <property name="focus_on_click">True</property>
-				  <property name="active">False</property>
+				  <property name="active">True</property>
 				  <property name="inconsistent">False</property>
 				  <property name="draw_indicator">True</property>
 				  <property name="group">impute_missing_corr_radiobutton</property>
@@ -4338,25 +4341,6 @@ years</property>
 				  <property name="inconsistent">False</property>
 				  <property name="draw_indicator">True</property>
 				  <property name="group">corr_corrplot_radiobutton</property>
-				</widget>
-				<packing>
-				  <property name="padding">0</property>
-				  <property name="expand">False</property>
-				  <property name="fill">False</property>
-				</packing>
-			      </child>
-
-			      <child>
-				<widget class="GtkCheckButton" id="corr_log_checkbutton">
-				  <property name="visible">True</property>
-				  <property name="can_focus">True</property>
-				  <property name="label" translatable="yes">Log scales</property>
-				  <property name="use_underline">True</property>
-				  <property name="relief">GTK_RELIEF_NORMAL</property>
-				  <property name="focus_on_click">True</property>
-				  <property name="active">False</property>
-				  <property name="inconsistent">False</property>
-				  <property name="draw_indicator">True</property>
 				</widget>
 				<packing>
 				  <property name="padding">0</property>
@@ -4898,7 +4882,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA</prope
       </child>
 
       <child>
-	<widget class="GtkToolbar" id="toolbar1">
+	<widget class="GtkToolbar" id="toolbar">
 	  <property name="visible">True</property>
 	  <property name="orientation">GTK_ORIENTATION_HORIZONTAL</property>
 	  <property name="toolbar_style">GTK_TOOLBAR_BOTH</property>
@@ -4907,8 +4891,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA</prope
 
 	  <child>
 	    <widget class="GtkToolButton" id="plot_identify_button">
-	      <property name="visible">True</property>
-	      <property name="label" translatable="yes"> Identify points</property>
+	      <property name="label" translatable="yes"> Identify data</property>
 	      <property name="use_underline">True</property>
 	      <property name="stock_id">gtk-info</property>
 	      <property name="visible_horizontal">True</property>
@@ -4923,59 +4906,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA</prope
 	  </child>
 
 	  <child>
-	    <widget class="GtkToolButton" id="plot_centre_button">
-	      <property name="visible">True</property>
-	      <property name="label" translatable="yes"> Re-centre</property>
-	      <property name="use_underline">True</property>
-	      <property name="stock_id">gtk-jump-to</property>
-	      <property name="visible_horizontal">True</property>
-	      <property name="visible_vertical">True</property>
-	      <property name="is_important">True</property>
-	      <signal name="clicked" handler=".hs_on_plot_centre_button_clicked" last_modification_time="Mon, 12 Mar 2007 08:14:39 GMT"/>
-	    </widget>
-	    <packing>
-	      <property name="expand">False</property>
-	      <property name="homogeneous">True</property>
-	    </packing>
-	  </child>
-
-	  <child>
-	    <widget class="GtkToolButton" id="plot_zoomin_button">
-	      <property name="visible">True</property>
-	      <property name="label" translatable="yes"> Zoom in</property>
-	      <property name="use_underline">True</property>
-	      <property name="stock_id">gtk-zoom-in</property>
-	      <property name="visible_horizontal">True</property>
-	      <property name="visible_vertical">True</property>
-	      <property name="is_important">True</property>
-	      <signal name="clicked" handler=".hs_on_plot_zoomin_button_clicked" last_modification_time="Mon, 12 Mar 2007 08:07:26 GMT"/>
-	    </widget>
-	    <packing>
-	      <property name="expand">False</property>
-	      <property name="homogeneous">True</property>
-	    </packing>
-	  </child>
-
-	  <child>
-	    <widget class="GtkToolButton" id="plot_zoomout_button">
-	      <property name="visible">True</property>
-	      <property name="label" translatable="yes"> Zoom out</property>
-	      <property name="use_underline">True</property>
-	      <property name="stock_id">gtk-zoom-out</property>
-	      <property name="visible_horizontal">True</property>
-	      <property name="visible_vertical">True</property>
-	      <property name="is_important">True</property>
-	      <signal name="clicked" handler=".hs_on_plot_zoomout_button_clicked" last_modification_time="Mon, 12 Mar 2007 08:08:19 GMT"/>
-	    </widget>
-	    <packing>
-	      <property name="expand">False</property>
-	      <property name="homogeneous">True</property>
-	    </packing>
-	  </child>
-
-	  <child>
 	    <widget class="GtkToggleToolButton" id="plot_log_togglebutton">
-	      <property name="visible">True</property>
 	      <property name="label" translatable="yes"> Log scale</property>
 	      <property name="use_underline">True</property>
 	      <property name="stock_id">gtk-goto-top</property>
@@ -4992,8 +4923,55 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA</prope
 	  </child>
 
 	  <child>
+	    <widget class="GtkToolButton" id="plot_centre_button">
+	      <property name="label" translatable="yes"> Re-centre</property>
+	      <property name="use_underline">True</property>
+	      <property name="stock_id">gtk-jump-to</property>
+	      <property name="visible_horizontal">True</property>
+	      <property name="visible_vertical">True</property>
+	      <property name="is_important">True</property>
+	      <signal name="clicked" handler=".hs_on_plot_centre_button_clicked" last_modification_time="Mon, 12 Mar 2007 08:14:39 GMT"/>
+	    </widget>
+	    <packing>
+	      <property name="expand">False</property>
+	      <property name="homogeneous">True</property>
+	    </packing>
+	  </child>
+
+	  <child>
+	    <widget class="GtkToolButton" id="plot_zoomin_button">
+	      <property name="label" translatable="yes"> Zoom in</property>
+	      <property name="use_underline">True</property>
+	      <property name="stock_id">gtk-zoom-in</property>
+	      <property name="visible_horizontal">True</property>
+	      <property name="visible_vertical">True</property>
+	      <property name="is_important">True</property>
+	      <signal name="clicked" handler=".hs_on_plot_zoomin_button_clicked" last_modification_time="Mon, 12 Mar 2007 08:07:26 GMT"/>
+	    </widget>
+	    <packing>
+	      <property name="expand">False</property>
+	      <property name="homogeneous">True</property>
+	    </packing>
+	  </child>
+
+	  <child>
+	    <widget class="GtkToolButton" id="plot_zoomout_button">
+	      <property name="label" translatable="yes"> Zoom out</property>
+	      <property name="use_underline">True</property>
+	      <property name="stock_id">gtk-zoom-out</property>
+	      <property name="visible_horizontal">True</property>
+	      <property name="visible_vertical">True</property>
+	      <property name="is_important">True</property>
+	      <signal name="clicked" handler=".hs_on_plot_zoomout_button_clicked" last_modification_time="Mon, 12 Mar 2007 08:08:19 GMT"/>
+	    </widget>
+	    <packing>
+	      <property name="expand">False</property>
+	      <property name="homogeneous">True</property>
+	    </packing>
+	  </child>
+
+	  <child>
 	    <widget class="GtkToolButton" id="plot_setperiod_button">
-	      <property name="visible">True</property>
 	      <property name="label" translatable="yes">Set period</property>
 	      <property name="use_underline">True</property>
 	      <property name="stock_id">gtk-yes</property>
@@ -5022,15 +5000,33 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA</prope
 	  </child>
 
 	  <child>
-	    <widget class="GtkToolButton" id="plot_save_button">
+	    <widget class="GtkMenuToolButton" id="plot_save_button">
 	      <property name="visible">True</property>
-	      <property name="label" translatable="yes"> Save as...</property>
+	      <property name="label" translatable="yes">Save as</property>
 	      <property name="use_underline">True</property>
 	      <property name="stock_id">gtk-save-as</property>
 	      <property name="visible_horizontal">True</property>
 	      <property name="visible_vertical">True</property>
 	      <property name="is_important">True</property>
-	      <signal name="clicked" handler=".hs_on_plot_save_button_clicked" last_modification_time="Mon, 12 Mar 2007 08:08:36 GMT"/>
+	      <signal name="clicked" handler=".hs_on_plot_save_button_clicked" last_modification_time="Sun, 08 Apr 2007 06:07:08 GMT"/>
+	    </widget>
+	    <packing>
+	      <property name="expand">False</property>
+	      <property name="homogeneous">False</property>
+	    </packing>
+	  </child>
+
+	  <child>
+	    <widget class="GtkToggleToolButton" id="plot_greyscale_togglebutton">
+	      <property name="visible">True</property>
+	      <property name="label" translatable="yes">Greyscale</property>
+	      <property name="use_underline">True</property>
+	      <property name="stock_id">gtk-print-preview</property>
+	      <property name="visible_horizontal">True</property>
+	      <property name="visible_vertical">True</property>
+	      <property name="is_important">False</property>
+	      <property name="active">False</property>
+	      <signal name="clicked" handler=".hs_on_plot_greyscale_togglebutton_clicked" last_modification_time="Sat, 07 Apr 2007 09:21:27 GMT"/>
 	    </widget>
 	    <packing>
 	      <property name="expand">False</property>

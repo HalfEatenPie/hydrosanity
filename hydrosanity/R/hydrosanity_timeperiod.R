@@ -45,10 +45,7 @@ updateTimePeriodPage <- function() {
 	
 	for (i in seq(along=hsp$data)) {
 		dfName[i] <- names(hsp$data)[i]
-		subBlob <- hsp$data[[i]]
-		if (!is.null(hsp$timePeriod)) {
-			subBlob <- window.timeblob(hsp$data[[i]], hsp$timePeriod[1], hsp$timePeriod[2])
-		}
+		subBlob <- window(hsp$data[[i]], hsp$timePeriod[1], hsp$timePeriod[2])
 		myQuantiles <- format(quantile(
 			subBlob$Data, probs=c(0, 0.25, 0.5, 0.75, 1), na.rm=T), 
 			digits=2, scientific=2)

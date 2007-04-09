@@ -9,7 +9,7 @@
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-\method{window}{timeblob}(blob, start = NULL, end = NULL, inclusive = F, extend = F)
+\method{window}{timeblob}(blob, start = NULL, end = NULL, inclusive = F, return.indices = F, extend = F)
 
 \method{start}{timeblob}(blob)
 \method{end}{timeblob}(blob)
@@ -22,6 +22,7 @@ end.timeblobs(blob.list)
   \item{start}{ ~~Describe \code{start} here~~ }
   \item{end}{ ~~Describe \code{end} here~~ }
   \item{inclusive}{ ~~Describe \code{inclusive} here~~ }
+  \item{return.indices}{ ~~Describe \code{return.indices} here~~ }
   \item{extend}{ ~~Describe \code{extend} here~~ }
   \item{blob.list}{ ~~Describe \code{blob.list} here~~ }
 }

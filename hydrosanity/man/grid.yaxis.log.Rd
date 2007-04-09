@@ -1,13 +1,17 @@
 \name{grid.yaxis.log}
 \alias{grid.yaxis.log}
+\alias{lattice.y.prettylog}
+\alias{lattice.x.prettylog}
 \title{Log Scale Axis for Grid}
 \description{
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
 grid.yaxis.log(at = NULL, label = NULL, name = "yaxis", lim = as.numeric(convertY(unit(c(0, 1), "npc"), "native")), ...)
+
+lattice.y.prettylog <- function(lim, ...)
+lattice.x.prettylog <- function(lim, ...)
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{at}{ ~~Describe \code{at} here~~ }
   \item{label}{ ~~Describe \code{label} here~~ }

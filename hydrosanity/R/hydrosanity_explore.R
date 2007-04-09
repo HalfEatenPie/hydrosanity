@@ -20,7 +20,7 @@ updateExplorePage <- function() {
 		errorDialog("No items selected.")
 		return()
 	}
-	myN <- length(selNames)
+	nBlobs <- length(selNames)
 	doCommonScale <- theWidget("explore_timeseries_commonscale_radiobutton")$getActive()
 	doSuperpose <- theWidget("explore_timeseries_superpose_radiobutton")$getActive()
 	doQual <- theWidget("explore_timeseries_qual_checkbutton")$getActive()
@@ -30,14 +30,14 @@ updateExplorePage <- function() {
 	aggr1By <- theWidget("explore_timeseries_aggr1_comboboxentry")$getActiveText()
 	aggr2By <- theWidget("explore_timeseries_aggr2_comboboxentry")$getActiveText()
 	yearStartMonthNum <- theWidget("explore_timeseries_yearstart_combobox")$getActive()
-	myM <- (doRawData + doAggr1 + doAggr2)
-	if (myM == 0) { return() }
+	nTrans <- (doRawData + doAggr1 + doAggr2)
+	if (nTrans == 0) { return() }
 	
 	addLogComment("Generate timeseries plot")
 	
 	tmpObjs <- c()
 	
-	rawdata.cmd <- if (myN == length(hsp$data)) {
+	rawdata.cmd <- if (nBlobs == length(hsp$data)) {
 		quote(hsp$data)
 	} else {
 		bquote(hsp$data[.(selNames)])
@@ -74,7 +74,7 @@ updateExplorePage <- function() {
 			))
 		}
 		if (doAggr1) {
-			if (myN == 1) { # simplify code if only one
+			if (nBlobs == 1) { # simplify code if only one
 				dataList <- c(dataList, quote(tmp.aggr1))
 			} else {
 				dataList <- c(dataList, lapply(selNames,
@@ -84,7 +84,7 @@ updateExplorePage <- function() {
 			}
 		}
 		if (doAggr2) {
-			if (myN == 1) { # simplify code if only one
+			if (nBlobs == 1) { # simplify code if only one
 				dataList <- c(dataList, quote(tmp.aggr2))
 			} else {
 				dataList <- c(dataList, lapply(selNames,
@@ -95,9 +95,9 @@ updateExplorePage <- function() {
 		}
 	} else {
 		# do multiple plots
-		if (myN == 1) {
+		if (nBlobs == 1) {
 			# multiple plots for transforms (all in one layer)
-			if (myM == 1) {
+			if (nTrans == 1) {
 				dataList[[1]] <- if (doRawData) { rawdata.cmd } else
 					if (doAggr1) { quote(tmp.aggr1) } else
 					if (doAggr2) { quote(tmp.aggr2) }
@@ -121,7 +121,7 @@ updateExplorePage <- function() {
 		plot.cmd[[2]] <- dataList[[1]]
 	} else {
 		plot.cmd <- call('grid.timeseries.plot.superpose')
-		plot.cmd[[2]] <- dataList
+		plot.cmd[[2]] <- as.call(c(quote(list), dataList))
 	}
 	
 	# plot scales and annotation specifications
@@ -154,7 +154,7 @@ updateExplorePage <- function() {
 		errorDialog("No items selected.")
 		return()
 	}
-	myN <- length(selNames)
+	nBlobs <- length(selNames)
 	doNormal <- theWidget("explore_cdf_normal_radiobutton")$getActive()
 	doUniform <- theWidget("explore_cdf_uniform_radiobutton")$getActive()
 	doCDF <- doNormal || doUniform
@@ -173,7 +173,7 @@ updateExplorePage <- function() {
 	tmpObjs <- c('tmp.data')
 	
 	# initalise data
-	if (myN == length(hsp$data)) {
+	if (nBlobs == length(hsp$data)) {
 		guiDo(tmp.data <- hsp$data)
 	} else {
 		guiDo(isExpression=T, bquote(
@@ -197,8 +197,14 @@ updateExplorePage <- function() {
 	
 	# make.groups
 	tmpObjs <- c(tmpObjs, 'tmp.groups')
-	guiDo(tmp.groups <- do.call(make.groups, 
-		lapply(tmp.data, function(x) x$Data )))
+	guiDo(isParseString=T, sprintf(
+		'tmp.groups <- make.groups(%s)',
+		paste(sep='', collapse=', ',
+			make.names(names(tmp.data)), 
+			'=tmp.data[[', dQuote(names(tmp.data)), ']]$Data')
+	))
+	#guiDo(tmp.groups <- do.call(make.groups, 
+	#	lapply(tmp.data, function(x) x$Data )))
 	
 	# plot specifications
 	plotFn <- if (doCDF) { 'qqmath' } else 
@@ -226,8 +232,8 @@ updateExplorePage <- function() {
 	if (doCDF) {
 		tmpObjs <- c(tmpObjs, 'tmp.probs')
 		if (doNormal) {
-			guiDo(tmp.probs <- c(0.001, 0.01, 0.1, 0.3, 0.5, 
-				0.7, 0.9, 0.99, 0.999))
+			guiDo(tmp.probs <- c(0.001, 0.01, 0.1, 0.25, 0.5, 
+				0.75, 0.9, 0.99, 0.999))
 			plot.cmd$scales$x <- quote(list(
 				at=qnorm(tmp.probs), labels=tmp.probs * 100))
 		} else {
@@ -246,23 +252,31 @@ updateExplorePage <- function() {
 	addToLog("## Make hydrosanity caption")
 	tmpObjs <- c(tmpObjs, 'tmp.n', 'tmp.caption')
 	guiDo(isExpression=T, bquote({
-		tmp.n <- sum(unlist(lapply.timeblob.data(tmp.data, is.na))==F)
+		tmp.n <- sum(!unlist(lapply.timeblob.data(tmp.data, is.na)))
 		tmp.caption <- hydrosanity.caption(
 			c(start.timeblobs(tmp.data), end.timeblobs(tmp.data)), 
 			by=.(attr(tmp.data[[1]], "timestep")), n=tmp.n, 
-			series=.(myN))
+			series=.(nBlobs))
 	}))
 	plot.cmd$sub <- quote(tmp.caption)
 	plot.cmd$prepanel <- if (doCDF) { quote(prepanel.qqmath.fix) }
 	
 	setPlotDevice("distribution")
-	setCairoWindowButtons("distribution", identify=T, log=T)
+	setCairoWindowButtons("distribution", identify=T, log=T, zoomin=T)
 	
 	result <- guiDo(plot.cmd, isExpression=T)
 	# plot trellis object
 	guiDo(bquote(print(.(result))), isExpression=T, doLog=F)
 	
 	.hydrosanity$call[["distribution"]] <<- evalCallArgs(plot.cmd, pattern="^tmp")
+	
+	# construct call to panel.identify() for later use
+	idFn <- if (doCDF) { 'panel.identify.qqmath' } else { 'panel.identify' }
+	id.cmd <- call(idFn)
+	id.cmd$labels <- unlist(lapply(tmp.data, function(x) {
+			format(x$Time, timestepTimeFormat(attr(x, "timestep")))
+		}))
+	.hydrosanity$id.call[["distribution"]] <<- id.cmd
 	
 	if (length(tmpObjs) > 0) {
 		addToLog(paste('rm(', paste(tmpObjs, collapse=', '), ')', sep=''))
@@ -277,7 +291,7 @@ updateExplorePage <- function() {
 	setStatusBar("")
 	
 	selNames <- iconViewGetSelectedNames(theWidget("explore_iconview"))
-	myN <- length(selNames)
+	nBlobs <- length(selNames)
 	doMonths <- theWidget("explore_seasonal_months_radiobutton")$getActive()
 	doBoxPlot <- theWidget("explore_seasonal_bwplot_radiobutton")$getActive()
 	doStripPlot <- theWidget("explore_seasonal_stripplot_radiobutton")$getActive()
@@ -288,7 +302,7 @@ updateExplorePage <- function() {
 	tmpObjs <- c('tmp.data')
 	
 	# initalise data
-	if (myN == length(hsp$data)) {
+	if (nBlobs == length(hsp$data)) {
 		guiDo(tmp.data <- hsp$data)
 	} else {
 		guiDo(isExpression=T, bquote(
@@ -321,13 +335,13 @@ updateExplorePage <- function() {
 		paste(make.names(selNames), collapse=" + "), "~ Season"
 	))[[1]]
 	plot.cmd[[3]] <- quote(tmp.data)
-	plot.cmd$outer <- if (myN > 1) { T }
+	plot.cmd$outer <- if (nBlobs > 1) { T }
 	plot.cmd$panel <- if (doViolinPlot) {
 		function(...) {
 			panel.violin(varwidth=T, ...)
 			panel.stripplot(pch=3, ...)
 		}}
-	plot.cmd$layout <- if (doMonths && (myN > 1)) { c(1, myN) }
+	plot.cmd$layout <- if (doMonths && (nBlobs > 1)) { c(1, nBlobs) }
 	plot.cmd$jitter <- if (doStripPlot) { T }
 	
 	# plot scales and annotation specifications
@@ -339,22 +353,27 @@ updateExplorePage <- function() {
 	addToLog("## Make hydrosanity caption")
 	tmpObjs <- c(tmpObjs, 'tmp.n', 'tmp.caption')
 	guiDo(isExpression=T, bquote({
-		tmp.n <- sum(sapply(tmp.data[2:.(myN+1)], is.na)==F)
+		tmp.n <- sum(sapply(tmp.data[2:.(nBlobs+1)], is.na)==F)
 		tmp.caption <- hydrosanity.caption(
 			range(tmp.data$Time), # TODO: should add timestep to this
 			by=.(attr(tmp.data, "timestep")), n=tmp.n, 
-			series=.(myN))
+			series=.(nBlobs))
 	}))
 	plot.cmd$sub <- quote(tmp.caption)
 	
 	setPlotDevice("seasonality")
-	setCairoWindowButtons("seasonality", identify=T, log=T)
+	setCairoWindowButtons("seasonality", identify=T, log=T, zoomin=T)
 	
 	result <- guiDo(plot.cmd, isExpression=T)
 	# plot trellis object
 	guiDo(bquote(print(.(result))), isExpression=T, doLog=F)
 	
 	.hydrosanity$call[["seasonality"]] <<- evalCallArgs(plot.cmd, pattern="^tmp")
+	
+	# construct call to panel.identify() for later use
+	id.cmd <- call('panel.identify')
+	id.cmd$labels <- rep(format(tmp.data$Time, "%Y"), nBlobs)
+	.hydrosanity$id.call[["seasonality"]] <<- id.cmd
 	
 	if (length(tmpObjs) > 0) {
 		addToLog(paste('rm(', paste(tmpObjs, collapse=', '), ')', sep=''))
