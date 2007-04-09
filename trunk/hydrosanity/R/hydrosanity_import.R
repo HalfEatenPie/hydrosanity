@@ -9,12 +9,12 @@ updateImportPage <- function() {
 	dfData <- dfRole <- dfQual <- dfExtra <- character(length(hsp$data))
 	
 	for (i in seq(along=hsp$data)) {
-		myLength <- end.timeblob(hsp$data[[i]]) - start.timeblob(hsp$data[[i]])
+		myLength <- end(hsp$data[[i]]) - start(hsp$data[[i]])
 		myAvgFreq <- myLength / nrow(hsp$data[[i]])
 		
 		dfName[i] <- names(hsp$data)[i]
-		dfStart[i] <- format(start.timeblob(hsp$data[[i]]))
-		dfEnd[i] <- format(end.timeblob(hsp$data[[i]]))
+		dfStart[i] <- format(start(hsp$data[[i]]))
+		dfEnd[i] <- format(end(hsp$data[[i]]))
 		dfLength[i] <- as.byString(myLength, digits=2)
 		#dfFreq[i] <- as.byString(myAvgFreq, digits=2)
 		dfFreq[i] <- attr(hsp$data[[i]], "timestep")

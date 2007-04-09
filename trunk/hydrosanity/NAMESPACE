@@ -11,7 +11,9 @@ export(
 	grid.yaxis.log,
 	grid.xaxis.POSIXt,
 	lattice.y.prettylog,
-	prepanel.qqmath.fix
+	lattice.x.prettylog,
+	panel.identify.qqmath,
+	prepanel.qqmath.fix,
 	
 	## timeblob.R
 	timeblob,

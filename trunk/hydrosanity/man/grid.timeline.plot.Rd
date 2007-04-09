@@ -6,7 +6,7 @@
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-grid.timeline.plot(blob.list, xscale = NULL, colMap = list(good = "black", maybe = "orange", poor = "red"), thickness = unit(1.5, "lines"), maxLabelChars = 20, pad = unit(4, "mm"), grill = T, newpage = T)
+grid.timeline.plot(blob.list, xscale = NULL, colMap = list(good = "black", maybe = "orange", poor = "red"), thickness = unit(1.5, "lines"), maxLabelChars = 20, pad = unit(4, "mm"), grill = T, main = NULL, sub = T, newpage = T)
 
 grid.timeline.bar <- function(blob, colMap = NULL, name = "timeline.bar", vp = NULL)
 }
@@ -19,6 +19,8 @@ grid.timeline.bar <- function(blob, colMap = NULL, name = "timeline.bar", vp = N
   \item{maxLabelChars}{ ~~Describe \code{maxLabelChars} here~~ }
   \item{pad}{ ~~Describe \code{pad} here~~ }
   \item{grill}{ ~~Describe \code{grill} here~~ }
+  \item{main}{ ~~Describe \code{main} here~~ }
+  \item{sub}{ ~~Describe \code{sub} here~~ }
   \item{newpage}{ ~~Describe \code{newpage} here~~ }
   \item{blob}{ ~~Describe \code{blob} here~~ }
   \item{name}{ ~~Describe \code{name} here~~ }

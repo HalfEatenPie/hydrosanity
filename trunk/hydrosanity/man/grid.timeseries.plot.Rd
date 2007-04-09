@@ -7,9 +7,9 @@
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-grid.timeseries.plot(blob.list, xscale = NULL, yscale = NULL, sameScales = T, logScale = F, zeroLevel = NULL, maxLabelChars = 20, pad = unit(5, "mm"), superPos = 1, newScale = T, newpage = (superPos == 1), nSuperpose = 1, gp = gpar(col = colSet[superPos]), colSet = c("#0080ff", "#ff00ff", "darkgreen", "#ff0000", "orange", "#00ff00"))
+grid.timeseries.plot(blob.list, xscale = NULL, yscale = NULL, sameScales = T, logScale = F, maxLabelChars = 20, pad = unit(5, "mm"), superPos = 1, newScale = T, main = NULL, sub = T, newpage = (superPos == 1), nSuperpose = 1, gp = gpar(col = colSet[superPos]), colSet = c("#0080ff", "#ff00ff", "darkgreen", "#ff0000", "orange", "#00ff00"))
 
-grid.timeseries.plot.superpose(superpose.blob.list, ...)
+grid.timeseries.plot.superpose(superpose.blob.list, sameScalesGlobal = F, xscale = NULL, yscale = NULL, logScale = F, sub = T, ...)
 
 grid.timeseries.steps(blob, logScale = F, name = "timeseries", gp = NULL, vp = NULL)
 }
@@ -19,16 +19,18 @@ grid.timeseries.steps(blob, logScale = F, name = "timeseries", gp = NULL, vp = N
   \item{yscale}{ ~~Describe \code{yscale} here~~ }
   \item{sameScales}{ ~~Describe \code{sameScales} here~~ }
   \item{logScale}{ ~~Describe \code{logScale} here~~ }
-  \item{zeroLevel}{ ~~Describe \code{zeroLevel} here~~ }
   \item{maxLabelChars}{ ~~Describe \code{maxLabelChars} here~~ }
   \item{pad}{ ~~Describe \code{pad} here~~ }
   \item{superPos}{ ~~Describe \code{superPos} here~~ }
   \item{newScale}{ ~~Describe \code{newScale} here~~ }
+  \item{main}{ ~~Describe \code{main} here~~ }
+  \item{sub}{ ~~Describe \code{sub} here~~ }
   \item{newpage}{ ~~Describe \code{newpage} here~~ }
   \item{nSuperpose}{ ~~Describe \code{nSuperpose} here~~ }
   \item{gp}{ ~~Describe \code{gp} here~~ }
   \item{colSet}{ ~~Describe \code{colSet} here~~ }
   \item{superpose.blob.list}{ ~~Describe \code{superpose.blob.list} here~~ }
+  \item{sameScalesGlobal}{ ~~Describe \code{sameScalesGlobal} here~~ }
   \item{\dots}{ ~~Describe \code{\dots} here~~ }
   \item{blob}{ ~~Describe \code{blob} here~~ }
   \item{name}{ ~~Describe \code{blob} here~~ }

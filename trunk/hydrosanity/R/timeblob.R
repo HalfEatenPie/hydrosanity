@@ -228,15 +228,15 @@ window.timeblob <- function(blob, start=NULL, end=NULL, inclusive=F, return.indi
 		if (length(grep("^[0-9]", timestep)>0)) {
 			negTimestep <- paste("-", timestep, sep='')
 		}
-		if (start < start.timeblob(blob)) {
-			extendTimes <- seq.POSIXt(start.timeblob(blob), start, by=negTimestep)[-1]
+		if (start < start(blob)) {
+			extendTimes <- seq.POSIXt(start(blob), start, by=negTimestep)[-1]
 			extendTimes <- rev(extendTimes)
 			extendBlob <- blob[c(0,rep(NA,length(extendTimes))),]
 			extendBlob$Time <- extendTimes
 			blob <- rbind(extendBlob, blob)
 		}
-		if (end > end.timeblob(blob)) {
-			extendTimes <- seq.POSIXt(end.timeblob(blob), end, by=timestep)[-1]
+		if (end > end(blob)) {
+			extendTimes <- seq.POSIXt(end(blob), end, by=timestep)[-1]
 			extendBlob <- blob[c(0,rep(NA,length(extendTimes))),]
 			extendBlob$Time <- extendTimes
 			blob <- rbind(blob, extendBlob)
@@ -290,14 +290,14 @@ sync.timeblobs <- function(blob.list, timestep=NULL, timelim=NULL, extractColumn
 	} else {
 		timelim <- as.POSIXct(timelim)
 		if (any(is.na(timelim))) { stop("'timelim' must be a pair of valid times (POSIXt)") }
-		blob.list <- lapply(blob.list, window.timeblob, min(timelim), max(timelim))
+		blob.list <- lapply(blob.list, window, min(timelim), max(timelim))
 	}
 	# setup
-	n <- length(blob.list)
 	if (is.null(timestep)) {
 		timestep <- common.timestep.timeblobs(blob.list)
 	}
-	times <- seq.POSIXt(min(timelim), max(timelim), by=timestep)
+	times <- seq.POSIXt(start.timeblobs(blob.list), end.timeblobs(blob.list), 
+		by=timestep)
 	syncData <- data.frame(
 		Time=times,
 		lapply(blob.list, function(x) {
@@ -335,8 +335,8 @@ matchtimes.timeblob <- function(blob, times) {
 	periodIndices <- rep(as.integer(NA), length(times))
 	# each blob here may be outside 'times', and may be empty
 	if ((nrow(blob)==0)
-	  || (start.timeblob(blob) > times[length(times)])
-	  || (end.timeblob(blob) < times[1])) {
+	  || (start(blob) > times[length(times)])
+	  || (end(blob) < times[1])) {
 		return(periodIndices)
 	}
 	# each blob here is not entirely outside 'times'
@@ -375,10 +375,10 @@ summary.missing.timeblobs <- function(blob.list, timelim=NULL, timestep=NULL) {
 	} else {
 		timelim <- as.POSIXct(timelim)
 		if (any(is.na(timelim))) { stop("'timelim' must be a pair of valid times (POSIXt)") }
-		blob.list <- lapply(blob.list, window.timeblob, timelim[1], timelim[2])
+		blob.list <- lapply(blob.list, window, timelim[1], timelim[2])
 	}
 	# setup
-	n <- length(blob.list)
+	nBlobs <- length(blob.list)
 	if (is.null(timestep)) {
 		timestep <- common.timestep.timeblobs(blob.list)
 	}
@@ -398,14 +398,14 @@ summary.missing.timeblobs <- function(blob.list, timelim=NULL, timestep=NULL) {
 	dataExistsMatrix <- !is.na(as.matrix(dataMatrix[-1]))
 	
 	activeNs <- apply(dataExistsMatrix, 1, sum)
-	allActiveSteps <- sum(activeNs == n)
+	allActiveSteps <- sum(activeNs == nBlobs)
 	allActiveFrac <- allActiveSteps / length(times)
 	activeNQ <- quantile(activeNs, probs=c(0.25, 0.5, 0.75))
-	activeNQFrac <- activeNQ / n
+	activeNQFrac <- activeNQ / nBlobs
 	
 	cat(sprintf('Overall, %.0f%% of data is missing.\n', (1-overallDataFrac)*100))
 	cat(sprintf('There are %i time series, of which %i %s complete.\n', 
-		n, myCompleteN, ifelse(myCompleteN==1,'is','are')))
+		nBlobs, myCompleteN, ifelse(myCompleteN==1,'is','are')))
 	cat(sprintf('...%i %s > 95%% complete and %i %s > 75%% complete.\n', 
 		my95PctN, ifelse(my95PctN==1,'is','are'), my75PctN, ifelse(my75PctN==1,'is','are')))
 	cat('\n')

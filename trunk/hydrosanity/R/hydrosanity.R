@@ -52,6 +52,7 @@ hydrosanity <- function() {
 		win=list(),
 		win.gui=list(),
 		call=list(),
+		id.call=list(),
 		modified=F,
 		update=list(
 			import=T,
@@ -299,6 +300,12 @@ evalCallArgs <- function(myCall, pattern=".*") {
 		}
 	}
 	return(myCall)
+}
+
+timestepTimeFormat <- function(timestep) {
+	if (length(grep("month", timestep))>0) { return("%Y-%b") }
+	if (length(grep("year", timestep))>0) { return("%Y") }
+	return("")
 }
 
 getStem <- function(path) {

@@ -11,7 +11,8 @@ setPlotDevice <- function(name) {
 		if (require("cairoDevice", quietly=TRUE)) {
 			newCairoWindow(name)
 		} else {
-			do.call(getOption("device"), list())
+			#do.call(getOption("device"), list())
+			trellis.device()
 		}
 		.hydrosanity$dev[[name]] <<- dev.cur()
 	}
@@ -33,24 +34,41 @@ newCairoWindow <- function(name) {
 	.hydrosanity$win[[name]] <<- plotGUI$getWidget("plot_window")
 	newDev <- plotGUI$getWidget("drawingarea")
 	asCairoDevice(newDev)
+	trellis.device(new=F)
 	myWin$setTitle(paste("Hydrosanity: ", name, " plot", sep=''))
 }
 
 setCairoWindowButtons <- function(name, identify=NA, centre=NA, zoomin=NA, zoomout=zoomin, log=NA, setperiod=NA) {
 	# check that the window exists
 	if (is.null(.hydrosanity$win[[name]])) { return() }
+	myGUI <- .hydrosanity$win.gui[[name]]
 	# first set the call to NULL so that toggle-button updates can be ignored
 	.hydrosanity$call[[name]] <<- NULL
 	# set which buttons are visible
-	.hydrosanity$win.gui[[name]]$getWidget("plot_identify_button")$setSensitive(!is.na(identify))
-	.hydrosanity$win.gui[[name]]$getWidget("plot_centre_button")$setSensitive(!is.na(centre))
-	.hydrosanity$win.gui[[name]]$getWidget("plot_zoomin_button")$setSensitive(!is.na(zoomin))
-	.hydrosanity$win.gui[[name]]$getWidget("plot_zoomout_button")$setSensitive(!is.na(zoomout))
-	.hydrosanity$win.gui[[name]]$getWidget("plot_log_togglebutton")$setSensitive(!is.na(log))
-	.hydrosanity$win.gui[[name]]$getWidget("plot_setperiod_button")$setSensitive(!is.na(setperiod))
+	if (!is.na(identify)) { myGUI$getWidget("plot_identify_button")$show() }
+	if (!is.na(centre)) { myGUI$getWidget("plot_centre_button")$show() }
+	if (!is.na(zoomin)) { myGUI$getWidget("plot_zoomin_button")$show() }
+	if (!is.na(zoomout)) { myGUI$getWidget("plot_zoomout_button")$show() }
+	if (!is.na(setperiod)) { myGUI$getWidget("plot_setperiod_button")$show() }
 	if (!is.na(log)) {
-		.hydrosanity$win.gui[[name]]$getWidget("plot_log_togglebutton")$setActive(log)
+		myGUI$getWidget("plot_log_togglebutton")$show()
+		myGUI$getWidget("plot_log_togglebutton")$setActive(log)
 	}
+	saveMenu <- gtkMenu()
+	saveItemPDF <- gtkMenuItem("PDF")
+	saveItemPNG <- gtkMenuItem("PNG (bitmap)")
+	saveItemPS <- gtkMenuItem("PostScript")
+	saveMenu$append(saveItemPDF)
+	saveMenu$append(saveItemPNG)
+	saveMenu$append(saveItemPS)
+	myGUI$getWidget("plot_save_button")$setMenu(saveMenu)
+	myWin <- .hydrosanity$win[[name]]
+	gSignalConnect(saveItemPDF, "activate", .hs_on_plot_save_button_clicked, 
+		data=list(win=myWin, ext="pdf"))
+	gSignalConnect(saveItemPNG, "activate", .hs_on_plot_save_button_clicked, 
+		data=list(win=myWin, ext="png"))
+	gSignalConnect(saveItemPS, "activate", .hs_on_plot_save_button_clicked, 
+		data=list(win=myWin, ext="ps"))
 }
 
 .hs_on_plot_delete_event <- function(widget, event, user.data) {
@@ -63,6 +81,7 @@ setCairoWindowButtons <- function(name, identify=NA, centre=NA, zoomin=NA, zoomo
 		myName <- names(.hydrosanity$win)[myIndex]
 		.hydrosanity$dev[[myName]] <<- NULL
 		.hydrosanity$call[[myName]] <<- NULL
+		.hydrosanity$id.call[[myName]] <<- NULL
 		.hydrosanity$win[[myName]] <<- NULL
 		.hydrosanity$win.gui[[myName]] <<- NULL
 	}
@@ -81,18 +100,62 @@ setCairoWindowButtons <- function(name, identify=NA, centre=NA, zoomin=NA, zoomo
 	myName <- names(.hydrosanity$win)[myIndex]
 	myCall <- .hydrosanity$call[[myName]]
 	if (is.null(myCall$xscale)) {
-		.hs_on_timeperiod_reset_button_clicked()
+		guiDo(hsp$timePeriod <- NULL)
+		timeperiodModificationUpdate()
 		return()
 	}
 	timelim <- as.POSIXct(myCall$xscale)
-	periodString <- paste(format(round(timelim, "days")), collapse=" to ")
-	theWidget("timeperiod_chosenperiod_entry")$setText(periodString)
-	.hs_on_timeperiod_updateperiod_button_clicked()
-	infoDialog("Set time period for analysis: ", periodString)
+	myTimeStrings <- format(round(timelim, "days"))
+	addLogComment("Set time period for analysis")
+	guiDo(isExpression=T, bquote(
+		hsp$timePeriod <- as.POSIXct(.(myTimeStrings))
+	))
+	infoDialog("Set time period for analysis: ",
+		paste(myTimeStrings, collapse=" to "), restore=F)
+	timeperiodModificationUpdate()
 }
 
 .hs_on_plot_identify_button_clicked <- function(button) {
-	infoDialog("not implemented")
+	# look up information about this window in '.hydrosanity'
+	myWin <- button$getParent()$getParent()$getParent()
+	myIndex <- NA
+	for (i in seq(along=.hydrosanity$win)) {
+		if (myWin == .hydrosanity$win[[i]]) { myIndex <- i; break }
+	}
+	if (is.na(myIndex)) { return() }
+	myName <- names(.hydrosanity$win)[myIndex]
+	# disable other plot buttons until this is over
+	myToolbar <- .hydrosanity$win.gui[[myName]]$getWidget("toolbar")
+	myToolbar$setSensitive(F)
+	on.exit(myToolbar$setSensitive(T))
+	# switch to this device
+	oldDev <- dev.cur()
+	on.exit(dev.set(oldDev), add=T)
+	dev.set(.hydrosanity$dev[[myName]])
+	# do identify
+	idCall <- .hydrosanity$id.call[[myName]]
+	if (is.null(idCall)) {
+		errorDialog("Do not know how to identify data points here.")
+		return()
+	}
+	#infoDialog("Click on the plot (with left mouse button) to label data points. You <b>must</b> click on the plot with the <b>right mouse button</b> to finish. If you do not, the program will freeze.", restore=F)
+	# set up prompts
+	pad <- unit(2, "mm")
+	promptGrob <- textGrob("", 
+		y=unit(1,"npc")-pad, just="top",
+		gp=gpar(fontface="bold"), name="tmp.prompt")
+	promptBoxGrob <- rectGrob(
+		height=grobHeight(promptGrob)+pad*2,
+		y=unit(1,"npc"), just="top", 
+		gp=gpar(col="black", fill="yellow"),
+		name="tmp.promptbox")
+	grid.draw(promptBoxGrob)
+	grid.draw(editGrob(promptGrob, label="Identifying data points... Click the right mouse button to finish."))
+	trellis.focus("panel", 1, 1)
+	idCall$cex <- 0.6
+	eval(idCall)
+	grid.remove("tmp.*", grep=T, global=T, redraw=F)
+	trellis.unfocus()
 }
 
 .hs_on_plot_centre_button_clicked <- function(button) {
@@ -104,40 +167,52 @@ setCairoWindowButtons <- function(name, identify=NA, centre=NA, zoomin=NA, zoomo
 	}
 	if (is.na(myIndex)) { return() }
 	myName <- names(.hydrosanity$win)[myIndex]
-	depth <- try(downViewport("time.vp"), silent=T)
-	if (inherits(depth, "try-error")) {
-		errorDialog("No suitable time scales were found.")
-		return()
-	}
-	xscale <- as.numeric(convertX(unit(c(0,1), "npc"), "native"))
-	upViewport(depth)
-	# display prompt to user (in top-level plot)
+	myCallName <- deparse(.hydrosanity$call[[myName]][[1]])
+	# disable other plot buttons until this is over
+	myToolbar <- .hydrosanity$win.gui[[myName]]$getWidget("toolbar")
+	myToolbar$setSensitive(F)
+	on.exit(myToolbar$setSensitive(T))
+	# switch to this device
+	oldDev <- dev.cur()
+	on.exit(dev.set(oldDev), add=T)
+	dev.set(.hydrosanity$dev[[myName]])
+	# set up prompts
 	pad <- unit(2, "mm")
-	promptGrob <- textGrob("Click to move the time window", 
+	promptGrob <- textGrob("", 
 		y=unit(1,"npc")-pad, just="top",
 		gp=gpar(fontface="bold"), name="tmp.prompt")
-	promptBoxGrob <- rectGrob(width=grobWidth(promptGrob)+pad*2, 
+	promptBoxGrob <- rectGrob(
 		height=grobHeight(promptGrob)+pad*2,
 		y=unit(1,"npc"), just="top", 
 		gp=gpar(col="black", fill="yellow"),
 		name="tmp.promptbox")
-	grid.draw(promptBoxGrob)
-	grid.draw(promptGrob)
-	# get new centre point
-	downViewport("time.vp")
-	clickLoc <- grid.locator()
-	upViewport(depth)
-	if (is.null(clickLoc)) {
+	# get new scales interactively
+	if (myCallName %in% c("grid.timeseries.plot",
+		"grid.timeseries.plot.superpose", "grid.timeline.plot")) {
+		# x (time) scale only
+		depth <- downViewport("time.vp")
+		xscale <- as.numeric(convertX(unit(c(0,1), "npc"), "native"))
+		plotVpp <- current.vpPath()
+		upViewport(depth)
+		# display prompt to user (in top-level viewport)
+		grid.draw(promptBoxGrob)
+		grid.draw(editGrob(promptGrob, label="Click to move the time window"))
+		# get new centre point
+		downViewport(plotVpp)
+		clickLoc <- grid.locator()
+		upViewport(depth)
+		if (is.null(clickLoc)) {
+			grid.remove("tmp.*", grep=T, global=T)
+			return()
+		}
+		xscale.new <- as.numeric(clickLoc$x) + diff(xscale) * c(-0.5, 0.5)
+		xscale.new <- as.POSIXct(xscale.new)
+		.hydrosanity$call[[myName]]$xscale <<- xscale.new
+	} else {
+		errorDialog("Do not know how to interact with ", myCallName)
 		return()
 	}
-	xscale.new <- as.numeric(clickLoc$x) + diff(xscale) * c(-0.5, 0.5)
-	xscale.new <- as.POSIXct(xscale.new)
-	# update the call (using do.call to force eval of args) and re-draw plot
-	.hydrosanity$call[[myName]] <<- do.call(update, list(
-		list(call=.hydrosanity$call[[myName]]), 
-		xscale=xscale.new,
-		evaluate=F)
-	)
+	# re-draw plot
 	tmp <- eval(.hydrosanity$call[[myName]])
 	if (identical(class(tmp), "trellis")) { print(tmp) }
 }
@@ -151,63 +226,136 @@ setCairoWindowButtons <- function(name, identify=NA, centre=NA, zoomin=NA, zoomo
 	}
 	if (is.na(myIndex)) { return() }
 	myName <- names(.hydrosanity$win)[myIndex]
-	depth <- try(downViewport("time.vp"), silent=T)
-	if (inherits(depth, "try-error")) {
-		errorDialog("No suitable time scales were found.")
-		return()
-	}
-	xscale <- convertX(unit(c(0,1), "npc"), "native")
-	timeVpPath <- current.vpPath()
-	upViewport(depth)
-	# display prompt to user (in top-level plot)
+	myCallName <- deparse(.hydrosanity$call[[myName]][[1]])
+	# disable other plot buttons until this is over
+	myToolbar <- .hydrosanity$win.gui[[myName]]$getWidget("toolbar")
+	myToolbar$setSensitive(F)
+	on.exit(myToolbar$setSensitive(T))
+	# switch to this device
+	oldDev <- dev.cur()
+	on.exit(dev.set(oldDev), add=T)
+	dev.set(.hydrosanity$dev[[myName]])
+	# set up prompts
 	pad <- unit(2, "mm")
-	promptGrob <- textGrob("Click at the start of the window (to zoom in to) ", 
+	promptGrob <- textGrob("", 
 		y=unit(1,"npc")-pad, just="top",
 		gp=gpar(fontface="bold"), name="tmp.prompt")
-	promptBoxGrob <- rectGrob(width=grobWidth(promptGrob)+pad*2, 
+	promptBoxGrob <- rectGrob(
 		height=grobHeight(promptGrob)+pad*2,
 		y=unit(1,"npc"), just="top", 
 		gp=gpar(col="black", fill="yellow"),
 		name="tmp.promptbox")
-	grid.draw(promptBoxGrob)
-	grid.draw(promptGrob)
-	# get start time
-	downViewport("time.vp")
-	clickLoc <- grid.locator()
-	upViewport(depth)
-	if (is.null(clickLoc)) {
-		grid.remove("tmp.*", grep=T, global=T)
+	maskGrob <- rectGrob(
+		gp=gpar(col="grey", fill=rgb(0.5,0.5,0.5, alpha=0.5)), 
+		name="tmp.mask")
+	# get new scales interactively
+	if (myCallName %in% c("grid.timeseries.plot",
+		"grid.timeseries.plot.superpose", "grid.timeline.plot")) {
+		# x (time) scale only
+		depth <- downViewport("time.vp")
+		xscale <- convertX(unit(c(0,1), "npc"), "native")
+		plotVpp <- current.vpPath()
+		upViewport(depth)
+		# display prompt to user (in top-level viewport)
+		grid.draw(promptBoxGrob)
+		grid.draw(editGrob(promptGrob, label="Click at the start of the window (to zoom in to) "))
+		# get start time
+		downViewport(plotVpp)
+		clickLoc <- grid.locator()
+		upViewport(depth)
+		if (is.null(clickLoc)) {
+			grid.remove("tmp.*", grep=T, global=T)
+			return()
+		}
+		xscale.new <- as.POSIXct.numeric(clickLoc$x)
+		grid.draw(editGrob(maskGrob, x=unit(0,"npc"), 
+			width=(clickLoc$x - xscale[1]), just="left", vp=plotVpp))
+		# display second prompt
+		grid.draw(promptBoxGrob)
+		grid.draw(editGrob(promptGrob, label="OK, now click at the end of the window"))
+		# get end time
+		downViewport(plotVpp)
+		clickLoc <- grid.locator()
+		upViewport(depth)
+		if (is.null(clickLoc)) {
+			grid.remove("tmp.*", grep=T, global=T)
+			return()
+		}
+		xscale.new[2] <- as.POSIXct.numeric(clickLoc$x)
+		grid.draw(editGrob(maskGrob, x=unit(1,"npc"),
+			width=(xscale[2] - clickLoc$x), just="right", vp=plotVpp))
+		.hydrosanity$call[[myName]]$xscale <<- xscale.new
+	} else
+	if (myCallName %in% c("xyplot", "bwplot", "stripplot", "qqmath", "qq")) {
+		# x and y scales
+		depth <- downViewport(trellis.vpname("panel", 1, 1))
+		xscale <- convertX(unit(c(0,1), "npc"), "native")
+		yscale <- convertY(unit(c(0,1), "npc"), "native")
+		plotVpp <- current.vpPath()
+		upViewport(depth)
+		# display prompt to user (in top-level viewport)
+		grid.draw(promptBoxGrob)
+		grid.draw(editGrob(promptGrob, label="Click at the bottom-left corner of the region to zoom in to "))
+		# get lower limits
+		downViewport(plotVpp)
+		clickLoc <- grid.locator()
+		upViewport(depth)
+		if (is.null(clickLoc)) {
+			grid.remove("tmp.*", grep=T, global=T)
+			return()
+		}
+		xscale.new <- clickLoc$x
+		yscale.new <- clickLoc$y
+		grid.draw(editGrob(maskGrob, 
+			x=unit(0,"npc"), width=(xscale.new[1] - xscale[1]), 
+			just="left", vp=plotVpp))
+		grid.draw(editGrob(maskGrob, 
+			y=unit(0,"npc"), height=(yscale.new[1] - yscale[1]),
+			x=unit(1,"npc"), width=(xscale[2] - xscale.new[1]),
+			just=c("right", "bottom"), vp=plotVpp))
+		# display second prompt
+		grid.draw(promptBoxGrob)
+		grid.draw(editGrob(promptGrob, label="OK, now click at the top-right corner"))
+		# get upper limits
+		downViewport(plotVpp)
+		clickLoc <- grid.locator()
+		upViewport(depth)
+		if (is.null(clickLoc)) {
+			grid.remove("tmp.*", grep=T, global=T)
+			return()
+		}
+		xscale.new[2] <- clickLoc$x
+		yscale.new[2] <- clickLoc$y
+		grid.draw(editGrob(maskGrob, 
+			x=unit(1,"npc"), width=(xscale[2] - xscale.new[2]), 
+			y=unit(1,"npc"), height=(yscale[2] - yscale.new[1]),
+			just=c("right", "top"), vp=plotVpp))
+		grid.draw(editGrob(maskGrob, 
+			y=unit(1,"npc"), height=(yscale[2] - yscale.new[2]),
+			x=xscale.new[2], width=(xscale.new[2] - xscale.new[1]),
+			just=c("right", "top"), vp=plotVpp))
+		# convert back from log scale if required
+		xscale <- as.numeric(xscale.new)
+		yscale <- as.numeric(yscale.new)
+		myScalesArg <- .hydrosanity$call[[myName]]$scales
+		if (!is.null(myScalesArg$log) && myScalesArg$log) {
+			xscale <- 10 ^ xscale
+			yscale <- 10 ^ yscale
+		} else {
+			if (!is.null(myScalesArg$x$log) && myScalesArg$x$log) {
+				xscale <- 10 ^ xscale
+			}
+			if (!is.null(myScalesArg$y$log) && myScalesArg$y$log) {
+				yscale <- 10 ^ yscale
+			}
+		}
+		.hydrosanity$call[[myName]]$xlim <<- xscale
+		.hydrosanity$call[[myName]]$ylim <<- yscale
+	} else {
+		errorDialog("Do not know how to interact with ", myCallName)
 		return()
 	}
-	xscale.new <- as.POSIXct.numeric(clickLoc$x)
-	maskGrob <- rectGrob(x=0, width=(clickLoc$x - xscale[1]), just="left", 
-		gp=gpar(col=NULL, fill="grey", alpha=0.5), 
-		vp=timeVpPath, name="tmp.mask")
-	grid.draw(maskGrob)
-	grid.lines(x=clickLoc$x, vp=timeVpPath, name="tmp.maskline")
-	# display second prompt
-	promptGrob <- editGrob(promptGrob, label="OK, now click at the end of the window")
-	promptBoxGrob <- editGrob(promptBoxGrob, gp=gpar(alpha=1))
-	grid.draw(promptBoxGrob)
-	grid.draw(promptGrob)
-	# get end time
-	downViewport("time.vp")
-	clickLoc <- grid.locator()
-	upViewport(depth)
-	if (is.null(clickLoc)) {
-		grid.remove("tmp.*", grep=T, global=T)
-		return()
-	}
-	xscale.new[2] <- as.POSIXct.numeric(clickLoc$x)
-	grid.draw(editGrob(maskGrob, x=unit(1,"npc"),
-		width=(xscale[2] - clickLoc$x), just="right"))
-	grid.lines(x=clickLoc$x, vp=timeVpPath, name="tmp.maskline2")
-	# update the call (using do.call to force eval of args) and re-draw plot
-	.hydrosanity$call[[myName]] <<- do.call(update, list(
-		list(call=.hydrosanity$call[[myName]]), 
-		xscale=force(xscale.new),
-		evaluate=F)
-	)
+	# re-draw plot
 	tmp <- eval(.hydrosanity$call[[myName]])
 	if (identical(class(tmp), "trellis")) { print(tmp) }
 }
@@ -221,22 +369,53 @@ setCairoWindowButtons <- function(name, identify=NA, centre=NA, zoomin=NA, zoomo
 	}
 	if (is.na(myIndex)) { return() }
 	myName <- names(.hydrosanity$win)[myIndex]
-	depth <- try(downViewport("time.vp"), silent=T)
-	if (inherits(depth, "try-error")) {
-		errorDialog("No suitable time scales were found.")
-		return()
+	myCallName <- deparse(.hydrosanity$call[[myName]][[1]])
+	# disable other plot buttons until this is over
+	myToolbar <- .hydrosanity$win.gui[[myName]]$getWidget("toolbar")
+	myToolbar$setSensitive(F)
+	on.exit(myToolbar$setSensitive(T))
+	# switch to this device
+	oldDev <- dev.cur()
+	on.exit(dev.set(oldDev), add=T)
+	dev.set(.hydrosanity$dev[[myName]])
+	# find existing scales and update call
+	if (myCallName %in% c("grid.timeseries.plot",
+		"grid.timeseries.plot.superpose", "grid.timeline.plot")) {
+		# x (time) scale only
+		depth <- downViewport("time.vp")
+		xscale <- as.numeric(convertX(unit(c(0,1), "npc"), "native"))
+		upViewport(depth)
+		xscale <- xscale + diff(xscale) * c(-0.5, 0.5)
+		xscale <- as.POSIXct(xscale)
+		.hydrosanity$call[[myName]]$xscale <<- xscale
+	} else
+	if (myCallName %in% c("xyplot", "bwplot", "stripplot", "qqmath", "qq")) {
+		# x and y scales
+		depth <- downViewport(trellis.vpname("panel", 1, 1))
+		xscale <- as.numeric(convertX(unit(c(0,1), "npc"), "native"))
+		yscale <- as.numeric(convertY(unit(c(0,1), "npc"), "native"))
+		upViewport(depth)
+		xscale <- xscale + diff(xscale) * c(-0.5, 0.5)
+		yscale <- yscale + diff(yscale) * c(-0.5, 0.5)
+		# convert back from log scale if required
+		myScalesArg <- .hydrosanity$call[[myName]]$scales
+		if (!is.null(myScalesArg$log) && myScalesArg$log) {
+			xscale <- 10 ^ xscale
+			yscale <- 10 ^ yscale
+		} else {
+			if (!is.null(myScalesArg$x$log) && myScalesArg$x$log) {
+				xscale <- 10 ^ xscale
+			}
+			if (!is.null(myScalesArg$y$log) && myScalesArg$y$log) {
+				yscale <- 10 ^ yscale
+			}
+		}
+		.hydrosanity$call[[myName]]$xlim <<- xscale
+		.hydrosanity$call[[myName]]$ylim <<- yscale
+	} else {
+		errorDialog("Do not know how to interact with ", myCallName)
 	}
-	xscale <- as.numeric(convertX(unit(c(0,1), "npc"), "native"))
-	upViewport(depth)
-	# make new xscale twice length of existing time period
-	xscale.new <- xscale + diff(xscale) * c(-0.5, 0.5)
-	xscale.new <- as.POSIXct(xscale.new)
-	# update the call (using do.call to force eval of args) and re-draw plot
-	.hydrosanity$call[[myName]] <<- do.call(update, list(
-		list(call=.hydrosanity$call[[myName]]), 
-		xscale=xscale.new,
-		evaluate=F)
-	)
+	# re-draw plot
 	tmp <- eval(.hydrosanity$call[[myName]])
 	if (identical(class(tmp), "trellis")) { print(tmp) }
 }
@@ -252,32 +431,89 @@ setCairoWindowButtons <- function(name, identify=NA, centre=NA, zoomin=NA, zoomo
 	if (is.na(myIndex)) { return() }
 	myName <- names(.hydrosanity$win)[myIndex]
 	myCallName <- deparse(.hydrosanity$call[[myName]][[1]])
-	if (myCallName == "grid.timeline.plot") { return() }
-	# get new value of log argument
+	# disable other plot buttons until this is over
+	myToolbar <- .hydrosanity$win.gui[[myName]]$getWidget("toolbar")
+	myToolbar$setSensitive(F)
+	on.exit(myToolbar$setSensitive(T))
+	# get new log setting
 	logScale <- button$getActive()
-	# update the call (using do.call to force eval of args) and re-draw plot
+	# switch to this device
+	oldDev <- dev.cur()
+	on.exit(dev.set(oldDev), add=T)
+	dev.set(.hydrosanity$dev[[myName]])
+	# update the call and re-draw plot
+	if (myName %in% "correlation") {
+		# log applies to both x and y scales
+		.hydrosanity$call[[myName]]$scales$log <<- logScale
+	} else
 	if (myCallName %in% c("xyplot", "bwplot", "stripplot", "qqmath", "qq")) {
-		# lattice plots
-		myScalesArg <- eval(.hydrosanity$call[[myName]]$scales)
-		myScalesArg$y$log <- logScale
-		.hydrosanity$call[[myName]] <<- do.call(update, list(
-			list(call=.hydrosanity$call[[myName]]), 
-			scales=myScalesArg,
-			evaluate=F)
-		)
-	}
+		# lattice plots, log applies to y scale only
+		.hydrosanity$call[[myName]]$scales$y$log <<- logScale
+	} else
 	if (myCallName %in% c("grid.timeseries.plot", "grid.timeseries.plot.superpose")) {
-		.hydrosanity$call[[myName]] <<- do.call(update, list(
-			list(call=.hydrosanity$call[[myName]]), 
-			logScale=logScale,
-			evaluate=F)
-		)
+		.hydrosanity$call[[myName]]$logScale <<- logScale
 	}
 	tmp <- eval(.hydrosanity$call[[myName]])
 	if (identical(class(tmp), "trellis")) { print(tmp) }
 }
 
-.hs_on_plot_save_button_clicked <- function(button) {
+.hs_on_plot_save_button_clicked <- function(button, data=NULL) {
+	# look up information about this window in '.hydrosanity'
+	myWin <- button$getParent()$getParent()$getParent()
+	if (!is.null(data)) { myWin <- data$win }
+	myIndex <- NA
+	for (i in seq(along=.hydrosanity$win)) {
+		if (myWin == .hydrosanity$win[[i]]) { myIndex <- i; break }
+	}
+	if (is.na(myIndex)) { return() }
+	myName <- names(.hydrosanity$win)[myIndex]
+	# disable other plot buttons until this is over
+	myToolbar <- .hydrosanity$win.gui[[myName]]$getWidget("toolbar")
+	myToolbar$setSensitive(F)
+	on.exit(myToolbar$setSensitive(T))
+	# get filename
+	myExt <- if (!is.null(data)) { data$ext } else { 'pdf' }
+	myDefault <- paste(myName, '.', myExt, sep='')
+	filename <- choose.file.save(myDefault, caption="Save plot (pdf/png/ps)", 
+		filters=Filters[c("pdf","png","ps"),],
+		index=match(myExt, c("pdf","png","ps"))
+	)
+	myWin$present()
+	if (is.na(filename)) { return() }
+	if (get.extension(filename) == "") {
+		filename <- sprintf("%s.pdf", filename)
+	}
+	# switch to this device
+	oldDev <- dev.cur()
+	on.exit(dev.set(oldDev), add=T)
+	dev.set(.hydrosanity$dev[[myName]])
+	# save plot to file
+	mySize <- .hydrosanity$win.gui[[myName]]$getWidget("drawingarea")$getAllocation()
+	myWidth <- mySize$width
+	myHeight <- mySize$height
+	myScale <- min(7/myWidth, 7/myHeight)
+	ext <- get.extension(filename)
+	if (ext %in% "pdf") {
+		dev.copy(pdf, file=filename, width=myWidth*myScale, height=myHeight*myScale)
+		dev.off()
+	}
+	else if (ext %in% c("ps", "eps")) {
+		dev.copy(postscript, file=filename, width=myWidth*myScale, height=myHeight*myScale)
+		dev.off()
+	}
+	else if (ext %in% "png") {
+		dev.copy(png, file=filename, width=myWidth, height=myHeight)
+		dev.off()
+	}
+	else {
+		errorDialog("Unrecognised filename extension", restore=F)
+		return()
+	}
+	myWin$present()
+	setStatusBar("Saved plot to ", filename)
+}
+
+.hs_on_plot_greyscale_togglebutton_clicked <- function(button) {
 	# look up information about this window in '.hydrosanity'
 	myWin <- button$getParent()$getParent()$getParent()
 	myIndex <- NA
@@ -286,50 +522,24 @@ setCairoWindowButtons <- function(name, identify=NA, centre=NA, zoomin=NA, zoomo
 	}
 	if (is.na(myIndex)) { return() }
 	myName <- names(.hydrosanity$win)[myIndex]
-	
-	myDefault <- paste(myName, '.pdf', sep='')
-	filename <- choose.file.save(myDefault, caption="Save plot (pdf/ps/png/jpg)", 
-		filters=Filters[c("pdf","ps","png","jpeg"),])
-	myWin$present()
-	if (is.na(filename)) { return() }
-	
-	if (get.extension(filename) == "") {
-		filename <- sprintf("%s.pdf", filename)
+	# disable other plot buttons until this is over
+	myToolbar <- .hydrosanity$win.gui[[myName]]$getWidget("toolbar")
+	myToolbar$setSensitive(F)
+	on.exit(myToolbar$setSensitive(T))
+	# get new greyscale setting
+	greyscale <- button$getActive()
+	# switch to this device
+	oldDev <- dev.cur()
+	on.exit(dev.set(oldDev), add=T)
+	dev.set(.hydrosanity$dev[[myName]])
+	# make change and re-draw plot
+	if (greyscale) {
+		trellis.device(new=F, color=F)
+	} else {
+		trellis.device(new=F)
 	}
-	
-	mySize <- .hydrosanity$win.gui[[myName]]$getWidget("drawingarea")$getAllocation()
-	myWidth <- mySize$width
-	myHeight <- mySize$height
-	myScale <- min(7/myWidth, 7/myHeight)
-	
-	ext <- get.extension(filename)
-	if (ext %in% "pdf") {
-		pdf(filename, width=myWidth*myScale, height=myHeight*myScale)
-	}
-	else if (ext %in% c("ps", "eps")) {
-		ps(filename, width=myWidth*myScale, height=myHeight*myScale)
-	}
-	else if (ext %in% "png") {
-		#oldDev <- dev.cur()
-		#dev.set(.hydrosanity$dev[[myName]])
-		#dev.copy(png, filename, width=myWidth*2, height=myHeight*2, pointsize=12*2, res=144)
-		png(filename, width=myWidth, height=myHeight)
-		#dev.set(oldDev)
-	}
-	else if (ext %in% c("jpeg", "jpg")) {
-		jpeg(filename, width=myWidth, height=myHeight, quality=95)
-	}
-	else {
-		errorDialog("Unrecognised filename extension")
-		return()
-	}
-	# draw plot from scratch on this device
 	tmp <- eval(.hydrosanity$call[[myName]])
 	if (identical(class(tmp), "trellis")) { print(tmp) }
-	dev.off()
-	
-	myWin$present()
-	setStatusBar("Saved plot to ", filename)
 }
 
 
@@ -485,7 +695,7 @@ questionDialog <- function(...) {
 	guiMessageDialog(type="question", ...)
 }
 
-guiMessageDialog <- function(type="info", ...) {
+guiMessageDialog <- function(type="info", ..., restore=T) {
 	myString <- paste(sep='', ...)
 	myString <- gsub('%', '%%', myString)
 	myString <- gsub('&&', '&amp;&amp;', myString)
@@ -502,14 +712,14 @@ guiMessageDialog <- function(type="info", ...) {
 		"destroy-with-parent", type, myButtons, myString)
 	result <- dialog$run() # make it modal
 	dialog$destroy()
-	theWidget("hs_window")$present()
+	if (restore) { theWidget("hs_window")$present() }
 	return(if (result == GtkResponseType["yes"]) { "yes" } else { NULL })
 }
 
 ## SAVE FILE DIALOG
 
 # returns character string, or NA if cancelled
-choose.file.save <- function(default="", caption="Save File", filters=Filters[c("All"),]) {
+choose.file.save <- function(default="", caption="Save File", filters=Filters[c("All"),], index=0) {
 	dialog <- gtkFileChooserDialog(caption, NULL, "save",
 		"gtk-cancel", GtkResponseType["cancel"],
 		"gtk-save", GtkResponseType["accept"])
@@ -526,6 +736,7 @@ choose.file.save <- function(default="", caption="Save File", filters=Filters[c(
 			ff$addPattern(x)
 		}
 		dialog$addFilter(ff)
+		if (i == index) { dialog$setFilter(ff) }
 	}
 	
 	#dialog$setDoOverwriteConfirmation(T) crap, appears behind filechooser
