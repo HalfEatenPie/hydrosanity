@@ -9,7 +9,7 @@
 \usage{
 grid.timeseries.plot(blob.list, xscale = NULL, yscale = NULL, sameScales = T, logScale = F, maxLabelChars = 20, pad = unit(5, "mm"), superPos = 1, newScale = T, main = NULL, sub = T, newpage = (superPos == 1), nSuperpose = 1, gp = gpar(col = colSet[superPos]), colSet = c("#0080ff", "#ff00ff", "darkgreen", "#ff0000", "orange", "#00ff00"))
 
-grid.timeseries.plot.superpose(superpose.blob.list, sameScalesGlobal = F, xscale = NULL, yscale = NULL, logScale = F, sub = T, ...)
+grid.timeseries.plot.superpose(superpose.blob.list, allSameScales = F, xscale = NULL, yscale = NULL, logScale = F, sub = T, ...)
 
 grid.timeseries.steps(blob, logScale = F, name = "timeseries", gp = NULL, vp = NULL)
 }
@@ -30,7 +30,7 @@ grid.timeseries.steps(blob, logScale = F, name = "timeseries", gp = NULL, vp = N
   \item{gp}{ ~~Describe \code{gp} here~~ }
   \item{colSet}{ ~~Describe \code{colSet} here~~ }
   \item{superpose.blob.list}{ ~~Describe \code{superpose.blob.list} here~~ }
-  \item{sameScalesGlobal}{ ~~Describe \code{sameScalesGlobal} here~~ }
+  \item{allSameScales}{ ~~Describe \code{allSameScales} here~~ }
   \item{\dots}{ ~~Describe \code{\dots} here~~ }
   \item{blob}{ ~~Describe \code{blob} here~~ }
   \item{name}{ ~~Describe \code{blob} here~~ }
