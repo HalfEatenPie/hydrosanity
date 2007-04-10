@@ -118,7 +118,7 @@ grid.timeline.bar <- function(blob, colMap=NULL, name="timeline.bar", vp=NULL) {
 }
 
 
-grid.timeseries.plot.superpose <- function(superpose.blob.list, sameScalesGlobal=F, xscale=NULL, yscale=NULL, logScale=F, sub=T, ...) {
+grid.timeseries.plot.superpose <- function(superpose.blob.list, allSameScales=F, xscale=NULL, yscale=NULL, logScale=F, sub=T, ...) {
 	# check types
 	if (!identical(class(superpose.blob.list),"list")) {
 		stop("'superpose.blob.list' must be a list of lists of timeblobs")
@@ -140,7 +140,7 @@ grid.timeseries.plot.superpose <- function(superpose.blob.list, sameScalesGlobal
 		}
 	}
 	# make common yscale
-	if (sameScalesGlobal && is.null(yscale)) {
+	if (allSameScales && is.null(yscale)) {
 		allRanges <- sapply.timeblob.data(
 			c(unlist(superpose.blob.list, recursive=F)), 
 			range, finite=T)

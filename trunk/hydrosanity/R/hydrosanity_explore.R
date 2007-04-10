@@ -127,7 +127,7 @@ updateExplorePage <- function() {
 	# plot scales and annotation specifications
 	plot.cmd$xscale <- quote(hsp$timePeriod)
 	plot.cmd$sameScales <- if (doCommonScale) { T } else { F }
-	plot.cmd$sameScalesGlobal <- if (doCommonScale && doSuperpose
+	plot.cmd$allSameScales <- if (doCommonScale && doSuperpose
 		&& (length(dataList) > 1)) { T }
 	
 	setPlotDevice("timeseries")
