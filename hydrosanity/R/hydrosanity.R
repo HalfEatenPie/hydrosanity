@@ -11,6 +11,7 @@ VERSION <- paste(MAJOR, MINOR, REVISION, sep=".")
 COPYRIGHT <- "(c) 2007 Felix Andrews <felix@nfrac.org>, GPL\n based on Rattle, (c) 2006 Graham.Williams@togaware.com"
 WEBSITE <- "http://code.google.com/p/hydrosanity/"
 
+
 ## LICENSE
 ##
 ## This program is free software; you can redistribute it and/or modify
@@ -35,6 +36,7 @@ WEBSITE <- "http://code.google.com/p/hydrosanity/"
 		c('read.timeblob',
 		  'skip=3, sep=",", dataname="Flow (ML/day)", timeFormat="%H:%M_%d/%m/%Y", na.strings=c(\'""\')')
 )
+if (!exists("APPWIN")) { APPWIN <- NA }
 
 hydrosanity <- function() {
 	require(grid, quietly=TRUE)
@@ -45,6 +47,9 @@ hydrosanity <- function() {
 	if (exists('.hydrosanity') && !is.null(.hydrosanity$GUI)) {
 		.hs_on_menu_quit_activate()
 	}
+	
+	# create empty project variable
+	hsp <<- list(data=list())
 	
 	# this global variable stores non-project state information
 	.hydrosanity <<- list(
@@ -65,21 +70,25 @@ hydrosanity <- function() {
 	
 	.hydrosanity$GUI <<- gladeXMLNew(getpackagefile("hydrosanity.glade"),
 		root="hs_window")
+	APPWIN <<- theWidget("hs_window")
 	
 	# connect the callbacks (event handlers)
 	gladeXMLSignalAutoconnect(.hydrosanity$GUI)
-	gSignalConnect(theWidget("hs_window"), "delete-event", .hs_on_menu_quit_activate)
+	gSignalConnect(APPWIN, "delete-event", .hs_on_menu_quit_activate)
 	
 	# set up log page
 	addInitialLogMessage()
 	
-	# create empty project variable
-	hsp <<- list(data=list())
+	theWidget("welcome_label")$setMarkup(paste(sep='',
+		'<span foreground="#660066"><big><b>Welcome to Hydrosanity</b></big></span>', 
+		' version ', VERSION, '\n', 
+		gsub('[<>]','',COPYRIGHT), '\n', 
+		'<tt>', WEBSITE, '</tt>'))
 	
 	# set up initial GUI state
 	theWidget("notebook")$setCurrentPage(0)
 	theWidget("import_file_radio_options_notebook")$setShowTabs(FALSE)
-	#theWidget("import_options_expander")$setExpanded(FALSE)
+	theWidget("import_options_expander")$setExpanded(FALSE)
 	theWidget("import_makechanges_expander")$setExpanded(FALSE)
 	
 	known_format_combo <- theWidget("import_known_format_combobox")
@@ -94,12 +103,14 @@ hydrosanity <- function() {
 	theWidget("import_makefactor_comboboxentry")$setActive(0)
 	theWidget("explore_timeseries_aggr1_comboboxentry")$setActive(2)
 	theWidget("explore_timeseries_aggr2_comboboxentry")$setActive(4)
+	theWidget("explore_timeseries_yearstart_combobox")$setActive(0)
 	theWidget("explore_cdf_aggr1_comboboxentry")$setActive(2)
 	theWidget("explore_cdf_aggr2_comboboxentry")$setActive(4)
 	theWidget("corr_smoothed_by_comboboxentry")$setActive(1)
+	theWidget("corr_relationplot_lag_comboboxentry")$setActive(0)
 	
-	setTextviewMonospace("log_textview")
-	setTextviewMonospace("impute_textview")
+	setTextviewMonospace(theWidget("log_textview"))
+	setTextviewMonospace(theWidget("impute_textview"))
 	
 	# set up table format on import page
 	importTreeView <- theWidget("import_summary_treeview")
@@ -116,7 +127,7 @@ hydrosanity <- function() {
 	insertTreeViewTextColumns(timeperiodTreeView, 
 		colNames=c("Name", "Min", "Q25", "Median", "Q75", "Max", "Missing", ""))
 	
-	theWidget("hs_window")$present()
+	APPWIN$present()
 }
 
 
@@ -165,26 +176,26 @@ timeperiodModificationUpdate <- function() {
 
 
 .hs_on_notebook_switch_page <- function(widget, page, page.num, ...) {
-	theWidget("hs_window")$setSensitive(F)
-	on.exit(theWidget("hs_window")$setSensitive(T))
+	APPWIN$setSensitive(F)
+	on.exit(APPWIN$setSensitive(T))
 	setStatusBar("")
 	
-	if (page.num == 0) {
+	if (page.num == 1) {
 		if (.hydrosanity$update$import) { updateImportPage() }
 	}
-	if (page.num == 1) {
+	if (page.num == 2) {
 		if (.hydrosanity$update$timeperiod) { updateTimePeriodPage() }
 	}
-	if (page.num == 2) {
+	if (page.num == 3) {
 		if (.hydrosanity$update$explore) { updateExplorePage() }
 	}
-	if (page.num == 3) {
+	if (page.num == 4) {
 		if (.hydrosanity$update$impute) { updateImputePage() }
 	}
-	if (page.num == 4) {
+	if (page.num == 5) {
 		if (.hydrosanity$update$corr) { updateCorrPage() }
 	}
-	theWidget("hs_window")$present()
+	APPWIN$present()
 }
 
 
@@ -198,7 +209,7 @@ timeperiodModificationUpdate <- function() {
 	for (x in .hydrosanity$win) {
 		try(x$destroy(), silent=TRUE)
 	}
-	theWidget("hs_window")$destroy()
+	APPWIN$destroy()
 	.hydrosanity$GUI <<- NULL
 }
 
@@ -212,20 +223,20 @@ timeperiodModificationUpdate <- function() {
 }
 
 .hs_on_export_log_button_clicked <- function(button) {
-	theWidget("hs_window")$setSensitive(F)
-	on.exit(theWidget("hs_window")$setSensitive(T))
+	APPWIN$setSensitive(F)
+	on.exit(APPWIN$setSensitive(T))
 	setStatusBar("")
 	
 	filename <- choose.file.save("log.R", caption="Export Log", 
 		filters=Filters[c("R","txt","All"),])
-	theWidget("hs_window")$present()
+	APPWIN$present()
 	if (is.na(filename)) { return() }
 	
 	if (get.extension(filename) == "") {
 		filename <- sprintf("%s.R", filename)
 	}
 	
-	write(getTextviewText("log_textview"), filename)
+	write(getTextviewText(theWidget("log_textview")), filename)
 	
 	setStatusBar("The log has been exported to", filename)
 }

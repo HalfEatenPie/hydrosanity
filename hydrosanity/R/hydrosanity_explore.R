@@ -7,12 +7,12 @@ updateExplorePage <- function() {
 	setupIconView(theWidget("explore_iconview"))
 	
 	.hydrosanity$update$explore <<- F
-	theWidget("hs_window")$present()
+	APPWIN$present()
 }
 
 .hs_on_explore_timeseries_button_clicked <- function(button) {
-	theWidget("hs_window")$setSensitive(F)
-	on.exit(theWidget("hs_window")$setSensitive(T))
+	APPWIN$setSensitive(F)
+	on.exit(APPWIN$setSensitive(T))
 	setStatusBar("")
 	
 	selNames <- iconViewGetSelectedNames(theWidget("explore_iconview"))
@@ -62,73 +62,88 @@ updateExplorePage <- function() {
 		))
 	}
 	
-	# each item in dataList makes a timeseries plot, each superposed.
+	# each item in list.cmd makes a timeseries plot, each superposed.
 	# (so each item should specify a list of timeblobs)
-	dataList <- list()
+	list.cmd <- call('list')
 	if (doSuperpose) {
-		# superpose blobs and aggregates all in one plot
+		# superpose blobs and aggregates all in one panel
+		bigList <- list()
 		if (doRawData) {
-			dataList <- c(dataList, lapply(selNames,
-				function(name) {
-				bquote(hsp$data[.(name)]) }
-			))
+			bigList <- c(bigList, 
+				lapply(selNames, function(name) {
+					bquote(hsp$data[.(name)])
+				})
+			)
 		}
 		if (doAggr1) {
 			if (nBlobs == 1) { # simplify code if only one
-				dataList <- c(dataList, quote(tmp.aggr1))
+				bigList <- c(bigList, quote(tmp.aggr1))
 			} else {
-				dataList <- c(dataList, lapply(selNames,
-					function(name) {
-					bquote(tmp.aggr1[.(name)]) }
-				))
+				bigList <- c(bigList, 
+					lapply(selNames, function(name) {
+						bquote(tmp.aggr1[.(name)])
+					})
+				)
 			}
 		}
 		if (doAggr2) {
 			if (nBlobs == 1) { # simplify code if only one
-				dataList <- c(dataList, quote(tmp.aggr2))
+				bigList <- c(bigList, quote(tmp.aggr2))
 			} else {
-				dataList <- c(dataList, lapply(selNames,
-					function(name) {
-					bquote(tmp.aggr2[.(name)]) }
-				))
+				bigList <- c(bigList, 
+					lapply(selNames, function(name) {
+						bquote(tmp.aggr2[.(name)])
+					})
+				)
 			}
 		}
+		list.cmd <- as.call(c(quote(list), bigList))
 	} else {
 		# do multiple plots
 		if (nBlobs == 1) {
-			# multiple plots for transforms (all in one layer)
+			# multiple panels for transforms (all in one layer)
 			if (nTrans == 1) {
-				dataList[[1]] <- if (doRawData) { rawdata.cmd } else
+				list.cmd[[2]] <- if (doRawData) { rawdata.cmd } else
 					if (doAggr1) { quote(tmp.aggr1) } else
 					if (doAggr2) { quote(tmp.aggr2) }
 			} else {
-				dataList[[1]] <- c(if (doRawData) { rawdata.cmd },
+				list.cmd[[2]] <- as.call(c(quote(c),
+					if (doRawData) { rawdata.cmd },
 					if (doAggr1) { quote(tmp.aggr1) },
-					if (doAggr2) { quote(tmp.aggr2) })
+					if (doAggr2) { quote(tmp.aggr2) }
+				))
 			}
 		} else {
-			# multiple plots for blobs, but superpose transforms
-			dataList <- c(if (doRawData) { rawdata.cmd },
-				if (doAggr1) { quote(tmp.aggr1) },
-				if (doAggr2) { quote(tmp.aggr2) })
+			# multiple panels for blobs, but superpose transforms
+			if (doRawData) {
+				list.cmd[[2]] <- rawdata.cmd
+			}
+			if (doAggr1) {
+				i <- length(list.cmd)+1
+				list.cmd[[i]] <- quote(tmp.aggr1)
+			}
+			if (doAggr2) {
+				i <- length(list.cmd)+1
+				list.cmd[[i]] <- quote(tmp.aggr2)
+			}
 		}
 	}
 	
 	# plot specifications
 	plot.cmd <- NULL
-	if (length(dataList) == 1) {
+	if (length(list.cmd[-1]) == 1) {
 		plot.cmd <- call('grid.timeseries.plot')
-		plot.cmd[[2]] <- dataList[[1]]
+		plot.cmd[[2]] <- list.cmd[[2]]
 	} else {
 		plot.cmd <- call('grid.timeseries.plot.superpose')
-		plot.cmd[[2]] <- as.call(c(quote(list), dataList))
+		plot.cmd[[2]] <- list.cmd
 	}
 	
 	# plot scales and annotation specifications
 	plot.cmd$xscale <- quote(hsp$timePeriod)
 	plot.cmd$sameScales <- if (doCommonScale) { T } else { F }
 	plot.cmd$allSameScales <- if (doCommonScale && doSuperpose
-		&& (length(dataList) > 1)) { T }
+		&& (length(list.cmd[-1]) > 1)) { T }
 	
 	setPlotDevice("timeseries")
 	setCairoWindowButtons("timeseries", centre=T, zoomin=T, setperiod=T, log=F)
@@ -145,8 +160,8 @@ updateExplorePage <- function() {
 }
 
 .hs_on_explore_cdf_button_clicked <- function(button) {
-	theWidget("hs_window")$setSensitive(F)
-	on.exit(theWidget("hs_window")$setSensitive(T))
+	APPWIN$setSensitive(F)
+	on.exit(APPWIN$setSensitive(T))
 	setStatusBar("")
 	
 	selNames <- iconViewGetSelectedNames(theWidget("explore_iconview"))
@@ -244,7 +259,7 @@ updateExplorePage <- function() {
 	}
 	plot.cmd$scales$y$log <- T
 	plot.cmd$yscale.components <- quote(lattice.y.prettylog)
-	plot.cmd$xlab <- if (doCDF) { "Probability of non-exceedence (%)" }
+	plot.cmd$xlab <- if (doCDF) { "Probability (%)" }
 	plot.cmd$ylab <- attr(hsp$data[[selNames[1]]], "dataname")
 	plot.cmd$auto.key <- T
 	
@@ -286,16 +301,26 @@ updateExplorePage <- function() {
 }
 
 .hs_on_explore_seasonal_button_clicked <- function(button) {
-	theWidget("hs_window")$setSensitive(F)
-	on.exit(theWidget("hs_window")$setSensitive(T))
+	APPWIN$setSensitive(F)
+	on.exit(APPWIN$setSensitive(T))
 	setStatusBar("")
 	
 	selNames <- iconViewGetSelectedNames(theWidget("explore_iconview"))
+	if (length(selNames) == 0) {
+		errorDialog("No items selected.")
+		return()
+	}
 	nBlobs <- length(selNames)
 	doMonths <- theWidget("explore_seasonal_months_radiobutton")$getActive()
 	doBoxPlot <- theWidget("explore_seasonal_bwplot_radiobutton")$getActive()
 	doStripPlot <- theWidget("explore_seasonal_stripplot_radiobutton")$getActive()
 	doViolinPlot <- theWidget("explore_seasonal_violinplot_radiobutton")$getActive()
+	doSupStripPlot <- theWidget("explore_seasonal_supstripplot_radiobutton")$getActive()
+	doDrawLine <- theWidget("explore_seasonal_drawline_radiobutton")$getActive()
+	if (doSupStripPlot && (nBlobs == 1)) {
+		doSupStripPlot <- F
+		doStripPlot <- T
+	}
 	
 	addLogComment("Generate seasonal plot")
 	
@@ -320,34 +345,67 @@ updateExplorePage <- function() {
 		})
 	} else {
 		guiDo({
-			tmp.data <- lapply(tmp.data, function(x) {
-				window(x, start=trunc.year(start(x)), extend=T) })
 			tmp.data <- sync.timeblobs(lapply(tmp.data, aggregate.timeblob, 
-				by="3 months"), timelim=hsp$timePeriod)
+				by="3 months"), timelim=c(
+				trunc.year(hsp$timePeriod[1]), hsp$timePeriod[2]))
 			tmp.data$Season <- factor(quarters(tmp.data$Time), ordered=T)
 		})
 	}
 	
 	# plot specifications
-	plotFn <- if (doStripPlot) { 'stripplot' } else { 'bwplot' }
+	plotFn <- if (doStripPlot || doSupStripPlot) {
+		'stripplot'
+	} else {
+		'bwplot'
+	}
 	plot.cmd <- call(plotFn)
 	plot.cmd[[2]] <- parse(text=paste(
 		paste(make.names(selNames), collapse=" + "), "~ Season"
 	))[[1]]
 	plot.cmd[[3]] <- quote(tmp.data)
-	plot.cmd$outer <- if (nBlobs > 1) { T }
-	plot.cmd$panel <- if (doViolinPlot) {
+	plot.cmd$outer <- if (!doSupStripPlot && (nBlobs > 1)) { T }
+	plot.cmd$panel <- if (doDrawLine && !doSupStripPlot) {
+		if (doStripPlot) {
+			function(...) {
+				panel.linejoin(..., fun=function(x){mean(x, na.rm=T)})
+				panel.stripplot(...)
+			}
+		} else if (doViolinPlot) {
+			function(...) {
+				panel.linejoin(..., fun=function(x){mean(x, na.rm=T)})
+				panel.violin(varwidth=T, ...)
+				panel.stripplot(pch=3, ...)
+			}
+		} else {
+			function(...) {
+				panel.linejoin(..., fun=function(x){mean(x, na.rm=T)})
+				panel.bwplot(...)
+			}
+		}
+	} else if (doDrawLine && doSupStripPlot) {
+		quote(panel.superpose)
+	} else if (doViolinPlot) {
 		function(...) {
 			panel.violin(varwidth=T, ...)
 			panel.stripplot(pch=3, ...)
-		}}
-	plot.cmd$layout <- if (doMonths && (nBlobs > 1)) { c(1, nBlobs) }
-	plot.cmd$jitter <- if (doStripPlot) { T }
+		}
+	}
+	plot.cmd$panel.groups <- if (doDrawLine && doSupStripPlot) {
+		function(...) {
+			panel.linejoin(..., fun=function(x){mean(x, na.rm=T)})
+			panel.stripplot(...)
+		}
+	}
+	plot.cmd$layout <- if (!doSupStripPlot && doMonths && (nBlobs > 1)) {
+		c(1, nBlobs)
+	}
+	plot.cmd$jitter <- if (doStripPlot || doSupStripPlot) { T }
 	
 	# plot scales and annotation specifications
 	plot.cmd$scales$y$log <- T
 	plot.cmd$ylab <- attr(hsp$data[[selNames[1]]], "dataname")
 	plot.cmd$yscale.components <- quote(lattice.y.prettylog)
+	plot.cmd$auto.key <- if (doSupStripPlot) { T }
 	
 	# hydrosanity caption
 	addToLog("## Make hydrosanity caption")

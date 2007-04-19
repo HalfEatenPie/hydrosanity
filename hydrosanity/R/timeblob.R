@@ -296,7 +296,7 @@ sync.timeblobs <- function(blob.list, timestep=NULL, timelim=NULL, extractColumn
 	if (is.null(timestep)) {
 		timestep <- common.timestep.timeblobs(blob.list)
 	}
-	times <- seq.POSIXt(start.timeblobs(blob.list), end.timeblobs(blob.list), 
+	times <- seq.POSIXt(min(timelim), max(timelim), 
 		by=timestep)
 	syncData <- data.frame(
 		Time=times,
@@ -431,9 +431,10 @@ aggregate.timeblob <- function(blob, by="1 year", FUN=NULL, max.na.proportion=0.
 	# check types
 	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
 	if (is.null(FUN)) {
-		FUN <- mean
 		if (identical(attr(blob, "role"), "RAIN")) {
 			FUN <- sum
+		} else {
+			FUN <- mean
 		}
 	}
 	# find expected number of old timesteps in each new timestep
@@ -490,6 +491,8 @@ running.average.timeblob <- function(blob, by="1 year", max.na.proportion=0.05) 
 	return(newBlob)
 }
 
+## general functions for time series as numeric vectors
+
 gaps <- function(x) {
 	seriesNA <- is.na(x)
 	# diffNA is 1 at start of gap, -1 at end of gap, 0 otherwise
@@ -504,14 +507,65 @@ gaps <- function(x) {
 	naCumSum <- cumsum(seriesNA)
 	gapLength <- naCumSum[gapEnd] - 
 		naCumSum[c(1,gapEnd[-nGaps])]
-	return(list(gapLength=gapLength, gapEnd=gapEnd, 
-		preDataGap=preDataGap, postDataGap=postDataGap))
+	return(list(gap.length=gapLength, gap.end=gapEnd, 
+		pre.data=preDataGap, post.data=postDataGap))
+}
+
+peaks <- function(x) {
+	xBackDiff <- c(NA, diff(x)) # backwards difference
+	xFwdDiff <- c(xBackDiff[-1], NA) # forwards difference
+	peakIdx <- which((xBackDiff > 0) & (xFwdDiff <= 0))
+	peakIdx
+}
+
+rises <- function(x) {
+	# backwards difference, i.e. rises are placed at their end time
+	c(NA, pmax(0, diff(x)))
+}
+
+rises_old <- function(x) {
+	xBackDiff <- c(NA, diff(x)) # backwards difference
+	#xFwdDiff <- c(xBackDiff[-1], NA) # forwards difference
+	#peaksIdx <- which((xBackDiff > epsilon) & (xFwdDiff < -epsilon))
+	
+	# TODO: find start of rise and take increase
+	isRising <- (xBackDiff > 0)
+	isRising[is.na(isRising)] <- F # take NAs as non-rises
+	isFalling <- (xBackDiff < 0)
+	isFalling[is.na(isFalling)] <- F # take NAs as non-falls
+	# total rises and falls
+	cumRise <- cumsum(ifelse(isRising, xBackDiff, 0))
+	cumFall <- cumsum(ifelse(isFalling, xBackDiff, 0))
+	# isRisingFwdDiff: is 1 at start of rise, -1 at end of rise
+	isRisingFwdDiff <- c(diff(isRising), NA)
+	# find when rises end (may or may not be a peak)
+	stopIdx <- which(isRisingFwdDiff == -1)
+	stopIdx_prev <- c(1, stopIdx[-length(stopIdx)])
+	stopIdx_next <- c(stopIdx[-1], length(x))
+	
+	rise <- cumRise[stopIdx] - cumRise[stopIdx_prev]
+	
+	#peakIdx <- which(
+	#	((cumRise[stops] - cumRise[stops_prev]) > epsilon) &
+	#	((cumFall[stops] - cumFall[stops_next]) > epsilon)
+	#)
+	
+	#peakIdx <- which(isRisingBackDiff == -1)
+	#prevPeakIdx <- c(1, peakIdx[-length(peakIdx)])
+	#cumRise <- cumsum(ifelse(isRising, xBackDiff, 0))
+	#rise <- cumRise[peakIdx] - cumRise[prevPeakIdx]
+	#if (!is.na(epsilon)) {
+	#	ok <- (rise >= epsilon)
+	#	rise <- rise[ok]
+	#	peakIdx <- peakIdx[ok]
+	#}
+	return(list(rise=rise, peak.index=stopIdx))
 }
 
 
 ## other useful functions not specific to timeblobs
 
-as.byString <- function(x, digits=getOption("digits")) {
+as.byString <- function(x, digits=getOption("digits"), explicit=F) {
 	if (!identical(class(x), "difftime")) {
 		if (!is.numeric(x)) { stop("'x' must be difftime or numeric") }
 		x <- diff(as.POSIXct(c(0,x)))
@@ -524,7 +578,7 @@ as.byString <- function(x, digits=getOption("digits")) {
 	if (x > 363*24*60*60) {
 		it <- paste(round(x / (365*24*60*60)), "years")
 	}
-	it <- sub("^1 ", "", it)
+	if (!explicit) { it <- sub("^1 ", "", it) }
 	it <- sub(" day", " DSTday", it)
 	return(it)
 }

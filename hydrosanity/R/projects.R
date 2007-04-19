@@ -8,30 +8,34 @@
 .hs_on_menu_saveas_activate <- function(action, window) {saveProject(saveAs=T)}
 
 openProject <- function() {
-	theWidget("hs_window")$setSensitive(F)
-	on.exit(theWidget("hs_window")$setSensitive(T))
+	APPWIN$setSensitive(F)
+	on.exit(APPWIN$setSensitive(T))
 	setStatusBar("")
 	
 	ff <- c("Hydrosanity projects (.hydrosanity)", "*.hydrosanity")
 	filename <- choose.files(caption="Open project", filters=ff, multi=F)
-	theWidget("hs_window")$present()
+	APPWIN$present()
 	if (filename=="") { return() }
 	
 	hydrosanity()
 	load(filename, .GlobalEnv)
-	#if (hsp$version < x) stop...
 	hsp$projectFile <<- filename
 	.hydrosanity$modified <<- F
 	
-	setTextview("log_textview", hsp$log)
+	setTextview(theWidget("log_textview"), hsp$log)
 	addLogSeparator()
-	
 	hsp$log <<- NULL
+	
+	if (is.null(hsp$version) ||
+		package_version(hsp$version) < package_version("0.5")) {
+		errorDialog("The version of Hydrosanity used to save this project used a different data structure. Maybe you can manually fix hsp$data?")
+		stop("Project file version not supported")
+	}
 	hsp$version <<- NULL
 	
 	# switch to first page and trigger update
-	theWidget("notebook")$setCurrentPage(0)
-	.hs_on_notebook_switch_page(theWidget("notebook"), theWidget("hs_window"), 0)
+	theWidget("notebook")$setCurrentPage(1)
+	.hs_on_notebook_switch_page(theWidget("notebook"), APPWIN, 1)
 	
 	theWidget("import_options_expander")$setExpanded(FALSE)
 	theWidget("import_makechanges_expander")$setExpanded(TRUE)
@@ -40,8 +44,8 @@ openProject <- function() {
 }
 
 saveProject <- function(saveAs=F) {
-	theWidget("hs_window")$setSensitive(F)
-	on.exit(theWidget("hs_window")$setSensitive(T))
+	APPWIN$setSensitive(F)
+	on.exit(APPWIN$setSensitive(T))
 	setStatusBar("")
 	
 	ff <- c("Hydrosanity projects (.hydrosanity)", "*.hydrosanity")
@@ -50,14 +54,14 @@ saveProject <- function(saveAs=F) {
 	if (saveAs==T || filename=="") {
 		filename <- choose.file.save(filename, caption="Save project",
 			filters=ff)
-		theWidget("hs_window")$present()
+		APPWIN$present()
 		if (is.na(filename)) { return() }
 	}
 	
 	if (get.extension(filename) != "hydrosanity")
 	filename <- sprintf("%s.hydrosanity", filename)
 	
-	hsp$log <<- getTextviewText("log_textview")
+	hsp$log <<- getTextviewText(theWidget("log_textview"))
 	hsp$version <<- VERSION
 	save(hsp, file=filename, compress=TRUE)
 	hsp$log <<- NULL

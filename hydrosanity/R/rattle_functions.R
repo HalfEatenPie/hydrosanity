@@ -7,9 +7,9 @@
 ## (with minor adjustments for Hydrosanity)
 
 
-theWidget <- function(widget)
+theWidget <- function(name)
 {
-  return(.hydrosanity$GUI$getWidget(widget))
+  return(.hydrosanity$GUI$getWidget(name))
 }
 
 ## Log support
@@ -44,28 +44,27 @@ setTextview <- function(tv, ..., sep="")
 {
   msg <- paste(sep=sep, ...)
   if (length(msg) == 0) msg <-""
-  theWidget(tv)$getBuffer()$setText(msg)
+  tv$getBuffer()$setText(msg)
 }
 
 addTextview <- function(tv, ..., sep="")
 {
   msg <- paste(sep=sep, ...)
   if (length(msg) == 0) msg <-""
-  tv.buf <- theWidget(tv)$getBuffer()
+  tv.buf <- tv$getBuffer()
   loc <- tv.buf$getEndIter()$iter
   tv.buf$insert(loc, msg)
 }
 
 setTextviewMonospace <- function(tv)
 {
-  theWidget(tv)$modifyFont(pangoFontDescriptionFromString("monospace 10"))
+  tv$modifyFont(pangoFontDescriptionFromString("monospace 10"))
 }
 
-getTextviewText <- function(TV)
+getTextviewText <- function(tv)
 {
   ## Extract text content of specified textview
-  
-  log.buf <- theWidget(TV)$getBuffer()
+  log.buf <- tv$getBuffer()
   start <- log.buf$getStartIter()$iter
   end <- log.buf$getEndIter()$iter
   return(log.buf$getText(start, end))
@@ -85,12 +84,7 @@ setStatusBar <- function(..., sep=" ")
 
 setCursor <- function(cursor=NULL) {
 	if (!is.null(cursor)) { cursor <- gdkCursorNew(cursor) }
-	theWidget("hs_window")$getWindow()$setCursor(cursor)
-}
-
-set.cursor <- function(cursor="left-ptr")
-{
-  theWidget("hs_window")$getWindow()$setCursor(gdkCursorNew(cursor))
+	APPWIN$getWindow()$setCursor(cursor)
 }
 
 get.extension <- function(path)

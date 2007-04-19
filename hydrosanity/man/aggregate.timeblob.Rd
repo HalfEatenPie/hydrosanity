@@ -1,6 +1,6 @@
 \name{aggregate.timeblob}
 \alias{aggregate.timeblob}
-\title{Aggregate Time Series (Timeblob) Data into Blocks}
+\title{Aggregate to Longer Timesteps}
 \description{
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }

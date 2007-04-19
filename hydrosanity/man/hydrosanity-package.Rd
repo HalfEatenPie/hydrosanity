@@ -3,8 +3,7 @@
 \alias{hydrosanity}
 \docType{package}
 \title{
-What the package does (short line)
-~~ package title ~~
+Hydrosanity: graphical interface for exploring hydrological time series
 }
 \description{
 More about what it does (maybe more than one line)
