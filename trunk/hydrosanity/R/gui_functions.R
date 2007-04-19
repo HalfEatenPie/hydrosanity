@@ -86,7 +86,7 @@ setCairoWindowButtons <- function(name, identify=NA, centre=NA, zoomin=NA, zoomo
 		.hydrosanity$win.gui[[myName]] <<- NULL
 	}
 	myWin$destroy()
-	theWidget("hs_window")$present()
+	APPWIN$present()
 }
 
 .hs_on_plot_setperiod_button_clicked <- function(button) {
@@ -99,12 +99,13 @@ setCairoWindowButtons <- function(name, identify=NA, centre=NA, zoomin=NA, zoomo
 	if (is.na(myIndex)) { return() }
 	myName <- names(.hydrosanity$win)[myIndex]
 	myCall <- .hydrosanity$call[[myName]]
-	if (is.null(myCall$xscale)) {
+	myXScale <- eval(myCall$xscale)
+	if (is.null(myXScale)) {
 		guiDo(hsp$timePeriod <- NULL)
 		timeperiodModificationUpdate()
 		return()
 	}
-	timelim <- as.POSIXct(myCall$xscale)
+	timelim <- as.POSIXct(myXScale)
 	myTimeStrings <- format(round(timelim, "days"))
 	addLogComment("Set time period for analysis")
 	guiDo(isExpression=T, bquote(
@@ -442,11 +443,11 @@ setCairoWindowButtons <- function(name, identify=NA, centre=NA, zoomin=NA, zoomo
 	on.exit(dev.set(oldDev), add=T)
 	dev.set(.hydrosanity$dev[[myName]])
 	# update the call and re-draw plot
-	if (myName %in% "correlation") {
-		# log applies to both x and y scales
+	if (myCallName %in% c("xyplot", "qq")) {
+		# lattice plots, log applies to both x and y scales
 		.hydrosanity$call[[myName]]$scales$log <<- logScale
 	} else
-	if (myCallName %in% c("xyplot", "bwplot", "stripplot", "qqmath", "qq")) {
+	if (myCallName %in% c("bwplot", "stripplot", "dotplot", "qqmath")) {
 		# lattice plots, log applies to y scale only
 		.hydrosanity$call[[myName]]$scales$y$log <<- logScale
 	} else
@@ -695,25 +696,73 @@ questionDialog <- function(...) {
 	guiMessageDialog(type="question", ...)
 }
 
-guiMessageDialog <- function(type="info", ..., restore=T) {
+guiMessageDialog <- function(type="info", ..., isMarkup=F, restore=T) {
 	myString <- paste(sep='', ...)
-	myString <- gsub('%', '%%', myString)
-	myString <- gsub('&&', '&amp;&amp;', myString)
-	myString <- gsub('& ', '&amp; ', myString)
-	myString <- gsub('<<', '&lt;&lt;', myString)
-	myString <- gsub('<-', '&lt;-', myString)
-	myString <- gsub('< ', '&lt; ', myString)
+	if (!isMarkup) {
+		myString <- gsub('%', '%%', myString)
+		myString <- gsub('&&', '&amp;&amp;', myString)
+		myString <- gsub('& ', '&amp; ', myString)
+		myString <- gsub('<<', '&lt;&lt;', myString)
+		myString <- gsub('<-', '&lt;-', myString)
+		myString <- gsub('< ', '&lt; ', myString)
+	}
 	myButtons <- switch(type,
 		error="close",
 		info="ok",
 		question="yes-no"
 	)
-	dialog <- gtkMessageDialogNewWithMarkup(theWidget("hs_window"), 
+	dialog <- gtkMessageDialogNewWithMarkup(APPWIN, 
 		"destroy-with-parent", type, myButtons, myString)
 	result <- dialog$run() # make it modal
 	dialog$destroy()
-	if (restore) { theWidget("hs_window")$present() }
+	if (restore) { APPWIN$present() }
 	return(if (result == GtkResponseType["yes"]) { "yes" } else { NULL })
+}
+
+guiTextInput <- function(text="", title="Text Input", prompt="") {
+	# construct dialog
+	editBox <- gtkDialog(title=title, NULL, "destroy-with-parent",
+		"OK", GtkResponseType["ok"], "Cancel", GtkResponseType["cancel"],
+		show = F)
+	editBox$setDefaultResponse(GtkResponseType["ok"])
+	editBox$setDefaultSize(400,300)
+	if (nchar(prompt) > 0) {
+		editBox[["vbox"]]$packStart(gtkLabel(prompt), expand=F, pad=2)
+	}
+	editTV <- gtkTextView()
+	setTextviewMonospace(editTV)
+	setTextview(editTV, text)
+	editBox[["vbox"]]$add(editTV)
+	result <- editBox$run() # make it modal
+	newTxt <- getTextviewText(editTV)
+	editBox$destroy()
+	if (result != GtkResponseType["ok"]) { return(invisible(NULL)) }
+	newTxt
+}
+
+## EDIT DATA FRAMES AS TEXT
+
+edit.as.text <- function(x, title=NULL) {
+	if (!is.data.frame(x)) { stop("'x' must be a data frame") }
+	if (is.null(title)) {
+		title <- paste("Editing", deparse(substitute(x)))
+	}
+	# make table text block from data frame 'x'
+	foo <- ""
+	zz <- textConnection("foo", "w", local=T)
+	write.table(x, file=zz, sep="\t", quote=F, col.names=NA)
+	close(zz)
+	tableTxt <- paste("row.names", paste(foo, collapse="\n"), "\n", sep='')
+	# show dialog
+	newTableTxt <- guiTextInput(text=tableTxt, title=title, 
+		prompt=paste("Edit the text (in tab-separated format),",
+			"or copy and paste to/from a spreadsheet."))
+	if (is.null(newTableTxt)) { return(x) }
+	# convert table text block back to data frame
+	zz <- textConnection(newTableTxt)
+	newData <- read.delim(file=zz, row.names=1, colClasses=sapply(x, class))
+	close(zz)
+	newData
 }
 
 ## SAVE FILE DIALOG

@@ -3,18 +3,18 @@
 ## Copyright (c) 2007 Felix Andrews <felix@nfrac.org>, GPL
 
 updateImputePage <- function() {
-	setTextview("impute_textview", "")
+	setTextview(theWidget("impute_textview"), "")
 	
 	setupIconView(theWidget("impute_iconview"))
 	.hs_on_impute_iconview_selection_changed()
 	
 	.hydrosanity$update$impute <<- F
-	theWidget("hs_window")$present()
+	APPWIN$present()
 }
 
 .hs_on_impute_accum_button_clicked <- function(button) {
-	theWidget("hs_window")$setSensitive(F)
-	on.exit(theWidget("hs_window")$setSensitive(T))
+	APPWIN$setSensitive(F)
+	on.exit(APPWIN$setSensitive(T))
 	setStatusBar("")
 	
 	selNames <- iconViewGetSelectedNames(theWidget("impute_iconview"))
@@ -84,7 +84,8 @@ updateImputePage <- function() {
 
 
 .hs_on_impute_iconview_selection_changed <- function(...) {
-	setTextview("impute_textview", "")
+	TXV <- theWidget("impute_textview")
+	setTextview(TXV, "")
 	
 	selNames <- iconViewGetSelectedNames(theWidget("impute_iconview"))
 	
@@ -92,18 +93,20 @@ updateImputePage <- function() {
 		gapInfo <- gaps(window(hsp$data[[x]], 
 			hsp$timePeriod[1], hsp$timePeriod[2])$Data)
 		myHeader <- sprintf("%s gap length counts (total gaps: %i)",
-			x, length(gapInfo$gapLength))
+			x, length(gapInfo$gap.length))
 		#mySumm <- paste(capture.output(
-		#	print(table(gapInfo$gapLength, dnn=myHeader))
+		#	print(table(gapInfo$gap.length, dnn=myHeader))
 		#), collapse='\n')
-		gapTable <- table(gapInfo$gapLength)
-		mySumm <- paste(sep='', myHeader, "\n",
-			gapTable, 'x[', dimnames(gapTable)[[1]], ']', 
-			collapse=', ')
-		if (length(gapInfo$gapLength) == 0) {
+		gapTable <- table(gapInfo$gap.length)
+		mySumm <- paste(sep='', 
+			myHeader, "\n  ",
+			paste(sep='', collapse=', ',
+				gapTable, 'x[', dimnames(gapTable)[[1]], ']')
+		)
+		if (length(gapInfo$gap.length) == 0) {
 			mySumm <- paste(x, "has no gaps in the specified time period.")
 		}
-		addTextview("impute_textview", mySumm, "\n")
+		addTextview(TXV, mySumm, "\n")
 	}
 }
 

@@ -3,11 +3,11 @@
 ## Copyright (c) 2007 Felix Andrews <felix@nfrac.org>, GPL
 
 updateTimePeriodPage <- function() {
-	TXV <- "timeperiod_summary_textview"
-	TRV <- "timeperiod_summary_treeview"
+	TXV <- theWidget("timeperiod_summary_textview")
+	TRV <- theWidget("timeperiod_summary_treeview")
 	if (length(hsp$data) == 0) {
 		setTextview(TXV, "")
-		theWidget(TRV)$setModel(rGtkDataFrame())
+		TRV$setModel(rGtkDataFrame())
 		return()
 	}
 	# overall time period
@@ -27,7 +27,7 @@ updateTimePeriodPage <- function() {
 	theWidget("timeperiod_chosenperiod_entry")$setText(chosenPeriodString)
 	
 	setTextview(TXV, "")
-	theWidget(TRV)$setModel(rGtkDataFrame())
+	TRV$setModel(rGtkDataFrame())
 	
 	# don't generate summary until period has been set explicitly
 	if (is.null(hsp$timePeriod)) { return() }
@@ -67,16 +67,16 @@ updateTimePeriodPage <- function() {
 		Missing=dfMissing,
 		stringsAsFactors=F)
 		)
-	theWidget(TRV)$setModel(dfModel)
+	TRV$setModel(dfModel)
 	
 	.hydrosanity$update$timeperiod <<- F
-	theWidget("hs_window")$present()
+	APPWIN$present()
 }
 
 
 .hs_on_timeperiod_updateperiod_button_clicked <- function(button) {
-	theWidget("hs_window")$setSensitive(F)
-	on.exit(theWidget("hs_window")$setSensitive(T))
+	APPWIN$setSensitive(F)
+	on.exit(APPWIN$setSensitive(T))
 	setStatusBar("")
 	
 	myText <- theWidget("timeperiod_chosenperiod_entry")$getText()
@@ -95,8 +95,8 @@ updateTimePeriodPage <- function() {
 }
 
 .hs_on_timeperiod_reset_button_clicked <- function(button) {
-	theWidget("hs_window")$setSensitive(F)
-	on.exit(theWidget("hs_window")$setSensitive(T))
+	APPWIN$setSensitive(F)
+	on.exit(APPWIN$setSensitive(T))
 	setStatusBar("")
 	
 	guiDo(hsp$timePeriod <- NULL)
@@ -106,8 +106,8 @@ updateTimePeriodPage <- function() {
 
 
 .hs_on_timeperiod_viewtimeline_button_clicked <- function(button) {
-	theWidget("hs_window")$setSensitive(F)
-	on.exit(theWidget("hs_window")$setSensitive(T))
+	APPWIN$setSensitive(F)
+	on.exit(APPWIN$setSensitive(T))
 	setStatusBar("")
 	
 	plotQualCodes <- theWidget("timeperiod_plotqualitycodes_checkbutton")$getActive()

@@ -15,7 +15,7 @@ updateImportPage <- function() {
 		dfName[i] <- names(hsp$data)[i]
 		dfStart[i] <- format(start(hsp$data[[i]]))
 		dfEnd[i] <- format(end(hsp$data[[i]]))
-		dfLength[i] <- as.byString(myLength, digits=2)
+		dfLength[i] <- as.byString(myLength, digits=2, explicit=T)
 		#dfFreq[i] <- as.byString(myAvgFreq, digits=2)
 		dfFreq[i] <- attr(hsp$data[[i]], "timestep")
 		
@@ -65,70 +65,25 @@ updateImportPage <- function() {
 	myTreeView$columnsAutosize()
 	
 	.hydrosanity$update$import <<- F
-	theWidget("hs_window")$present()
+	APPWIN$present()
 }
 
 ## ACTIONS
 
-.hs_on_import_robj_button_clicked <- function(button) {
-	theWidget("hs_window")$setSensitive(F)
-	on.exit(theWidget("hs_window")$setSensitive(T))
-	setStatusBar("")
-	
-	data.cmd <- theWidget("import_robj_entry")$getText()
-	dataName <- make.names(data.cmd)
-	addLogComment("Import data from R object ", data.cmd)
-	# first set a local variable x and do checks
-	x <- guiDo(data.cmd, isParseString=T, doLog=F)
-	# check the user-defined object
-	if (is.list(x) && !is.data.frame(x)) {
-		# it should be a list of timeblobs
-		xNames <- names(x)
-		if (is.null(xNames)) { xNames <- paste(dataName, seq(along=x), sep=".") }
-		# only warn once about invalid data
-		alreadyWarned <- F
-		for (i in seq(along=x)) {
-			subDataName <- xNames[i]
-			if (is.timeblob(x[[i]])) {
-				addToLog(sprintf('hsp$data[["%s"]] <- %s[[%i]]', subDataName, data.cmd, i))
-				hsp$data[[subDataName]] <<- x[[i]]
-				setStatusBar(sprintf('Imported object %s[[%i]] to hsp$data[["%s"]]', data.cmd, i, subDataName))
-			} else {
-				setStatusBar("")
-				if (!alreadyWarned) {
-					errorDialog(subDataName, " (component of list ", data.cmd, ") is not a data frame with first column \"Time\" of type POSIXct, and third column \"Qual\". Further warnings will not be shown.")
-					alreadyWarned <- T
-				}
-			}
-		}
-	}
-	else {
-		# it should be a single timeblob
-		if (is.timeblob(x)) {
-			addToLog(sprintf('hsp$data[["%s"]] <- %s', dataName, data.cmd))
-			hsp$data[[dataName]] <<- x
-			setStatusBar(sprintf('Imported object %s to hsp$data[["%s"]]', data.cmd, dataName))
-		} else {
-			errorDialog(data.cmd, "is not a data frame with first column \"Time\" of type POSIXct, and third column \"Qual\", or a list of these.")
-		}
-	}
-	datasetModificationUpdate()
-}
-
 .hs_on_import_displayfile_button_clicked <- function(button) {
-	theWidget("hs_window")$setSensitive(F)
-	on.exit(theWidget("hs_window")$setSensitive(T))
+	APPWIN$setSensitive(F)
+	on.exit(APPWIN$setSensitive(T))
 	setStatusBar("")
 	
 	filenames <- choose.files(multi=T)
-	theWidget("hs_window")$present()
+	APPWIN$present()
 	if (length(filenames)==0) { return() }
 	file.show(filenames)
 }
 
 .hs_on_import_viewtable_button_clicked <- function(button) {
-	theWidget("hs_window")$setSensitive(F)
-	on.exit(theWidget("hs_window")$setSensitive(T))
+	APPWIN$setSensitive(F)
+	on.exit(APPWIN$setSensitive(T))
 	setStatusBar("")
 	
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
@@ -155,12 +110,12 @@ updateImportPage <- function() {
 }
 
 .hs_on_import_file_button_clicked <- function(button) {
-	theWidget("hs_window")$setSensitive(F)
-	on.exit(theWidget("hs_window")$setSensitive(T))
+	APPWIN$setSensitive(F)
+	on.exit(APPWIN$setSensitive(T))
 	setStatusBar("")
 	
 	filenames <- choose.files()
-	theWidget("hs_window")$present()
+	APPWIN$present()
 	if (length(filenames)==0) { return() }
 	
 	import.cmd.str <- rep("", length(filenames))
@@ -265,9 +220,13 @@ updateImportPage <- function() {
 	datasetModificationUpdate()
 }
 
+.hs_on_import_set_coords_button_clicked <- function(button) {
+	infoDialog("not implemented")
+}
+
 .hs_on_import_remove_blob_button_clicked <- function(button) {
-	theWidget("hs_window")$setSensitive(F)
-	on.exit(theWidget("hs_window")$setSensitive(T))
+	APPWIN$setSensitive(F)
+	on.exit(APPWIN$setSensitive(T))
 	setStatusBar("")
 	
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
@@ -291,8 +250,8 @@ updateImportPage <- function() {
 }
 
 .hs_on_import_makefactor_button_clicked <- function(button) {
-	theWidget("hs_window")$setSensitive(F)
-	on.exit(theWidget("hs_window")$setSensitive(T))
+	APPWIN$setSensitive(F)
+	on.exit(APPWIN$setSensitive(T))
 	setStatusBar("")
 	
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
@@ -360,12 +319,16 @@ setDataRole <- function(blobName, role=NULL, doLogComment=T) {
 		newPageIdx <- 2
 	}
 	
-	if (theWidget("import_robj_radio")$getActive()) {
-		newPageIdx <- 3
-		theWidget("import_options_expander")$setExpanded(FALSE)
-	}
-	
 	theWidget("import_file_radio_options_notebook")$setCurrentPage(newPageIdx)
+}
+
+.hs_on_import_robj_radio_clicked <- function(button) {
+	infoDialog(isMarkup=T, paste(sep='',
+	'Importing data from R must be done from the R console, using a command like:',
+	'\n\n',
+	'<tt>hsp$data[["myName"]] &lt;- timeblob(Time=myTime, Data=myData)</tt>',
+	'\n\n',
+	'See <tt>help(timeblob)</tt> for details.'))
 }
 
 .hs_on_import_known_format_combobox_changed <- function(widget) {
