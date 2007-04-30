@@ -5,27 +5,33 @@
 updateImportPage <- function() {
 	# generate summary table
 	
-	dfName <- dfStart <- dfEnd <- dfLength <- dfFreq <- character(length(hsp$data))
-	dfData <- dfRole <- dfQual <- dfExtra <- character(length(hsp$data))
+	dfName <- dfData <- dfStart <- dfEnd <- dfLength <- dfFreq <- 
+		dfLoc <- dfQual <- dfExtra <- dfRole <- character(length(hsp$data))
 	
 	for (i in seq(along=hsp$data)) {
 		myLength <- end(hsp$data[[i]]) - start(hsp$data[[i]])
 		myAvgFreq <- myLength / nrow(hsp$data[[i]])
 		
 		dfName[i] <- names(hsp$data)[i]
+		dfData[i] <- attr(hsp$data[[i]], "dataname")
 		dfStart[i] <- format(start(hsp$data[[i]]))
 		dfEnd[i] <- format(end(hsp$data[[i]]))
 		dfLength[i] <- as.byString(myLength, digits=2, explicit=T)
 		#dfFreq[i] <- as.byString(myAvgFreq, digits=2)
 		dfFreq[i] <- attr(hsp$data[[i]], "timestep")
 		
-		dfData[i] <- attr(hsp$data[[i]], "dataname")
+		dfLoc[i] <- 'NA'
+		myLoc <- attr(hsp$data[[i]], "location.xy")
+		if (!is.null(myLoc)) {
+			dfLoc[i] <- paste('(', myLoc[1], ', ', myLoc[2], ')', sep='')
+		}
+		
 		dfQual[i] <- class(hsp$data[[i]]$Qual)[1]
 		if (is.factor(hsp$data[[i]]$Qual) || is.numeric(hsp$data[[i]]$Qual)) {
 			levelsFn <- if (is.factor(hsp$data[[i]]$Qual))
 			{ levels } else { unique }
 			dfQual[i] <- paste(' (', toString( paste(
-				sort(levelsFn(hsp$data[[i]]$Qual)),
+				levelsFn(hsp$data[[i]]$Qual),
 			collapse="/"), width=30), ')', sep='')
 		}
 		dfExtra[i] <- ""
@@ -36,7 +42,7 @@ updateImportPage <- function() {
 				names(hsp$data[[i]])[xcol],
 				if (is.factor(hsp$data[[i]][[xcol]])) {
 					paste(' (', toString( paste(
-						sort(levels(hsp$data[[i]][[xcol]])),
+						levels(hsp$data[[i]][[xcol]]),
 					collapse="/"), width=30), ')', sep='')
 				},
 				sep=''
@@ -55,6 +61,7 @@ updateImportPage <- function() {
 		End=dfEnd,
 		Length=dfLength,
 		Timestep=dfFreq,
+		Location_X.Y=dfLoc,
 		Qual=dfQual,
 		Extra_data=dfExtra,
 		Role=dfRole,
@@ -220,8 +227,78 @@ updateImportPage <- function() {
 	datasetModificationUpdate()
 }
 
-.hs_on_import_set_coords_button_clicked <- function(button) {
-	infoDialog("not implemented")
+.hs_on_import_edit_metadata_button_clicked <- function(button) {
+	APPWIN$setSensitive(F)
+	on.exit(APPWIN$setSensitive(T))
+	setStatusBar("")
+	
+	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
+	if (length(blobIndices)==0) {
+		errorDialog("No items selected.")
+		return()
+	}
+	
+	dfName <- dfData <- dfRole <- character(length(blobIndices))
+	dfLocX <- dfLocY <- numeric(length(blobIndices))
+	
+	for (k in seq(along=blobIndices)) {
+		# 'i' indexes hsp$data; 'k' indexes metadata (subset)
+		i <- blobIndices[k]
+		dfName[k] <- names(hsp$data)[i]
+		dfData[k] <- attr(hsp$data[[i]], "dataname")
+		dfRole[k] <- attr(hsp$data[[i]], "role")
+		if (is.null(dfRole[k])) { dfRole[k] <- "" }
+		myLoc <- attr(hsp$data[[i]], "location.xy")
+		if (is.null(myLoc)) { myLoc <- c(NA, NA) }
+		dfLocX[k] <- myLoc[1]
+		dfLocY[k] <- myLoc[2]
+	}
+	dfRole <- factor(dfRole, levels=c("RAIN", "FLOW", "OTHER"))
+	
+	metadata <- data.frame(
+		ItemName=dfName,
+		DataName=dfData,
+		Role=dfRole,
+		X_Long=dfLocX,
+		Y_Lat=dfLocY,
+		check.names=F,
+		stringsAsFactors=F
+	)
+	
+	newMeta <- guiDo(editAsText(metadata), doLog=F)
+	if (identical(metadata, newMeta)) {
+		return()
+	}
+	
+	# TODO: check that number of rows is the same...
+	
+	addLogComment(paste("Edited metadata for", length(blobIndices), "objects"))
+	for (k in seq(along=blobIndices)) {
+		# 'i' indexes hsp$data; 'k' indexes metadata (subset)
+		i <- blobIndices[k]
+		if (!is.null(newMeta$ItemName)
+		&& !is.na(newMeta$ItemName[k])
+		&& (newMeta$ItemName[k] != "")) {
+			names(hsp$data)[i] <<- newMeta$ItemName[k]
+		}
+		if (!is.null(newMeta$DataName)
+		&& !is.na(newMeta$DataName[k])) {
+			attr(hsp$data[[i]], "dataname") <<- newMeta$DataName[k]
+		}
+		if (!is.null(newMeta$Role)
+		&& !is.na(newMeta$Role[k])) {
+			attr(hsp$data[[i]], "role") <<- as.character(newMeta$Role[k])
+		}
+		if (!is.null(newMeta$X_Long)
+		&& !is.null(newMeta$Y_Lat)) {
+			myLoc <- c(newMeta$X_Long[k], newMeta$Y_Lat[k])
+			attr(hsp$data[[i]], "location.xy") <<- 
+				if (any(is.na(myLoc))) { NULL } else { myLoc }
+		}
+	}
+	
+	setStatusBar(paste("Edited metadata for", length(blobIndices), "objects"))
+	datasetModificationUpdate()
 }
 
 .hs_on_import_remove_blob_button_clicked <- function(button) {

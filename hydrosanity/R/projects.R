@@ -30,12 +30,20 @@ openProject <- function() {
 		package_version(hsp$version) < package_version("0.5")) {
 		errorDialog("The version of Hydrosanity used to save this project used a different data structure. Maybe you can manually fix hsp$data?")
 		stop("Project file version not supported")
+	} else
+	if (package_version(hsp$version) < package_version("0.6")) {
+		# rename a Qual factor level
+		for (i in seq(along=hsp$data)) {
+			oldLevels <- levels(hsp$data[[i]]$Qual)
+			oldLevels[oldLevels == "maybe"] <- "suspect"
+			levels(hsp$data[[i]]$Qual) <<- oldLevels
+		}
 	}
 	hsp$version <<- NULL
 	
 	# switch to first page and trigger update
+	datasetModificationUpdate()
 	theWidget("notebook")$setCurrentPage(1)
-	.hs_on_notebook_switch_page(theWidget("notebook"), APPWIN, 1)
 	
 	theWidget("import_options_expander")$setExpanded(FALSE)
 	theWidget("import_makechanges_expander")$setExpanded(TRUE)

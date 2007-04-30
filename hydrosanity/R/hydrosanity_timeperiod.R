@@ -111,20 +111,19 @@ updateTimePeriodPage <- function() {
 	setStatusBar("")
 	
 	plotQualCodes <- theWidget("timeperiod_plotqualitycodes_checkbutton")$getActive()
-	colMapText <- theWidget("timeperiod_colmap_entry")$getText()
 	
 	addLogComment("Generate timeline plot")
 	
-	plot.cmd.str <- sprintf(
-		'grid.timeline.plot(hsp$data, xscale=hsp$timePeriod, colMap=%s)',
-		if (plotQualCodes) { colMapText } else { 'NULL' }
-	)
+	plot.cmd <- call('grid.timeline.plot')
+	plot.cmd[[2]] <- quote(hsp$data)
+	plot.cmd$xscale <- quote(hsp$timePeriod)
+	plot.cmd$colMap <- if (!plotQualCodes) { NA }
 	
 	setPlotDevice("timeline")
 	setCairoWindowButtons("timeline", centre=T, zoomin=T, setperiod=T)
 	
-	guiDo(isParseString=T, plot.cmd.str)
-	.hydrosanity$call[["timeline"]] <<- parse(text=plot.cmd.str)[[1]]
+	guiDo(plot.cmd, isExpression=T)
+	.hydrosanity$call[["timeline"]] <<- plot.cmd
 	
 	setStatusBar("Generated timeline plot")
 }

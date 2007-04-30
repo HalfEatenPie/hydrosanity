@@ -32,6 +32,7 @@ updateExplorePage <- function() {
 	yearStartMonthNum <- theWidget("explore_timeseries_yearstart_combobox")$getActive()
 	nTrans <- (doRawData + doAggr1 + doAggr2)
 	if (nTrans == 0) { return() }
+	if (nBlobs * nTrans == 1) { doSuperpose <- F }
 	
 	addLogComment("Generate timeseries plot")
 	
@@ -144,11 +145,14 @@ updateExplorePage <- function() {
 	plot.cmd$sameScales <- if (doCommonScale) { T } else { F }
 	plot.cmd$allSameScales <- if (doCommonScale && doSuperpose
 		&& (length(list.cmd[-1]) > 1)) { T }
+	plot.cmd$doQualTimeline <- if (doQual) {
+		if (doSuperpose && (nBlobs > 1)) { F } else { T }
+	}
 	
 	setPlotDevice("timeseries")
 	setCairoWindowButtons("timeseries", centre=T, zoomin=T, setperiod=T, log=F)
 	
-	result <- guiDo(plot.cmd, isExpression=T)
+	guiDo(plot.cmd, isExpression=T)
 	
 	.hydrosanity$call[["timeseries"]] <<- evalCallArgs(plot.cmd, pattern="^tmp")
 	
@@ -257,7 +261,6 @@ updateExplorePage <- function() {
 				at=tmp.probs, labels=tmp.probs * 100))
 		}
 	}
-	plot.cmd$scales$y$log <- T
 	plot.cmd$yscale.components <- quote(lattice.y.prettylog)
 	plot.cmd$xlab <- if (doCDF) { "Probability (%)" }
 	plot.cmd$ylab <- attr(hsp$data[[selNames[1]]], "dataname")
@@ -277,11 +280,11 @@ updateExplorePage <- function() {
 	plot.cmd$prepanel <- if (doCDF) { quote(prepanel.qqmath.fix) }
 	
 	setPlotDevice("distribution")
-	setCairoWindowButtons("distribution", identify=T, log=T, zoomin=T)
+	setCairoWindowButtons("distribution", identify=T, log=F, zoomin=T)
 	
 	result <- guiDo(plot.cmd, isExpression=T)
 	# plot trellis object
-	guiDo(bquote(print(.(result))), isExpression=T, doLog=F)
+	guiDo(print(result), doLog=F)
 	
 	.hydrosanity$call[["distribution"]] <<- evalCallArgs(plot.cmd, pattern="^tmp")
 	
@@ -399,10 +402,9 @@ updateExplorePage <- function() {
 	plot.cmd$layout <- if (!doSupStripPlot && doMonths && (nBlobs > 1)) {
 		c(1, nBlobs)
 	}
-	plot.cmd$jitter <- if (doStripPlot || doSupStripPlot) { T }
+	#plot.cmd$jitter <- if (doStripPlot || doSupStripPlot) { T }
 	
 	# plot scales and annotation specifications
-	plot.cmd$scales$y$log <- T
 	plot.cmd$ylab <- attr(hsp$data[[selNames[1]]], "dataname")
 	plot.cmd$yscale.components <- quote(lattice.y.prettylog)
 	plot.cmd$auto.key <- if (doSupStripPlot) { T }
@@ -420,11 +422,11 @@ updateExplorePage <- function() {
 	plot.cmd$sub <- quote(tmp.caption)
 	
 	setPlotDevice("seasonality")
-	setCairoWindowButtons("seasonality", identify=T, log=T, zoomin=T)
+	setCairoWindowButtons("seasonality", identify=T, log=F, zoomin=T)
 	
 	result <- guiDo(plot.cmd, isExpression=T)
 	# plot trellis object
-	guiDo(bquote(print(.(result))), isExpression=T, doLog=F)
+	guiDo(print(result), doLog=F)
 	
 	.hydrosanity$call[["seasonality"]] <<- evalCallArgs(plot.cmd, pattern="^tmp")
 	

@@ -5,7 +5,7 @@
 ##
 
 MAJOR <- "0"
-MINOR <- "5"
+MINOR <- "6"
 REVISION <- unlist(strsplit("$Revision: 0 $", split=" "))[2]
 VERSION <- paste(MAJOR, MINOR, REVISION, sep=".")
 COPYRIGHT <- "(c) 2007 Felix Andrews <felix@nfrac.org>, GPL\n based on Rattle, (c) 2006 Graham.Williams@togaware.com"
@@ -101,26 +101,33 @@ hydrosanity <- function() {
 	theWidget("import_time_format_codes_combobox")$setActive(0)
 	theWidget("import_time_step_comboboxentry")$setActive(4)
 	theWidget("import_makefactor_comboboxentry")$setActive(0)
+	theWidget("explore_cdf_aggr1_radiobutton")$setActive(T)
 	theWidget("explore_timeseries_aggr1_comboboxentry")$setActive(2)
 	theWidget("explore_timeseries_aggr2_comboboxentry")$setActive(4)
 	theWidget("explore_timeseries_yearstart_combobox")$setActive(0)
 	theWidget("explore_cdf_aggr1_comboboxentry")$setActive(2)
 	theWidget("explore_cdf_aggr2_comboboxentry")$setActive(4)
+	theWidget("impute_missing_gaps_comboboxentry")$setActive(0)
+	theWidget("impute_accum_gaps_comboboxentry")$setActive(3)
+	theWidget("impute_missing_constant_combobox")$setActive(0)
 	theWidget("corr_smoothed_by_comboboxentry")$setActive(1)
 	theWidget("corr_relationplot_lag_comboboxentry")$setActive(0)
 	
 	setTextviewMonospace(theWidget("log_textview"))
 	setTextviewMonospace(theWidget("impute_textview"))
+	setTextviewMonospace(theWidget("corr_contiguous_textview"))
 	
 	# set up table format on import page
 	importTreeView <- theWidget("import_summary_treeview")
 	insertTreeViewTextColumns(importTreeView, 
-		colNames=c("Name", "Data", "Start", "End", "Length", "Timestep", "Qual", "Extra_data", "Role"),
+		colNames=c("Name", "Data", "Start", "End", "Length", "Timestep", "Location_X.Y", "Qual", "Extra_data", "Role"),
 		editors=list(Name=.hs_on_import_summary_treeview_name_edited,
 			Data=.hs_on_import_summary_treeview_dataname_edited,
 			Role=.hs_on_import_summary_treeview_role_edited),
 		combo=list(Role=data.frame(c("RAIN","FLOW","OTHER"))) )
 	importTreeView$getSelection()$setMode("multiple")
+	importTreeView$setRubberBanding(T)
+	importTreeView$setRulesHint(T)
 	
 	# set up table format on timeperiod page
 	timeperiodTreeView <- theWidget("timeperiod_summary_treeview")
@@ -130,6 +137,9 @@ hydrosanity <- function() {
 	APPWIN$present()
 }
 
+on_drawingarea_button_press_event <- function(widget, event, ...) {
+	print(paste('x', event[["x"]], 'y', event[["y"]]))
+}
 
 addInitialLogMessage <- function() {
 	addToLog(sprintf("## Hydrosanity version %s", VERSION), "\n",
@@ -159,6 +169,12 @@ datasetModificationUpdate <- function() {
 	.hydrosanity$update$timeperiod <<- T
 	.hydrosanity$update$explore <<- T
 	.hydrosanity$update$impute <<- T
+	.hydrosanity$update$corr <<- T
+	
+	# sort hsp$data by name
+	if (is.unsorted(names(hsp$data))) {
+		hsp$data <<- hsp$data[order(names(hsp$data))]
+	}
 	
 	.hs_on_notebook_switch_page(
 		page.num=theWidget("notebook")$getCurrentPage())
@@ -169,6 +185,7 @@ timeperiodModificationUpdate <- function() {
 	
 	.hydrosanity$update$timeperiod <<- T
 	.hydrosanity$update$impute <<- T
+	.hydrosanity$update$corr <<- T
 	
 	.hs_on_notebook_switch_page(
 		page.num=theWidget("notebook")$getCurrentPage())
