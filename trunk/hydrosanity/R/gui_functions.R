@@ -8,7 +8,7 @@
 setPlotDevice <- function(name) {
 	if (is.null(.hydrosanity$dev[[name]]) ||
 		(.hydrosanity$dev[[name]] %notin% dev.list())) {
-		if (require("cairoDevice", quietly=TRUE)) {
+		if (require("cairoDevice", quietly=T)) {
 			newCairoWindow(name)
 		} else {
 			#do.call(getOption("device"), list())
@@ -102,6 +102,8 @@ setCairoWindowButtons <- function(name, identify=NA, centre=NA, zoomin=NA, zoomo
 	myXScale <- eval(myCall$xscale)
 	if (is.null(myXScale)) {
 		guiDo(hsp$timePeriod <- NULL)
+		infoDialog("Set time period for analysis to NULL ",
+			"(i.e. include all data)", restore=F)
 		timeperiodModificationUpdate()
 		return()
 	}
@@ -503,7 +505,8 @@ setCairoWindowButtons <- function(name, identify=NA, centre=NA, zoomin=NA, zoomo
 		dev.off()
 	}
 	else if (ext %in% "png") {
-		dev.copy(png, file=filename, width=myWidth, height=myHeight)
+		devFn <- if (require(Cairo, quietly=T)) { CairoPNG } else { png }
+		dev.copy(devFn, file=filename, width=myWidth, height=myHeight)
 		dev.off()
 	}
 	else {
@@ -578,7 +581,7 @@ setupIconView <- function(iconView) {
 	
 	list_store <- gtkListStore("character", "GdkPixbuf")
 	
-	for (i in seq(along=hsp$data)) {
+	for (i in order(names(hsp$data))) {
 		iter <- list_store$append()$iter
 		list_store$set(iter, 0, names(hsp$data)[i])
 		list_store$set(iter, 1, switch(attr(hsp$data[[i]], "role"),
@@ -620,17 +623,17 @@ iconViewGetSelectedNames <- function(iconView) {
 
 ## ERROR CATCHING STUFF
 
-guiDo <- function(expr, isExpression=F, isParseString=F, doLog=T, doFailureDialog=T, doFailureLog=doLog, doStop=T) {
+guiDo <- function(expr, isExpression=F, isParseString=F, doLog=T, doFailureDialog=T, doFailureLog=doLog, doStop=T, envir=if (doLog) {.GlobalEnv} else {parent.frame()}) {
 	setCursor("watch")
 	result <- NULL
 	if (!isExpression && !isParseString) {
 		expr <- substitute(expr)
 	}
 	if (isParseString) {
-		result <- tryCatch(eval(parse(text=expr), envir=.GlobalEnv), 
+		result <- tryCatch(eval(parse(text=expr), envir=envir), 
 			error=function(e)e)
 	} else {
-		result <- tryCatch(eval(expr, envir=.GlobalEnv), 
+		result <- tryCatch(eval(expr, envir=envir), 
 			error=function(e)e)
 	}
 	setCursor()
@@ -742,7 +745,7 @@ guiTextInput <- function(text="", title="Text Input", prompt="") {
 
 ## EDIT DATA FRAMES AS TEXT
 
-edit.as.text <- function(x, title=NULL) {
+editAsText <- function(x, title=NULL, edit.row.names=any(row.names(x) != 1:nrow(x))) {
 	if (!is.data.frame(x)) { stop("'x' must be a data frame") }
 	if (is.null(title)) {
 		title <- paste("Editing", deparse(substitute(x)))
@@ -750,18 +753,47 @@ edit.as.text <- function(x, title=NULL) {
 	# make table text block from data frame 'x'
 	foo <- ""
 	zz <- textConnection("foo", "w", local=T)
-	write.table(x, file=zz, sep="\t", quote=F, col.names=NA)
+	write.table(x, file=zz, sep="\t", quote=F, row.names=edit.row.names,
+		col.names=if (edit.row.names) {NA} else {T})
 	close(zz)
-	tableTxt <- paste("row.names", paste(foo, collapse="\n"), "\n", sep='')
-	# show dialog
-	newTableTxt <- guiTextInput(text=tableTxt, title=title, 
-		prompt=paste("Edit the text (in tab-separated format),",
-			"or copy and paste to/from a spreadsheet."))
-	if (is.null(newTableTxt)) { return(x) }
-	# convert table text block back to data frame
-	zz <- textConnection(newTableTxt)
-	newData <- read.delim(file=zz, row.names=1, colClasses=sapply(x, class))
-	close(zz)
+	tableTxt <- paste(paste(foo, collapse="\n"), "\n", sep='')
+	if (edit.row.names) { tableTxt <- paste("row.names", tableTxt, sep='') }
+	# show text box and repeat if there was an error
+	readOK <- F
+	while (!readOK) {
+		newTableTxt <- guiTextInput(text=tableTxt, title=title, 
+			prompt=paste("Copy and paste to/from a spreadsheet,",
+				"or edit the text here (in tab-separated format).\n",
+				"Do not move the columns around,",
+				"they must stay in this order."))
+		if (is.null(newTableTxt)) { return(x) }
+		# convert table text block back to data frame
+		zz <- textConnection(newTableTxt)
+		newData <- tryCatch(
+			read.delim(file=zz, header=T, colClasses=sapply(x, class),
+			row.names=if (edit.row.names) {1} else {NULL}),
+			error=function(e)e)
+		close(zz)
+		# check whether there was an error in reading the table
+		if (inherits(newData, "error")) {
+			errorDialog("Error reading table: ", conditionMessage(newData))
+			tableTxt <- newTableTxt
+		} else {
+			readOK <- T
+		}
+	}
+	# warn if the number of rows has changed
+	if (nrow(newData) != nrow(x)) {
+		warning("Number of rows changed from ",
+			nrow(x), " to ", nrow(newData))
+	} else if (!edit.row.names) {
+		# keep original row names 
+		row.names(newData) <- attr(x, "row.names")
+	}
+	# ensure factor levels are the same
+	for (i in which(sapply(x, class) == "factor")) {
+		newData[[i]] <- factor(newData[[i]], levels=levels(x[[i]]))
+	}
 	newData
 }
 

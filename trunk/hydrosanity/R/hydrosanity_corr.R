@@ -3,7 +3,11 @@
 ## Copyright (c) 2007 Felix Andrews <felix@nfrac.org>, GPL
 
 updateCorrPage <- function() {
+	
 	setupIconView(theWidget("corr_iconview"))
+	
+	.hs_on_corr_iconview_selection_changed()
+	
 	.hydrosanity$update$corr <<- F
 	APPWIN$present()
 }
@@ -27,6 +31,15 @@ updateCorrPage <- function() {
 	
 	addLogComment("Generate cross-correlation plot")
 	
+	whichFlow <- which(sapply(hsp$data[selNames], attr, "role") == "FLOW")
+	whichRain <- which(sapply(hsp$data[selNames], attr, "role") == "RAIN")
+	# do we have a pair consisting of rainfall and flow?
+	isPQ <- (length(whichFlow) == 1) && (length(whichRain) == 1)
+	# make sure it is in standard order in dataframe: flow then rain
+	if (isPQ && (whichFlow == 2)) {
+		selNames <- rev(selNames)
+	}
+	
 	rawdata.cmd <- bquote(hsp$data[.(selNames)])
 	
 	tmpObjs <- c('tmp.data')
@@ -35,17 +48,11 @@ updateCorrPage <- function() {
 		tmp.data <- sync.timeblobs(.(rawdata.cmd), timelim=hsp$timePeriod)
 	))
 	
-	#if (any(sapply(tmp.data[-1], is.na))) {
-	#	errorDialog("Selected items contain missing values. ",
-	#		"Adjust the time period, or impute/redistribute missing values.")
-	#	return()
-	#}
-	
 	if (doRises) {
-		if (identical(attr(hsp$data[[selNames[1]]], "role"), "FLOW")) {
+		if (attr(hsp$data[[selNames[1]]], "role") == "FLOW") {
 			guiDo(tmp.data[[2]] <- rises(tmp.data[[2]]))
 		}
-		if (identical(attr(hsp$data[[selNames[2]]], "role"), "FLOW")) {
+		if (attr(hsp$data[[selNames[2]]], "role") == "FLOW") {
 			guiDo(tmp.data[[3]] <- rises(tmp.data[[3]]))
 		}
 	}
@@ -97,7 +104,7 @@ updateCorrPage <- function() {
 	
 	result <- guiDo(plot.cmd, isExpression=T)
 	# plot trellis object
-	guiDo(bquote(print(.(result))), isExpression=T, doLog=F)
+	guiDo(print(result), doLog=F)
 	
 	.hydrosanity$call[["cross-correlation"]] <<- evalCallArgs(plot.cmd, pattern="^tmp")
 	
@@ -115,14 +122,33 @@ updateCorrPage <- function() {
 	
 	selNames <- iconViewGetSelectedNames(theWidget("corr_iconview"))
 	if (length(selNames) != 2) {
-		errorDialog("Select two items to calculate their cross-correlation.")
+		errorDialog("Select two items to calculate their correlation.")
 		return()
 	}
 	nBlobs <- length(selNames)
 	lagSpec <- theWidget("corr_relationplot_lag_comboboxentry")$getActiveText()
 	doRises <- theWidget("corr_relationplot_flowrises_checkbutton")$getActive()
+	doSeasons <- theWidget("corr_relationplot_season_checkbutton")$getActive()
+	seasonIntervals <- theWidget("corr_relationplot_season_spinbutton")$getValue()
+	doAnteFlow <- theWidget("corr_relationplot_anteflow_checkbutton")$getActive()
+	anteFlowIntervals <- theWidget("corr_relationplot_anteflow_spinbutton")$getValue()
+	doConditioning <- (doSeasons || doAnteFlow)
+	
+	#if (doRises && doAnteFlow) {
+	#	errorDialog("Can not condition on antecedent flow when using only flow rises.")
+	#	return()
+	#}
 	
 	addLogComment("Generate rainfall-runoff relationship plot")
+	
+	whichFlow <- which(sapply(hsp$data[selNames], attr, "role") == "FLOW")
+	whichRain <- which(sapply(hsp$data[selNames], attr, "role") == "RAIN")
+	# do we have a pair consisting of rainfall and flow?
+	isPQ <- (length(whichFlow) == 1) && (length(whichRain) == 1)
+	# make sure it is in standard order in dataframe: flow then rain
+	if (isPQ && (whichFlow == 2)) {
+		selNames <- rev(selNames)
+	}
 	
 	rawdata.cmd <- bquote(hsp$data[.(selNames)])
 	
@@ -132,14 +158,36 @@ updateCorrPage <- function() {
 		tmp.data <- sync.timeblobs(.(rawdata.cmd), timelim=hsp$timePeriod)
 	))
 	
+	if (doSeasons) {
+		guiDo(isExpression=T, bquote(
+			tmp.data$Season <- equal.count(as.POSIXlt(tmp.data$Time)$yday, 
+				number=.(seasonIntervals), overlap=0)
+		))
+	}
+	
+	if (doAnteFlow) {
+		if (!isPQ) {
+			errorDialog("Must have one each of FLOW and RAIN to calculate antecedent flow.")
+			return()
+		}
+		guiDo(isExpression=T, bquote({
+			tmp.ante <- log10(tmp.data[[2]][lastTime(tmp.data[[3]]==0)])
+			tmp.ante <- pmax(tmp.ante, range(tmp.ante, finite=T)[1]/2)
+			tmp.data$AnteFlow <- equal.count(tmp.ante, 
+				number=.(anteFlowIntervals), overlap=0)
+		}))
+	}
+	
 	if (doRises) {
-		if (identical(attr(hsp$data[[selNames[1]]], "role"), "FLOW")) {
+		if (attr(hsp$data[[selNames[1]]], "role") == "FLOW") {
 			guiDo(tmp.data[[2]] <- rises(tmp.data[[2]]))
 		}
-		if (identical(attr(hsp$data[[selNames[2]]], "role"), "FLOW")) {
+		if (attr(hsp$data[[selNames[2]]], "role") == "FLOW") {
 			guiDo(tmp.data[[3]] <- rises(tmp.data[[3]]))
 		}
 	}
+	
+	# The lag k value returned by ccf(x,y) estimates the correlation between x[t+k] and y[t]. 
 	
 	tmpObjs <- c(tmpObjs, 'tmp.lag')
 	if (identical(lagSpec, "best correlation")) {
@@ -162,10 +210,13 @@ updateCorrPage <- function() {
 	})
 	
 	plot.cmd <- call('xyplot')
-	plot.cmd[[2]] <- bquote(
-		.(as.symbol(names(tmp.data)[2])) ~ .(as.symbol(names(tmp.data)[3])))
+	conditionVars <- paste(c(if(doSeasons){'Season'},
+				if(doAnteFlow){'AnteFlow'}), collapse=' * ')
+	plot.cmd[[2]] <- as.formula(paste(
+		names(tmp.data)[2], '~', names(tmp.data)[3], 
+		if (doConditioning) { paste('|', conditionVars) }))
 	plot.cmd[[3]] <- quote(tmp.data)
-	plot.cmd$scales$log <- T
+	#plot.cmd$scales$log <- T
 	#plot.cmd$type <- c("p", "smooth") breaks with missing values, so:
 	plot.cmd$panel <- function(x, y, ...) {
 		panel.xyplot(x, y, ...)
@@ -189,11 +240,11 @@ updateCorrPage <- function() {
 	plot.cmd$sub <- quote(tmp.caption)
 	
 	setPlotDevice("rainfall-runoff")
-	setCairoWindowButtons("rainfall-runoff", identify=T, zoomin=T, log=T)
+	setCairoWindowButtons("rainfall-runoff", identify=T, zoomin=T, log=F)
 	
 	result <- guiDo(plot.cmd, isExpression=T)
 	# plot trellis object
-	guiDo(bquote(print(.(result))), isExpression=T, doLog=F)
+	guiDo(print(result), doLog=F)
 	
 	.hydrosanity$call[["rainfall-runoff"]] <<- evalCallArgs(plot.cmd, pattern="^tmp")
 	
@@ -209,4 +260,33 @@ updateCorrPage <- function() {
 	}
 	setStatusBar("Generated rainfall-runoff relationship plot")
 }
+
+
+.hs_on_corr_iconview_selection_changed <- function(...) {
+	TXV <- theWidget("corr_contiguous_textview")
+	setTextview(TXV, "")
+	
+	selNames <- iconViewGetSelectedNames(theWidget("corr_iconview"))
+	if (length(selNames) != 2) {
+		return()
+	}
+	
+	tmp.data <- sync.timeblobs(hsp$data[selNames], timelim=hsp$timePeriod)
+	
+	contigLength <- length(na.contiguous(ts.intersect(as.ts(tmp.data[[2]]), 
+		as.ts(tmp.data[[3]])))) / 2
+	contigFrac <- contigLength / nrow(tmp.data)
+	
+	if (contigFrac == 1) {
+		setTextview(TXV, "The selected pair has no missing values ",
+			"in the specified time period.")
+	} else {
+		setTextview(TXV, "WARNING: the selected pair has missing values. ",
+		"The longest contiguous sequence will be taken, which is ",
+		contigLength, " time steps (", round(contigFrac*100, digits=1),
+		"%).")
+	}
+	
+}
+
 
