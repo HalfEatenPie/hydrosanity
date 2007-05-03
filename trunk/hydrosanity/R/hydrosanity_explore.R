@@ -29,8 +29,7 @@ updateExplorePage <- function() {
 	doAggr2 <- theWidget("explore_timeseries_aggr2_checkbutton")$getActive()
 	aggr1By <- theWidget("explore_timeseries_aggr1_comboboxentry")$getActiveText()
 	aggr2By <- theWidget("explore_timeseries_aggr2_comboboxentry")$getActiveText()
-	startMthIdx <- theWidget("explore_yearstart_combobox")$getActive() + 1
-	startMonth <- eval(formals(aggregate.timeblob)$start.month)[startMthIdx]
+	startMonth <- theWidget("explore_yearstart_combobox")$getActive() + 1
 	nTrans <- (doRawData + doAggr1 + doAggr2)
 	if (nTrans == 0) { return() }
 	if (nBlobs * nTrans == 1) { doSuperpose <- F }
@@ -54,8 +53,10 @@ updateExplorePage <- function() {
 		aggr.cmd <- bquote(
 			tmp.aggr1 <- lapply(.(rawdata.cmd), aggregate.timeblob,
 				by=.(aggr1By)))
-		if (length(grep("( month|year)", aggr1By)) > 0) {
-			aggr.cmd[[3]]$start.month <- startMonth
+		if (any(grep(" month", aggr1By)) || any(grep("year", aggr1By))) {
+			if (startMonth != 1) {
+				aggr.cmd[[3]]$start.month <- startMonth
+			}
 		}
 		guiDo(aggr.cmd, isExpression=T)
 	}
@@ -64,8 +65,10 @@ updateExplorePage <- function() {
 		aggr.cmd <- bquote(
 			tmp.aggr2 <- lapply(.(rawdata.cmd), aggregate.timeblob,
 				by=.(aggr2By)))
-		if (length(grep("( month|year)", aggr2By)) > 0) {
-			aggr.cmd[[3]]$start.month <- startMonth
+		if (any(grep(" month", aggr2By)) || any(grep("year", aggr2By))) {
+			if (startMonth != 1) {
+				aggr.cmd[[3]]$start.month <- startMonth
+			}
 		}
 		guiDo(aggr.cmd, isExpression=T)
 	}
@@ -193,8 +196,7 @@ updateExplorePage <- function() {
 	doAggr2 <- theWidget("explore_cdf_aggr2_radiobutton")$getActive()
 	aggr1By <- theWidget("explore_cdf_aggr1_comboboxentry")$getActiveText()
 	aggr2By <- theWidget("explore_cdf_aggr2_comboboxentry")$getActiveText()
-	startMthIdx <- theWidget("explore_yearstart_combobox")$getActive() + 1
-	startMonth <- eval(formals(aggregate.timeblob)$start.month)[startMthIdx]
+	startMonth <- theWidget("explore_yearstart_combobox")$getActive() + 1
 	
 	addLogComment("Generate distribution plot")
 	
@@ -221,8 +223,10 @@ updateExplorePage <- function() {
 		aggr.cmd <- bquote(
 			tmp.data <- lapply(tmp.data, aggregate.timeblob, by=.(aggrBy))
 		)
-		if (length(grep("( month|year)", aggrBy)) > 0) {
-			aggr.cmd[[3]]$start.month <- startMonth
+		if (any(grep(" month", aggrBy)) || any(grep("year", aggrBy))) {
+			if (startMonth != 1) {
+				aggr.cmd[[3]]$start.month <- startMonth
+			}
 		}
 		guiDo(aggr.cmd, isExpression=T)
 	}
