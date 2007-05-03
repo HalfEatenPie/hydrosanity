@@ -61,11 +61,11 @@ hydrosanity <- function() {
 		id.call=list(),
 		modified=F,
 		update=list(
-			import=T,
-			timeperiod=T,
-			explore=T,
-			impute=T,
-			corr=T
+			import=F,
+			timeperiod=F,
+			explore=F,
+			impute=F,
+			corr=F
 		)
 	)
 	
