@@ -432,7 +432,7 @@ summary.missing.timeblobs <- function(blob.list, timelim=NULL, timestep=NULL) {
 
 # this only handles regular series (the calculation of NA proportion requires it)
 # column 3 = "Quality (mode)"; cols 4+ = "%good", "%maybe", "%poor", "%disaccumulated", "%imputed"
-aggregate.timeblob <- function(blob, by="1 year", FUN=NULL, start.month=c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"), max.na.proportion=0.05) {
+aggregate.timeblob <- function(blob, by="1 year", FUN=NULL, start.month=1, max.na.proportion=0.05) {
 	# check types
 	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
 	if (is.null(FUN)) {
@@ -442,15 +442,26 @@ aggregate.timeblob <- function(blob, by="1 year", FUN=NULL, start.month=c("Jan",
 			FUN <- mean
 		}
 	}
-	start.month <- match.arg(start.month)
-	if (length(grep("( month|year)", by)) > 0) {
+	if (!is.numeric(start.month)) { stop("'start.month' must be a month number") }
+	# adjust blob start time to specified calendar month
+	if (any(grep(" month", by)) || any(grep("year", by))) {
 		newStart <- as.POSIXlt(trunc.month(start(blob)))
-		oldMon <- newStart$mon
-		newMon <- match(start.month, c("Jan","Feb","Mar","Apr","May",
-			"Jun","Jul","Aug","Sep","Oct","Nov","Dec")) - 1
-		newStart$mon <- newMon
-		if (newMon > oldMon) { newStart$year <- newStart$year - 1 }
+		origMonth <- newStart$mon
+		newMonth <- start.month - 1 # convert to base-zero
+		newStart$mon <- newMonth
+		if (newMonth > origMonth) { newStart$year <- newStart$year - 1 }
 		blob <- window(blob, start=newStart, extend=T)
+		# can not use "years" in cut.POSIXt; that always uses calendar
+		if (any(grep("year", by))) {
+			if (start.month != 1) {
+				byBits <- strsplit(by, " ")[[1]]
+				nYears <- 1
+				if (length(byBits) == 2) {
+					nYears <- as.numeric(byBits[1])
+				}
+				by <- paste(12 * nYears, "months")
+			}
+		}
 	}
 	# find expected number of old timesteps in each new timestep
 	oldDelta <- as.numeric.byString(attr(blob, "timestep"))
