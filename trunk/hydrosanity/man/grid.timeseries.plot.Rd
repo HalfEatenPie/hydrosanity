@@ -7,7 +7,7 @@
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-grid.timeseries.plot(blob.list, xscale = NULL, yscale = NULL, sameScales = T, logScale = F, maxLabelChars = 20, pad = unit(5, "mm"), superPos = 1, newScale = T, main = NULL, sub = T, newpage = (superPos == 1), nSuperpose = 1, gp = gpar(col = colSet[superPos]), colSet = c("#0080ff", "#ff00ff", "darkgreen", "#ff0000", "orange", "#00ff00"))
+grid.timeseries.plot(blob.list, xscale = NULL, yscale = NULL, sameScales = T, logScale = F, qualTimeline = F, colMap = NULL, barThickness = unit(0.5,"lines"), auto.key = T, maxLabelChars = 20, pad = unit(1,"lines"), between = unit(0,"lines"), superPos = 1, newScale = T, main = NULL, sub = T, newpage = (superPos==1), nSuperpose = 1, gp = gpar(col=trellis.par.get("superpose.line")$col[superPos], lty = trellis.par.get("superpose.line")$lty[superPos])) {
 
 grid.timeseries.plot.superpose(superpose.blob.list, allSameScales = F, xscale = NULL, yscale = NULL, logScale = F, sub = T, ...)
 
@@ -19,8 +19,13 @@ grid.timeseries.steps(blob, logScale = F, name = "timeseries", gp = NULL, vp = N
   \item{yscale}{ ~~Describe \code{yscale} here~~ }
   \item{sameScales}{ ~~Describe \code{sameScales} here~~ }
   \item{logScale}{ ~~Describe \code{logScale} here~~ }
+  \item{qualTimeline}{ ~~Describe \code{qualTimeline} here~~ }
+  \item{colMap}{ ~~Describe \code{colMap} here~~ }
+  \item{barThickness}{ ~~Describe \code{thickness} here~~ }
+  \item{auto.key}{ ~~Describe \code{auto.key} here~~ }
   \item{maxLabelChars}{ ~~Describe \code{maxLabelChars} here~~ }
   \item{pad}{ ~~Describe \code{pad} here~~ }
+  \item{between}{ ~~Describe \code{between} here~~ }
   \item{superPos}{ ~~Describe \code{superPos} here~~ }
   \item{newScale}{ ~~Describe \code{newScale} here~~ }
   \item{main}{ ~~Describe \code{main} here~~ }
@@ -28,7 +33,6 @@ grid.timeseries.steps(blob, logScale = F, name = "timeseries", gp = NULL, vp = N
   \item{newpage}{ ~~Describe \code{newpage} here~~ }
   \item{nSuperpose}{ ~~Describe \code{nSuperpose} here~~ }
   \item{gp}{ ~~Describe \code{gp} here~~ }
-  \item{colSet}{ ~~Describe \code{colSet} here~~ }
   \item{superpose.blob.list}{ ~~Describe \code{superpose.blob.list} here~~ }
   \item{allSameScales}{ ~~Describe \code{allSameScales} here~~ }
   \item{\dots}{ ~~Describe \code{\dots} here~~ }

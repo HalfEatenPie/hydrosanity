@@ -1,3 +1,4 @@
+
 .onLoad <- function(libname, pkgname) {
 	cat(paste(
 	"Hydrosanity: an interface for exploring hydrological time series. ", "\n",

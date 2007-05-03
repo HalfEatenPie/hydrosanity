@@ -5,13 +5,13 @@
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-grid.xaxis.POSIXt(at = NULL, label = NULL, name = "timeaxis", lim = as.numeric(convertX(unit(c(0, 1), "npc"), "native")), ...)
+grid.xaxis.POSIXt(lim = as.numeric(convertX(unit(c(0,1), "npc"), "native")), label = T, draw = T, name = NULL, ...)
 }
 \arguments{
-  \item{at}{ ~~Describe \code{at} here~~ }
-  \item{label}{ ~~Describe \code{label} here~~ }
-  \item{name}{ ~~Describe \code{name} here~~ }
   \item{lim}{ ~~Describe \code{lim} here~~ }
+  \item{label}{ ~~Describe \code{label} here~~ }
+  \item{draw}{ ~~Describe \code{draw} here~~ }
+  \item{name}{ ~~Describe \code{name} here~~ }
   \item{\dots}{ ~~Describe \code{\dots} here~~ }
 }
 \details{

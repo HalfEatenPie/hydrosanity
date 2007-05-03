@@ -5,7 +5,7 @@
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-hydrosanity.caption(timelim, by, n, series = NA, x = unit(1, "npc") - unit(1, "mm"), y = unit(1, "mm"), just = c("right", "bottom"), gp = gpar(cex = 0.6, col = grey(0.3)))
+hydrosanity.caption(timelim, by, n, series = NA, x = unit(1, "npc") - unit(1, "mm"), y = unit(1, "mm"), just = c("right", "bottom"), gp = gpar(fontsize = 7, col = grey(0.5)))
 }
 \arguments{
   \item{timelim}{ ~~Describe \code{timelim} here~~ }

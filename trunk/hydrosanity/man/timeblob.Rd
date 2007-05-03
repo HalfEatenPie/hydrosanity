@@ -15,7 +15,6 @@ is.timeblob(x)
 lapply.timeblob.data(blob.list, FUN, ...)
 sapply.timeblob.data(blob.list, FUN, ...)
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{Time}{ ~~Describe \code{Time} here~~ }
   \item{Data}{ ~~Describe \code{Data} here~~ }

@@ -104,7 +104,7 @@ hydrosanity <- function() {
 	theWidget("explore_cdf_aggr1_radiobutton")$setActive(T)
 	theWidget("explore_timeseries_aggr1_comboboxentry")$setActive(2)
 	theWidget("explore_timeseries_aggr2_comboboxentry")$setActive(4)
-	theWidget("explore_timeseries_yearstart_combobox")$setActive(0)
+	theWidget("explore_yearstart_combobox")$setActive(0)
 	theWidget("explore_cdf_aggr1_comboboxentry")$setActive(2)
 	theWidget("explore_cdf_aggr2_comboboxentry")$setActive(4)
 	theWidget("impute_missing_gaps_comboboxentry")$setActive(0)

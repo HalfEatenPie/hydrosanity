@@ -3,7 +3,7 @@
 ## Copyright (c) 2007 Felix Andrews <felix@nfrac.org>, GPL
 
 
-grid.timeline.plot <- function(blob.list, xscale=NULL, colMap=NULL, auto.key=T, barThickness=unit(1.2,"lines"), maxLabelChars=20, pad=unit(1,"lines"), grill=T, main=NULL, sub=T, newpage=T) {
+grid.timeline.plot <- function(blob.list, xscale=NULL, colMap=NULL, barThickness=unit(1.2,"lines"), auto.key=T, maxLabelChars=20, pad=unit(1,"lines"), grill=T, main=NULL, sub=T, newpage=T) {
 	# check types
 	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
 	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
@@ -108,14 +108,14 @@ grid.timeline.plot <- function(blob.list, xscale=NULL, colMap=NULL, auto.key=T, 
 	upViewport(1)
 }
 
-timelineColMapDefault <- function(x=list(
+timelineColMapDefault <- function(colMap=list(
 		good="black", 
 		suspect=trellis.par.get("superpose.polygon")$col[1], 
 		poor=trellis.par.get("superpose.polygon")$col[2], 
 		disaccumulated=trellis.par.get("superpose.polygon")$col[3], 
 		imputed=trellis.par.get("superpose.polygon")$col[4])) {
 	if (is.null(x)) {
-		eval(formals(timelineColMapDefault)$x)
+		eval(formals(timelineColMapDefault)$colMap)
 	} else { x }
 }
 
@@ -216,7 +216,7 @@ grid.timeseries.plot.superpose <- function(superpose.blob.list, allSameScales=F,
 }
 
 
-grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales=T, logScale=F, doQualTimeline=F, colMap=NULL, barThickness=unit(0.5,"lines"), auto.key=T, maxLabelChars=20, pad=unit(1,"lines"), between=unit(0,"lines"), superPos=1, newScale=T, main=NULL, sub=T, newpage=(superPos==1), nSuperpose=1, gp=gpar(col=trellis.par.get("superpose.line")$col[superPos], lty=trellis.par.get("superpose.line")$lty[superPos])) {
+grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales=T, logScale=F, qualTimeline=F, colMap=NULL, barThickness=unit(0.5,"lines"), auto.key=T, maxLabelChars=20, pad=unit(1,"lines"), between=unit(0,"lines"), superPos=1, newScale=T, main=NULL, sub=T, newpage=(superPos==1), nSuperpose=1, gp=gpar(col=trellis.par.get("superpose.line")$col[superPos], lty=trellis.par.get("superpose.line")$lty[superPos])) {
 	# check types
 	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
 	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
@@ -239,7 +239,7 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 	ylabs <- sapply(names(blob.list), toString, width=maxLabelChars)
 	theKey <- NULL
 	keyHeight <- unit(0, "npc")
-	if (auto.key && doQualTimeline && (superPos==1)) {
+	if (auto.key && qualTimeline && (superPos==1)) {
 		if (is.null(colMap)) { colMap <- timelineColMapDefault() }
 		usedLevels <- unique(unlist(lapply(blob.list, 
 			function(x) { levels(x$Qual[,drop=T]) })))
@@ -279,7 +279,7 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 	}
 	if (newpage) { grid.newpage() }
 	# layout for plot
-	if (!doQualTimeline) { barThickness <- unit(0,"mm") }
+	if (!qualTimeline) { barThickness <- unit(0,"mm") }
 	yLabSpace <- unit(1.5, "lines")
 	yAxisWidth <- unit(3, "lines")
 	yAxesSpace <- yAxisWidth
@@ -381,7 +381,7 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 			grid.text(ylabs[k], x=-1*yAxesSpace-unit(1,"lines"), 
 				rot=90, name=paste("label",k,sep=''))
 			# draw timeline bar and x-axis
-			if (doQualTimeline) {
+			if (qualTimeline) {
 				pushViewport(viewport(y=0, height=barThickness, 
 					just="top", xscale=xscale, clip="off"))
 				grid.xaxis.POSIXt(label=F)
@@ -742,7 +742,7 @@ timeAxisComponents <- function(lim, label=T) {
 	return(list(at=at, label=atLabels))
 }
 
-grid.xaxis.POSIXt <- function(lim=as.numeric(convertX(unit(c(0,1), "npc"), "native")), label=T, name=NULL, draw=T, ...) {
+grid.xaxis.POSIXt <- function(lim=as.numeric(convertX(unit(c(0,1), "npc"), "native")), label=T, draw=T, name=NULL, ...) {
 	axisStuff <- timeAxisComponents(lim, label=label)
 	if (label==F) { axisStuff$label <- F }
 	tmp <- xaxisGrob(at=axisStuff$at, label=axisStuff$label, name=name, ...)
