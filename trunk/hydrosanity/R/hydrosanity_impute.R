@@ -9,12 +9,12 @@ updateImputePage <- function() {
 	.hs_on_impute_iconview_selection_changed()
 	
 	.hydrosanity$update$impute <<- F
-	APPWIN$present()
+	theWidget(APPWIN)$present()
 }
 
 .hs_on_impute_missing_button_clicked <- function(button) {
-	APPWIN$setSensitive(F)
-	on.exit(APPWIN$setSensitive(T))
+	theWidget(APPWIN)$setSensitive(F)
+	on.exit(theWidget(APPWIN)$setSensitive(T))
 	setStatusBar("")
 	
 	selNames <- iconViewGetSelectedNames(theWidget("impute_iconview"))
@@ -89,8 +89,8 @@ updateImputePage <- function() {
 }
 
 .hs_on_impute_undo_imputed_button_clicked <- function(button) {
-	APPWIN$setSensitive(F)
-	on.exit(APPWIN$setSensitive(T))
+	theWidget(APPWIN)$setSensitive(F)
+	on.exit(theWidget(APPWIN)$setSensitive(T))
 	setStatusBar("")
 	
 	selNames <- iconViewGetSelectedNames(theWidget("impute_iconview"))
@@ -110,8 +110,8 @@ updateImputePage <- function() {
 }
 
 .hs_on_impute_undo_accumulated_button_clicked <- function(button) {
-	APPWIN$setSensitive(F)
-	on.exit(APPWIN$setSensitive(T))
+	theWidget(APPWIN)$setSensitive(F)
+	on.exit(theWidget(APPWIN)$setSensitive(T))
 	setStatusBar("")
 	
 	selNames <- iconViewGetSelectedNames(theWidget("impute_iconview"))

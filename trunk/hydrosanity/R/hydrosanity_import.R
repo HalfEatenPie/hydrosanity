@@ -72,25 +72,25 @@ updateImportPage <- function() {
 	myTreeView$columnsAutosize()
 	
 	.hydrosanity$update$import <<- F
-	APPWIN$present()
+	theWidget(APPWIN)$present()
 }
 
 ## ACTIONS
 
 .hs_on_import_displayfile_button_clicked <- function(button) {
-	APPWIN$setSensitive(F)
-	on.exit(APPWIN$setSensitive(T))
+	theWidget(APPWIN)$setSensitive(F)
+	on.exit(theWidget(APPWIN)$setSensitive(T))
 	setStatusBar("")
 	
 	filenames <- choose.files(multi=T)
-	APPWIN$present()
+	theWidget(APPWIN)$present()
 	if (length(filenames)==0) { return() }
 	file.show(filenames)
 }
 
 .hs_on_import_viewtable_button_clicked <- function(button) {
-	APPWIN$setSensitive(F)
-	on.exit(APPWIN$setSensitive(T))
+	theWidget(APPWIN)$setSensitive(F)
+	on.exit(theWidget(APPWIN)$setSensitive(T))
 	setStatusBar("")
 	
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
@@ -117,12 +117,12 @@ updateImportPage <- function() {
 }
 
 .hs_on_import_file_button_clicked <- function(button) {
-	APPWIN$setSensitive(F)
-	on.exit(APPWIN$setSensitive(T))
+	theWidget(APPWIN)$setSensitive(F)
+	on.exit(theWidget(APPWIN)$setSensitive(T))
 	setStatusBar("")
 	
 	filenames <- choose.files()
-	APPWIN$present()
+	theWidget(APPWIN)$present()
 	if (length(filenames)==0) { return() }
 	
 	import.cmd.str <- rep("", length(filenames))
@@ -228,8 +228,8 @@ updateImportPage <- function() {
 }
 
 .hs_on_import_edit_metadata_button_clicked <- function(button) {
-	APPWIN$setSensitive(F)
-	on.exit(APPWIN$setSensitive(T))
+	theWidget(APPWIN)$setSensitive(F)
+	on.exit(theWidget(APPWIN)$setSensitive(T))
 	setStatusBar("")
 	
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
@@ -302,8 +302,8 @@ updateImportPage <- function() {
 }
 
 .hs_on_import_remove_blob_button_clicked <- function(button) {
-	APPWIN$setSensitive(F)
-	on.exit(APPWIN$setSensitive(T))
+	theWidget(APPWIN)$setSensitive(F)
+	on.exit(theWidget(APPWIN)$setSensitive(T))
 	setStatusBar("")
 	
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
@@ -327,8 +327,8 @@ updateImportPage <- function() {
 }
 
 .hs_on_import_makefactor_button_clicked <- function(button) {
-	APPWIN$setSensitive(F)
-	on.exit(APPWIN$setSensitive(T))
+	theWidget(APPWIN)$setSensitive(F)
+	on.exit(theWidget(APPWIN)$setSensitive(T))
 	setStatusBar("")
 	
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))

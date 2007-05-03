@@ -9,12 +9,12 @@ updateCorrPage <- function() {
 	.hs_on_corr_iconview_selection_changed()
 	
 	.hydrosanity$update$corr <<- F
-	APPWIN$present()
+	theWidget(APPWIN)$present()
 }
 
 .hs_on_corr_ccfplot_button_clicked <- function(button) {
-	APPWIN$setSensitive(F)
-	on.exit(APPWIN$setSensitive(T))
+	theWidget(APPWIN)$setSensitive(F)
+	on.exit(theWidget(APPWIN)$setSensitive(T))
 	setStatusBar("")
 	
 	selNames <- iconViewGetSelectedNames(theWidget("corr_iconview"))
@@ -116,8 +116,8 @@ updateCorrPage <- function() {
 }
 
 .hs_on_corr_relationplot_button_clicked <- function(button) {
-	APPWIN$setSensitive(F)
-	on.exit(APPWIN$setSensitive(T))
+	theWidget(APPWIN)$setSensitive(F)
+	on.exit(theWidget(APPWIN)$setSensitive(T))
 	setStatusBar("")
 	
 	selNames <- iconViewGetSelectedNames(theWidget("corr_iconview"))

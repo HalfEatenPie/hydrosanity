@@ -8,13 +8,13 @@
 .hs_on_menu_saveas_activate <- function(action, window) {saveProject(saveAs=T)}
 
 openProject <- function() {
-	APPWIN$setSensitive(F)
-	on.exit(APPWIN$setSensitive(T))
+	theWidget(APPWIN)$setSensitive(F)
+	on.exit(theWidget(APPWIN)$setSensitive(T))
 	setStatusBar("")
 	
 	ff <- c("Hydrosanity projects (.hydrosanity)", "*.hydrosanity")
 	filename <- choose.files(caption="Open project", filters=ff, multi=F)
-	APPWIN$present()
+	theWidget(APPWIN)$present()
 	if (filename=="") { return() }
 	
 	hydrosanity()
@@ -52,8 +52,8 @@ openProject <- function() {
 }
 
 saveProject <- function(saveAs=F) {
-	APPWIN$setSensitive(F)
-	on.exit(APPWIN$setSensitive(T))
+	theWidget(APPWIN)$setSensitive(F)
+	on.exit(theWidget(APPWIN)$setSensitive(T))
 	setStatusBar("")
 	
 	ff <- c("Hydrosanity projects (.hydrosanity)", "*.hydrosanity")
@@ -62,7 +62,7 @@ saveProject <- function(saveAs=F) {
 	if (saveAs==T || filename=="") {
 		filename <- choose.file.save(filename, caption="Save project",
 			filters=ff)
-		APPWIN$present()
+		theWidget(APPWIN)$present()
 		if (is.na(filename)) { return() }
 	}
 	
