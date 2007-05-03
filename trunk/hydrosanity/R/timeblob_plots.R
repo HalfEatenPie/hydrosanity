@@ -114,9 +114,9 @@ timelineColMapDefault <- function(colMap=list(
 		poor=trellis.par.get("superpose.polygon")$col[2], 
 		disaccumulated=trellis.par.get("superpose.polygon")$col[3], 
 		imputed=trellis.par.get("superpose.polygon")$col[4])) {
-	if (is.null(x)) {
+	if (is.null(colMap)) {
 		eval(formals(timelineColMapDefault)$colMap)
-	} else { x }
+	} else { colMap }
 }
 
 #if colMap=NA then ignore quality codes, just plot non-NA values as black
