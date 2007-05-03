@@ -7,12 +7,12 @@ updateExplorePage <- function() {
 	setupIconView(theWidget("explore_iconview"))
 	
 	.hydrosanity$update$explore <<- F
-	APPWIN$present()
+	theWidget(APPWIN)$present()
 }
 
 .hs_on_explore_timeseries_button_clicked <- function(button) {
-	APPWIN$setSensitive(F)
-	on.exit(APPWIN$setSensitive(T))
+	theWidget(APPWIN)$setSensitive(F)
+	on.exit(theWidget(APPWIN)$setSensitive(T))
 	setStatusBar("")
 	
 	selNames <- iconViewGetSelectedNames(theWidget("explore_iconview"))
@@ -171,8 +171,8 @@ updateExplorePage <- function() {
 }
 
 .hs_on_explore_cdf_button_clicked <- function(button) {
-	APPWIN$setSensitive(F)
-	on.exit(APPWIN$setSensitive(T))
+	theWidget(APPWIN)$setSensitive(F)
+	on.exit(theWidget(APPWIN)$setSensitive(T))
 	setStatusBar("")
 	
 	selNames <- iconViewGetSelectedNames(theWidget("explore_iconview"))
@@ -317,8 +317,8 @@ updateExplorePage <- function() {
 }
 
 .hs_on_explore_seasonal_button_clicked <- function(button) {
-	APPWIN$setSensitive(F)
-	on.exit(APPWIN$setSensitive(T))
+	theWidget(APPWIN)$setSensitive(F)
+	on.exit(theWidget(APPWIN)$setSensitive(T))
 	setStatusBar("")
 	
 	selNames <- iconViewGetSelectedNames(theWidget("explore_iconview"))

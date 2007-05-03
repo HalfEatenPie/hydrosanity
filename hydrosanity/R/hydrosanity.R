@@ -36,7 +36,8 @@ WEBSITE <- "http://code.google.com/p/hydrosanity/"
 		c('read.timeblob',
 		  'skip=3, sep=",", dataname="Flow (ML/day)", timeFormat="%H:%M_%d/%m/%Y", na.strings=c(\'""\')')
 )
-if (!exists("APPWIN")) { APPWIN <- NA }
+#if (!exists("APPWIN")) { APPWIN <- NA }
+APPWIN <- "hs_window"
 
 hydrosanity <- function() {
 	require(grid, quietly=TRUE)
@@ -69,12 +70,11 @@ hydrosanity <- function() {
 	)
 	
 	.hydrosanity$GUI <<- gladeXMLNew(getpackagefile("hydrosanity.glade"),
-		root="hs_window")
-	APPWIN <<- theWidget("hs_window")
+		root=APPWIN)
 	
 	# connect the callbacks (event handlers)
 	gladeXMLSignalAutoconnect(.hydrosanity$GUI)
-	gSignalConnect(APPWIN, "delete-event", .hs_on_menu_quit_activate)
+	gSignalConnect(theWidget(APPWIN), "delete-event", .hs_on_menu_quit_activate)
 	
 	# set up log page
 	addInitialLogMessage()
@@ -134,7 +134,7 @@ hydrosanity <- function() {
 	insertTreeViewTextColumns(timeperiodTreeView, 
 		colNames=c("Name", "Min", "Q25", "Median", "Q75", "Max", "Missing", ""))
 	
-	APPWIN$present()
+	theWidget(APPWIN)$present()
 }
 
 on_drawingarea_button_press_event <- function(widget, event, ...) {
@@ -193,8 +193,8 @@ timeperiodModificationUpdate <- function() {
 
 
 .hs_on_notebook_switch_page <- function(widget, page, page.num, ...) {
-	APPWIN$setSensitive(F)
-	on.exit(APPWIN$setSensitive(T))
+	theWidget(APPWIN)$setSensitive(F)
+	on.exit(theWidget(APPWIN)$setSensitive(T))
 	setStatusBar("")
 	
 	if (page.num == 1) {
@@ -212,7 +212,7 @@ timeperiodModificationUpdate <- function() {
 	if (page.num == 5) {
 		if (.hydrosanity$update$corr) { updateCorrPage() }
 	}
-	APPWIN$present()
+	theWidget(APPWIN)$present()
 }
 
 
@@ -226,7 +226,7 @@ timeperiodModificationUpdate <- function() {
 	for (x in .hydrosanity$win) {
 		try(x$destroy(), silent=TRUE)
 	}
-	APPWIN$destroy()
+	theWidget(APPWIN)$destroy()
 	.hydrosanity$GUI <<- NULL
 }
 
@@ -240,13 +240,13 @@ timeperiodModificationUpdate <- function() {
 }
 
 .hs_on_export_log_button_clicked <- function(button) {
-	APPWIN$setSensitive(F)
-	on.exit(APPWIN$setSensitive(T))
+	theWidget(APPWIN)$setSensitive(F)
+	on.exit(theWidget(APPWIN)$setSensitive(T))
 	setStatusBar("")
 	
 	filename <- choose.file.save("log.R", caption="Export Log", 
 		filters=Filters[c("R","txt","All"),])
-	APPWIN$present()
+	theWidget(APPWIN)$present()
 	if (is.na(filename)) { return() }
 	
 	if (get.extension(filename) == "") {

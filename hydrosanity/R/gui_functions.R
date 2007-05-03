@@ -86,7 +86,7 @@ setCairoWindowButtons <- function(name, identify=NA, centre=NA, zoomin=NA, zoomo
 		.hydrosanity$win.gui[[myName]] <<- NULL
 	}
 	myWin$destroy()
-	APPWIN$present()
+	theWidget(APPWIN)$present()
 }
 
 .hs_on_plot_setperiod_button_clicked <- function(button) {
@@ -714,11 +714,11 @@ guiMessageDialog <- function(type="info", ..., isMarkup=F, restore=T) {
 		info="ok",
 		question="yes-no"
 	)
-	dialog <- gtkMessageDialogNewWithMarkup(APPWIN, 
+	dialog <- gtkMessageDialogNewWithMarkup(theWidget(APPWIN), 
 		"destroy-with-parent", type, myButtons, myString)
 	result <- dialog$run() # make it modal
 	dialog$destroy()
-	if (restore) { APPWIN$present() }
+	if (restore) { theWidget(APPWIN)$present() }
 	return(if (result == GtkResponseType["yes"]) { "yes" } else { NULL })
 }
 

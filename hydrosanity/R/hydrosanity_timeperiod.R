@@ -70,13 +70,13 @@ updateTimePeriodPage <- function() {
 	TRV$setModel(dfModel)
 	
 	.hydrosanity$update$timeperiod <<- F
-	APPWIN$present()
+	theWidget(APPWIN)$present()
 }
 
 
 .hs_on_timeperiod_updateperiod_button_clicked <- function(button) {
-	APPWIN$setSensitive(F)
-	on.exit(APPWIN$setSensitive(T))
+	theWidget(APPWIN)$setSensitive(F)
+	on.exit(theWidget(APPWIN)$setSensitive(T))
 	setStatusBar("")
 	
 	myText <- theWidget("timeperiod_chosenperiod_entry")$getText()
@@ -95,8 +95,8 @@ updateTimePeriodPage <- function() {
 }
 
 .hs_on_timeperiod_reset_button_clicked <- function(button) {
-	APPWIN$setSensitive(F)
-	on.exit(APPWIN$setSensitive(T))
+	theWidget(APPWIN)$setSensitive(F)
+	on.exit(theWidget(APPWIN)$setSensitive(T))
 	setStatusBar("")
 	
 	guiDo(hsp$timePeriod <- NULL)
@@ -106,8 +106,8 @@ updateTimePeriodPage <- function() {
 
 
 .hs_on_timeperiod_viewtimeline_button_clicked <- function(button) {
-	APPWIN$setSensitive(F)
-	on.exit(APPWIN$setSensitive(T))
+	theWidget(APPWIN)$setSensitive(F)
+	on.exit(theWidget(APPWIN)$setSensitive(T))
 	setStatusBar("")
 	
 	plotQualCodes <- theWidget("timeperiod_plotqualitycodes_checkbutton")$getActive()

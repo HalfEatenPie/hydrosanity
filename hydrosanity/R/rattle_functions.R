@@ -84,7 +84,7 @@ setStatusBar <- function(..., sep=" ")
 
 setCursor <- function(cursor=NULL) {
 	if (!is.null(cursor)) { cursor <- gdkCursorNew(cursor) }
-	APPWIN$getWindow()$setCursor(cursor)
+	theWidget(APPWIN)$getWindow()$setCursor(cursor)
 }
 
 get.extension <- function(path)
