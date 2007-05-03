@@ -1,21 +1,24 @@
 \name{grid.timeline.plot}
 \alias{grid.timeline.plot}
 \alias{grid.timeline.bar}
+\alias{timelineColMapDefault}
 \title{Plot Timeline of Data and its Quality}
 \description{
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-grid.timeline.plot(blob.list, xscale = NULL, colMap = list(good = "black", maybe = "orange", poor = "red"), thickness = unit(1.5, "lines"), maxLabelChars = 20, pad = unit(4, "mm"), grill = T, main = NULL, sub = T, newpage = T)
+grid.timeline.plot(blob.list, xscale = NULL, colMap = NULL, barThickness = unit(1.2,"lines"), auto.key = T, maxLabelChars = 20, pad = unit(1,"lines"), grill = T, main = NULL, sub = T, newpage = T)
 
 grid.timeline.bar <- function(blob, colMap = NULL, name = "timeline.bar", vp = NULL)
+
+timelineColMapDefault(colMap = list(good="black", suspect=trellis.par.get("superpose.polygon")$col[1], poor=trellis.par.get("superpose.polygon")$col[2], disaccumulated=trellis.par.get("superpose.polygon")$col[3], imputed=trellis.par.get("superpose.polygon")$col[4]))
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{blob.list}{ ~~Describe \code{blob.list} here~~ }
   \item{xscale}{ ~~Describe \code{xscale} here~~ }
   \item{colMap}{ ~~Describe \code{colMap} here~~ }
-  \item{thickness}{ ~~Describe \code{thickness} here~~ }
+  \item{barThickness}{ ~~Describe \code{thickness} here~~ }
+  \item{auto.key}{ ~~Describe \code{auto.key} here~~ }
   \item{maxLabelChars}{ ~~Describe \code{maxLabelChars} here~~ }
   \item{pad}{ ~~Describe \code{pad} here~~ }
   \item{grill}{ ~~Describe \code{grill} here~~ }

@@ -1,5 +1,6 @@
 \name{grid.yaxis.log}
 \alias{grid.yaxis.log}
+\alias{grid.xaxis.log}
 \alias{lattice.y.prettylog}
 \alias{lattice.x.prettylog}
 \title{Log Scale Axis for Grid}
@@ -7,14 +8,16 @@
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-grid.yaxis.log(at = NULL, label = NULL, name = "yaxis", lim = as.numeric(convertY(unit(c(0, 1), "npc"), "native")), ...)
+grid.yaxis.log(logLim = as.numeric(convertY(unit(c(0,1), "npc"), "native")), label = T, draw = T, name = NULL, ...)
+grid.xaxis.log(logLim = as.numeric(convertX(unit(c(0,1), "npc"), "native")), label = T, draw = T, name = NULL, ...)
 
-lattice.y.prettylog <- function(lim, ...)
-lattice.x.prettylog <- function(lim, ...)
+lattice.y.prettylog(lim, ...)
+lattice.x.prettylog(lim, ...)
 }
 \arguments{
-  \item{at}{ ~~Describe \code{at} here~~ }
+  \item{logLim}{ ~~Describe \code{logLim} here~~ }
   \item{label}{ ~~Describe \code{label} here~~ }
+  \item{draw}{ ~~Describe \code{draw} here~~ }
   \item{name}{ ~~Describe \code{name} here~~ }
   \item{lim}{ ~~Describe \code{lim} here~~ }
   \item{\dots}{ ~~Describe \code{\dots} here~~ }

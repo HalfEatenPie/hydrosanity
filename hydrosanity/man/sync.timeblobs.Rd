@@ -1,5 +1,6 @@
 \name{sync.timeblobs}
 \alias{sync.timeblobs}
+\alias{syncTo.timeblobs}
 \alias{matchtimes.timeblob}
 \alias{common.timestep.timeblobs}
 \title{Synchronise Time Series (Timeblobs)}
@@ -8,6 +9,8 @@
 }
 \usage{
 sync.timeblobs(blob.list, timestep = NULL, timelim = NULL, extractColumn = "Data")
+
+syncTo.timeblobs(blob.list, blob, extractColumn = "Data")
 
 matchtimes.timeblob(blob, times)
 
@@ -18,6 +21,7 @@ common.timestep.timeblobs(blob.list, default = "DSTdays")
   \item{timestep}{ ~~Describe \code{timestep} here~~ }
   \item{timelim}{ ~~Describe \code{timelim} here~~ }
   \item{extractColumn}{ ~~Describe \code{extractColumn} here~~ }
+  \item{blob}{ ~~Describe \code{blob} here~~ }
   \item{times}{ ~~Describe \code{times} here~~ }
   \item{default}{ ~~Describe \code{default} here~~ }
 }

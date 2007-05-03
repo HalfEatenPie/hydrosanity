@@ -29,7 +29,8 @@ updateExplorePage <- function() {
 	doAggr2 <- theWidget("explore_timeseries_aggr2_checkbutton")$getActive()
 	aggr1By <- theWidget("explore_timeseries_aggr1_comboboxentry")$getActiveText()
 	aggr2By <- theWidget("explore_timeseries_aggr2_comboboxentry")$getActiveText()
-	yearStartMonthNum <- theWidget("explore_timeseries_yearstart_combobox")$getActive()
+	startMthIdx <- theWidget("explore_yearstart_combobox")$getActive() + 1
+	startMonth <- eval(formals(aggregate.timeblob)$start.month)[startMthIdx]
 	nTrans <- (doRawData + doAggr1 + doAggr2)
 	if (nTrans == 0) { return() }
 	if (nBlobs * nTrans == 1) { doSuperpose <- F }
@@ -50,17 +51,23 @@ updateExplorePage <- function() {
 	# compute and store aggregated series
 	if (doAggr1) {
 		tmpObjs <- c(tmpObjs, 'tmp.aggr1')
-		guiDo(isExpression=T, bquote(
-			tmp.aggr1 <- lapply(.(rawdata.cmd), aggregate.timeblob, 
-				by=.(aggr1By))
-		))
+		aggr.cmd <- bquote(
+			tmp.aggr1 <- lapply(.(rawdata.cmd), aggregate.timeblob,
+				by=.(aggr1By)))
+		if (length(grep("( month|year)", aggr1By)) > 0) {
+			aggr.cmd[[3]]$start.month <- startMonth
+		}
+		guiDo(aggr.cmd, isExpression=T)
 	}
 	if (doAggr2) {
 		tmpObjs <- c(tmpObjs, 'tmp.aggr2')
-		guiDo(isExpression=T, bquote(
-			tmp.aggr2 <- lapply(.(rawdata.cmd), aggregate.timeblob, 
-				by=.(aggr2By))
-		))
+		aggr.cmd <- bquote(
+			tmp.aggr2 <- lapply(.(rawdata.cmd), aggregate.timeblob,
+				by=.(aggr2By)))
+		if (length(grep("( month|year)", aggr2By)) > 0) {
+			aggr.cmd[[3]]$start.month <- startMonth
+		}
+		guiDo(aggr.cmd, isExpression=T)
 	}
 	
 	# each item in list.cmd makes a timeseries plot, each superposed.
@@ -145,7 +152,7 @@ updateExplorePage <- function() {
 	plot.cmd$sameScales <- if (doCommonScale) { T } else { F }
 	plot.cmd$allSameScales <- if (doCommonScale && doSuperpose
 		&& (length(list.cmd[-1]) > 1)) { T }
-	plot.cmd$doQualTimeline <- if (doQual) {
+	plot.cmd$qualTimeline <- if (doQual) {
 		if (doSuperpose && (nBlobs > 1)) { F } else { T }
 	}
 	
@@ -186,6 +193,8 @@ updateExplorePage <- function() {
 	doAggr2 <- theWidget("explore_cdf_aggr2_radiobutton")$getActive()
 	aggr1By <- theWidget("explore_cdf_aggr1_comboboxentry")$getActiveText()
 	aggr2By <- theWidget("explore_cdf_aggr2_comboboxentry")$getActiveText()
+	startMthIdx <- theWidget("explore_yearstart_combobox")$getActive() + 1
+	startMonth <- eval(formals(aggregate.timeblob)$start.month)[startMthIdx]
 	
 	addLogComment("Generate distribution plot")
 	
@@ -209,9 +218,13 @@ updateExplorePage <- function() {
 	# compute and store aggregated series
 	if (doAggr1 || doAggr2) {
 		aggrBy <- if (doAggr1) { aggr1By } else { aggr2By }
-		guiDo(isExpression=T, bquote(
+		aggr.cmd <- bquote(
 			tmp.data <- lapply(tmp.data, aggregate.timeblob, by=.(aggrBy))
-		))
+		)
+		if (length(grep("( month|year)", aggrBy)) > 0) {
+			aggr.cmd[[3]]$start.month <- startMonth
+		}
+		guiDo(aggr.cmd, isExpression=T)
 	}
 	
 	# make.groups
@@ -349,8 +362,7 @@ updateExplorePage <- function() {
 	} else {
 		guiDo({
 			tmp.data <- sync.timeblobs(lapply(tmp.data, aggregate.timeblob, 
-				by="3 months"), timelim=c(
-				trunc.year(hsp$timePeriod[1]), hsp$timePeriod[2]))
+				by="3 months"), timelim=hsp$timePeriod)
 			tmp.data$Season <- factor(quarters(tmp.data$Time), ordered=T)
 		})
 	}

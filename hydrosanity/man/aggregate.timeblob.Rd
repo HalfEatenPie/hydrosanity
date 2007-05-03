@@ -5,12 +5,13 @@
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-\method{aggregate}{timeblob}(blob, by = "1 year", FUN = NULL, max.na.proportion = 0.05)
+\method{aggregate}{timeblob}(blob, by = "1 year", FUN = NULL, start.month = c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"), max.na.proportion = 0.05)
 }
 \arguments{
   \item{blob}{ ~~Describe \code{blob} here~~ }
   \item{by}{ ~~Describe \code{by} here~~ }
   \item{FUN}{ ~~Describe \code{FUN} here~~ }
+  \item{start.month} ~~Describe \code{start.month} here~~ }
   \item{max.na.proportion}{ ~~Describe \code{max.na.proportion} here~~ }
 }
 \details{

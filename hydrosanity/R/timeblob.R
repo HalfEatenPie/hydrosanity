@@ -432,7 +432,7 @@ summary.missing.timeblobs <- function(blob.list, timelim=NULL, timestep=NULL) {
 
 # this only handles regular series (the calculation of NA proportion requires it)
 # column 3 = "Quality (mode)"; cols 4+ = "%good", "%maybe", "%poor", "%disaccumulated", "%imputed"
-aggregate.timeblob <- function(blob, by="1 year", FUN=NULL, max.na.proportion=0.05) {
+aggregate.timeblob <- function(blob, by="1 year", FUN=NULL, start.month=c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"), max.na.proportion=0.05) {
 	# check types
 	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
 	if (is.null(FUN)) {
@@ -441,6 +441,16 @@ aggregate.timeblob <- function(blob, by="1 year", FUN=NULL, max.na.proportion=0.
 		} else {
 			FUN <- mean
 		}
+	}
+	start.month <- match.arg(start.month)
+	if (length(grep("( month|year)", by)) > 0) {
+		newStart <- as.POSIXlt(trunc.month(start(blob)))
+		oldMon <- newStart$mon
+		newMon <- match(start.month, c("Jan","Feb","Mar","Apr","May",
+			"Jun","Jul","Aug","Sep","Oct","Nov","Dec")) - 1
+		newStart$mon <- newMon
+		if (newMon > oldMon) { newStart$year <- newStart$year - 1 }
+		blob <- window(blob, start=newStart, extend=T)
 	}
 	# find expected number of old timesteps in each new timestep
 	oldDelta <- as.numeric.byString(attr(blob, "timestep"))

@@ -1,14 +1,20 @@
 \name{gaps}
 \alias{gaps}
-\title{Find Runs of Missing Values}
+
+\title{Find Runs of Consecutive Missing Values}
 \description{
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-gaps(x)
+gaps(x, internal.only = T)
+
+rises(x)
+
+lastTime(x)
 }
 \arguments{
   \item{x}{ ~~Describe \code{x} here~~ }
+  \item{internal.only}{ ~~Describe \code{internal.only} here~~ }
 }
 \details{
   ~~ If necessary, more details than the description above ~~
