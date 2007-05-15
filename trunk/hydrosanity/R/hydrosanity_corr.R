@@ -86,7 +86,6 @@ updateCorrPage <- function() {
 				panel.xyplot(...)
 			})
 	)
-	# ci <- 0.95; clim <- qnorm((1 + ci)/2)/sqrt(x$n.used)
 	
 	# hydrosanity caption
 	addToLog("## Make hydrosanity caption")

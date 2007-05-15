@@ -65,6 +65,8 @@ hydrosanity <- function() {
 			timeperiod=F,
 			explore=F,
 			impute=F,
+			rain=F,
+			multivar=F,
 			corr=F
 		)
 	)
@@ -88,8 +90,11 @@ hydrosanity <- function() {
 	# set up initial GUI state
 	theWidget("notebook")$setCurrentPage(0)
 	theWidget("import_file_radio_options_notebook")$setShowTabs(FALSE)
+	theWidget("import_import_expander")$setExpanded(TRUE)
 	theWidget("import_options_expander")$setExpanded(FALSE)
-	theWidget("import_makechanges_expander")$setExpanded(FALSE)
+	theWidget("import_edit_expander")$setExpanded(FALSE)
+	theWidget("import_transform_expander")$setExpanded(FALSE)
+	theWidget("import_export_expander")$setExpanded(FALSE)
 	
 	known_format_combo <- theWidget("import_known_format_combobox")
 	known_format_combo$getModel()$clear()
@@ -101,6 +106,13 @@ hydrosanity <- function() {
 	theWidget("import_time_format_codes_combobox")$setActive(0)
 	theWidget("import_time_step_comboboxentry")$setActive(4)
 	theWidget("import_makefactor_comboboxentry")$setActive(0)
+	theWidget("import_transform_timestep_comboboxentry")$setActive(0)
+	theWidget("import_transform_yearstart_combobox")$setActive(0)
+	theWidget("import_transform_aggrfun_combobox")$setActive(0)
+	theWidget("import_transform_qualfun_combobox")$setActive(0)
+	theWidget("export_time_format_comboboxentry")$setActive(0)
+	theWidget("export_time_format_codes_combobox")$setActive(0)
+	
 	theWidget("explore_cdf_aggr1_radiobutton")$setActive(T)
 	theWidget("explore_timeseries_aggr1_comboboxentry")$setActive(2)
 	theWidget("explore_timeseries_aggr2_comboboxentry")$setActive(4)
@@ -126,7 +138,7 @@ hydrosanity <- function() {
 			Role=.hs_on_import_summary_treeview_role_edited),
 		combo=list(Role=data.frame(c("RAIN","FLOW","OTHER"))) )
 	importTreeView$getSelection()$setMode("multiple")
-	importTreeView$setRubberBanding(T)
+	try(importTreeView$setRubberBanding(T), silent=T) # not in 2.8.7
 	importTreeView$setRulesHint(T)
 	
 	# set up table format on timeperiod page
@@ -165,11 +177,8 @@ hsp <- list(data=list())")
 datasetModificationUpdate <- function() {
 	.hydrosanity$modified <<- T
 	
-	.hydrosanity$update$import <<- T
-	.hydrosanity$update$timeperiod <<- T
-	.hydrosanity$update$explore <<- T
-	.hydrosanity$update$impute <<- T
-	.hydrosanity$update$corr <<- T
+	# set all pages to be updated
+	.hydrosanity$update[] <<- T
 	
 	# sort hsp$data by name
 	if (is.unsorted(names(hsp$data))) {
@@ -210,6 +219,12 @@ timeperiodModificationUpdate <- function() {
 		if (.hydrosanity$update$impute) { updateImputePage() }
 	}
 	if (page.num == 5) {
+		if (.hydrosanity$update$rain) { updateRainPage() }
+	}
+	if (page.num == 6) {
+		if (.hydrosanity$update$multivar) { updateMultivarPage() }
+	}
+	if (page.num == 7) {
 		if (.hydrosanity$update$corr) { updateCorrPage() }
 	}
 	theWidget(APPWIN)$present()

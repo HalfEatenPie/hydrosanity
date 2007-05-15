@@ -23,6 +23,7 @@ updateImportPage <- function() {
 		dfLoc[i] <- 'NA'
 		myLoc <- attr(hsp$data[[i]], "location.xy")
 		if (!is.null(myLoc)) {
+			myLoc <- format(round(myLoc, digits=2))
 			dfLoc[i] <- paste('(', myLoc[1], ', ', myLoc[2], ')', sep='')
 		}
 		
@@ -50,8 +51,9 @@ updateImportPage <- function() {
 		}
 		}
 		
-		dfRole[i] <- attr(hsp$data[[i]], "role")
-		if (is.null(dfRole[i])) { dfRole[i] <- "" }
+		myRole <- attr(hsp$data[[i]], "role")
+		if (is.null(myRole)) { myRole <- "" }
+		dfRole[i] <- myRole
 	}
 	
 	dfModel <- rGtkDataFrame(data.frame(
@@ -125,6 +127,10 @@ updateImportPage <- function() {
 	theWidget(APPWIN)$present()
 	if (length(filenames)==0) { return() }
 	
+	addLogComment("Import data from file")
+	
+	wasEmpty <- (length(hsp$data) == 0)
+	
 	import.cmd.str <- rep("", length(filenames))
 	dataName <- rep("", length(filenames))
 	
@@ -169,7 +175,6 @@ updateImportPage <- function() {
 		}
 	}
 	
-	addLogComment("Import data from file")
 	for (i in seq(along=filenames)) {
 		result <- guiDo(import.cmd.str[i], isParseString=T)
 		setStatusBar(sprintf('Imported file "%s" to hsp$data[["%s"]]', 
@@ -180,12 +185,16 @@ updateImportPage <- function() {
 		updateImportPage()
 	}
 	
-	# basic check included in transcipt, not used in GUI
-	addLogComment("Display a simple summary (structure) of the data.")
-	addToLog('str(hsp$data)')
+	if (wasEmpty) {
+		# basic check included in transcipt once, not used in GUI
+		addLogComment("Display a simple summary (structure) of the data.")
+		addToLog('str(hsp$data)')
+	}
 	
-	theWidget("import_options_expander")$setExpanded(FALSE)
-	theWidget("import_makechanges_expander")$setExpanded(TRUE)
+	theWidget("import_import_expander")$setExpanded(FALSE)
+	theWidget("import_edit_expander")$setExpanded(TRUE)
+	theWidget("import_transform_expander")$setExpanded(FALSE)
+	theWidget("import_export_expander")$setExpanded(FALSE)
 	
 	datasetModificationUpdate()
 }
@@ -326,6 +335,22 @@ updateImportPage <- function() {
 	datasetModificationUpdate()
 }
 
+.hs_on_import_extract_extra_button_clicked <- function(button) {
+	theWidget(APPWIN)$setSensitive(F)
+	on.exit(theWidget(APPWIN)$setSensitive(T))
+	setStatusBar("")
+	
+	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
+	if (length(blobIndices)==0) {
+		errorDialog("No items selected.")
+		return()
+	}
+	
+	blobNames <- names(hsp$data)[blobIndices]
+	
+	
+}
+
 .hs_on_import_makefactor_button_clicked <- function(button) {
 	theWidget(APPWIN)$setSensitive(F)
 	on.exit(theWidget(APPWIN)$setSensitive(T))
@@ -339,18 +364,174 @@ updateImportPage <- function() {
 	factorCmdRaw <- theWidget("import_makefactor_comboboxentry")$getActiveText()
 	
 	addLogComment("Convert quality codes")
-	factor_fn.cmd.str <- sprintf("tmp.factor <- function(x){ %s }", factorCmdRaw)
+	factor_fn.cmd.str <- paste(sep="\n",
+		'tmp.factor <- function(x) {',
+			'x2 <- {', factorCmdRaw, '}',
+			'factor(x2, ordered=T, exclude=NULL)',
+		'}')
 	guiDo(factor_fn.cmd.str, isParseString=T)
 	
 	for (i in blobIndices) {
 		blobName <- names(hsp$data)[i]
 		guiDo(isExpression=T, bquote(
-			hsp$data[[.(i)]]$Qual <- factor(tmp.factor(hsp$data[[.(i)]]$Qual), exclude=NULL)
+			hsp$data[[.(blobName)]]$Qual <- tmp.factor(hsp$data[[.(blobName)]]$Qual)
 		))
 		setStatusBar(sprintf('Converted quality codes of object "%s"', blobName))
 	}
-	addToLog('rm(tmp.factor)')
-	rm(tmp.factor, envir=.GlobalEnv)
+	guiDo(rm(tmp.factor))
+	datasetModificationUpdate()
+}
+
+.hs_on_export_button_clicked <- function(button) {
+	theWidget(APPWIN)$setSensitive(F)
+	on.exit(theWidget(APPWIN)$setSensitive(T))
+	setStatusBar("")
+	
+	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
+	if (length(blobIndices)==0) {
+		errorDialog("No items selected.")
+		return()
+	}
+	nBlobs <- length(blobIndices)
+	blobNames <- names(hsp$data)[blobIndices]
+	dataString <- paste('hsp$data[',
+		paste(dQuote(blobNames),collapse=", "), ']', sep='')
+	
+	justTimePeriod <- theWidget("export_timeperiod_radiobutton")$getActive()
+	oneFile <- theWidget("export_onefile_radiobutton")$getActive()
+	csvFile <- theWidget("export_csv_radiobutton")$getActive()
+	timeFormat <- theWidget("export_time_format_comboboxentry")$getActiveText()
+	myOptionString <- theWidget("export_options_entry")$getText()
+	if (is.null(hsp$timePeriod)) { justTimePeriod <- F }
+	if (nBlobs == 1) { oneFile <- F }
+	if (nchar(myOptionString) > 0) {
+		myOptionString <- paste(",", myOptionString)
+	}
+	myOptionString <- paste(', row.names=F', myOptionString, sep='')
+	if (!csvFile) {
+		myOptionString <- paste(', sep="\t"', myOptionString, sep='')
+	}
+	
+	importFn <- if (csvFile) { "write.csv" } else { "write.table" }
+	ext <- if (csvFile) { "csv" } else { "txt" }
+	
+	defaultName <- blobNames[1]
+	if (!oneFile && (nBlobs > 1)) {
+		defaultName <- "%NAME%"
+	}
+	if (justTimePeriod) {
+		periodString <- paste(format(hsp$timePeriod, "%y"), collapse='-')
+		defaultName <- paste(defaultName, periodString, sep='_')
+	}
+	defaultName <- paste(defaultName, ext, sep='.')
+	filename <- choose.file.save(defaultName, caption="Export data", 
+		filters=Filters[c("txt","All"),])
+	theWidget(APPWIN)$present()
+	if (is.na(filename)) { return() }
+	
+	## Fix filename for MS - otherwise eval/parse strip the \\.
+	filename <- gsub("\\\\", "/", filename)
+	
+	if (get.extension(filename) != ext) {
+		filename <- paste(filename, ext, sep='.')
+	}
+	
+	addLogComment("Export data to file")
+	
+	if (oneFile) {
+		guiDo(isExpression=T, bquote({
+			tmp.data <- sync.timeblobs(hsp$data[.(blobNames)], 
+				timelim=.(if (justTimePeriod) { quote(hsp$timePeriod) }))
+			tmp.data$Time <- format(tmp.data$Time, format=.(timeFormat))
+		}))
+		export.cmd.str <- sprintf(
+			'%s(tmp.data, %s%s)', 
+			importFn, dQuote(filename), myOptionString)
+		guiDo(export.cmd.str, isParseString=T)
+		setStatusBar('Exported data to', filename)
+			
+	} else {
+		for (i in seq(along=blobNames)) {
+			x <- blobNames[i]
+			if (nBlobs > 1) {
+				# use blob name to identify each file
+				myFilename <- sub('%NAME%', x, filename)
+				if (identical(filename, myFilename)) {
+					# or just put a number in the filename
+					myFilename <- paste(sep='',
+						substr(filename,1,nchar(filename)-4),
+						'_', i, '.', ext)
+				}
+			}
+			if (justTimePeriod) {
+				guiDo(isExpression=T, bquote(
+					tmp.data <- window(hsp$data[[.(x)]],
+						hsp$timePeriod[1], hsp$timePeriod[2])
+				))
+			} else {
+				guiDo(isExpression=T, bquote(
+					tmp.data <- hsp$data[[.(x)]]
+				))
+			}
+			guiDo(isExpression=T, bquote(
+				tmp.data$Time <- format(tmp.data$Time, format=.(timeFormat))
+			))
+			export.cmd.str <- sprintf(
+				'%s(tmp.data, %s%s)', 
+				importFn, dQuote(myFilename), myOptionString)
+			guiDo(export.cmd.str, isParseString=T)
+			setStatusBar('Exported data item', x, 'to', myFilename)
+		}
+	}
+	
+	guiDo(rm(tmp.data))
+}
+
+.hs_on_import_transform_button_clicked <- function(button) {
+	theWidget(APPWIN)$setSensitive(F)
+	on.exit(theWidget(APPWIN)$setSensitive(T))
+	setStatusBar("")
+	
+	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
+	if (length(blobIndices)==0) {
+		errorDialog("No items selected.")
+		return()
+	}
+	nBlobs <- length(blobIndices)
+	blobNames <- names(hsp$data)[blobIndices]
+	
+	timestepString <- theWidget("import_transform_timestep_comboboxentry")$getActiveText()
+	startMonth <- theWidget("import_transform_yearstart_combobox")$getActive() + 1
+	aggrFunIdx <- theWidget("import_transform_aggrfun_combobox")$getActive() + 1
+	qualFunIdx <- theWidget("import_transform_qualfun_combobox")$getActive() + 1
+	doReplace <- theWidget("import_transform_replace_checkbutton")$getActive()
+	
+	aggrFun <- switch(aggrFunIdx, quote(mean), quote(median), quote(sum), quote(max))
+	qualFunName <- switch(qualFunIdx, 'worst', 'median', 'mode')
+	
+	addLogComment("Resample to different timestep")
+	
+	for (x in blobNames) {
+		newName <- x
+		if (!doReplace) {
+			newName <- paste(x, "_", timestepString, sep='')
+			newName <- make.names(newName)
+		}
+		aggr.cmd <- bquote(
+			hsp$data[[.(newName)]] <- aggregate.timeblob(
+				hsp$data[[.(x)]], by=.(timestepString))
+		)
+		if (aggrFunIdx > 1) { aggr.cmd[[3]]$FUN <- aggrFun }
+		if (qualFunIdx > 1) { aggr.cmd[[3]]$fun.qual <- qualFunName }
+		if (any(grep(" month", timestepString)) || any(grep("year", timestepString))) {
+			if (startMonth != 1) {
+				aggr.cmd[[3]]$start.month <- startMonth
+			}
+		}
+		guiDo(aggr.cmd, isExpression=T)
+		setStatusBar(sprintf('Resampled object "%s"', x))
+	}
+	
 	datasetModificationUpdate()
 }
 

@@ -432,16 +432,10 @@ summary.missing.timeblobs <- function(blob.list, timelim=NULL, timestep=NULL) {
 
 # this only handles regular series (the calculation of NA proportion requires it)
 # column 3 = "Quality (mode)"; cols 4+ = "%good", "%maybe", "%poor", "%disaccumulated", "%imputed"
-aggregate.timeblob <- function(blob, by="1 year", FUN=NULL, start.month=1, max.na.proportion=0.05) {
+aggregate.timeblob <- function(blob, by="1 year", FUN=mean, fun.qual=c("worst","median","mode","omit"), start.month=1, max.na.proportion=0.01) {
 	# check types
 	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
-	if (is.null(FUN)) {
-		if (identical(attr(blob, "role"), "RAIN")) {
-			FUN <- sum
-		} else {
-			FUN <- mean
-		}
-	}
+	fun.qual <- match.arg(fun.qual)
 	if (!is.numeric(start.month)) { stop("'start.month' must be a month number") }
 	# adjust blob start time to specified calendar month
 	if (any(grep(" month", by)) || any(grep("year", by))) {
@@ -451,7 +445,8 @@ aggregate.timeblob <- function(blob, by="1 year", FUN=NULL, start.month=1, max.n
 		newStart$mon <- newMonth
 		if (newMonth > origMonth) { newStart$year <- newStart$year - 1 }
 		blob <- window(blob, start=newStart, extend=T)
-		# can not use "years" in cut.POSIXt; that always uses calendar
+		# can not use "years" in cut.POSIXt (uses calendar years only)
+		# so convert to "months"
 		if (any(grep("year", by))) {
 			if (start.month != 1) {
 				byBits <- strsplit(by, " ")[[1]]
@@ -484,9 +479,49 @@ aggregate.timeblob <- function(blob, by="1 year", FUN=NULL, start.month=1, max.n
 	if (lastN < freqN * (1-max.na.proportion)) {
 		newVals[length(newVals)] <- NA
 	}
+	# aggregate quality codes
+	newQual <- NULL
+	if (fun.qual != "omit") {
+		FUN.Qual <- switch(fun.qual, 
+			worst=function(x) {
+				x <- x[!is.na(x)]
+				if (length(x)>0) {
+					rev(levels(x[,drop=T]))[1]
+				} else { NA }
+			},
+			median=function(x) {
+				x <- x[!is.na(x)]
+				if (length(x)>0) {
+					x <- as.ordered(x)
+					half <- ceiling((length(x)+1)/2)
+					as.character(sort(x, partial=half)[half])
+				} else { NA }
+			},
+			mode=function(x) {
+				x <- x[!is.na(x)]
+				if (length(x)>0) {
+					a <- table(x)
+					rownames(a)[which.max(a)]
+				} else { NA }
+			})
+		tmpQual <- blob$Qual
+		# ignore quality codes where data is missing
+		tmpQual[is.na(blob$Data)] <- NA
+		# treat disaccumulated values as "suspect" (better than "poor")
+		tmpQual[tmpQual == "disaccumulated"] <- "suspect"
+		# apply function fun.qual to each aggregated group
+		newQual <- tapply(tmpQual, list(dateGroups), FUN=FUN.Qual)
+		newQual[is.na(newVals)] <- NA
+		# make sure new factor levels are ordered correctly
+		oldLevels <- levels(blob$Qual)
+		newLevels <- unique(newQual)
+		newLevels <- oldLevels[sort(match(newLevels, oldLevels))]
+		newQual <- factor(newQual, levels=newLevels, ordered=T)
+	}
 	# construct new blob
-	newBlob <- timeblob(Time=newDates, Data=newVals,
+	newBlob <- timeblob(Time=newDates, Data=newVals, Qual=newQual,
 		timestep=by, dataname=attr(blob, "dataname"))
+	attr(newBlob, "role") <- attr(blob, "role")
 	return(newBlob)
 }
 
