@@ -33,13 +33,11 @@ updateTimePeriodPage <- function() {
 	if (is.null(hsp$timePeriod)) { return() }
 	
 	# generate summary
-	addToLog("## View summary of data coverage in selected period")
 	missingSummary <- capture.output(
 		missingFrac <- guiDo(summary.missing.timeblobs(hsp$data, 
-			timelim=hsp$timePeriod))
+			timelim=hsp$timePeriod), doLog=F)
 	)
-	
-	addTextview(TXV, paste(missingSummary, collapse="\n"), "\n")
+	addTextview(TXV, paste(missingSummary, collapse="\n"))
 	
 	dfName <- dfMin <- dfQ25 <- dfMedian <- dfQ75 <- dfMax <- dfMissing <- character(length(hsp$data))
 	

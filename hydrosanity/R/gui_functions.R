@@ -58,9 +58,11 @@ setCairoWindowButtons <- function(name, identify=NA, centre=NA, zoomin=NA, zoomo
 	saveItemPDF <- gtkMenuItem("PDF")
 	saveItemPNG <- gtkMenuItem("PNG (bitmap)")
 	saveItemPS <- gtkMenuItem("PostScript")
+	saveItemSVG <- gtkMenuItem("SVG")
 	saveMenu$append(saveItemPDF)
 	saveMenu$append(saveItemPNG)
 	saveMenu$append(saveItemPS)
+	saveMenu$append(saveItemSVG)
 	myGUI$getWidget("plot_save_button")$setMenu(saveMenu)
 	myWin <- .hydrosanity$win[[name]]
 	gSignalConnect(saveItemPDF, "activate", .hs_on_plot_save_button_clicked, 
@@ -69,6 +71,8 @@ setCairoWindowButtons <- function(name, identify=NA, centre=NA, zoomin=NA, zoomo
 		data=list(win=myWin, ext="png"))
 	gSignalConnect(saveItemPS, "activate", .hs_on_plot_save_button_clicked, 
 		data=list(win=myWin, ext="ps"))
+	gSignalConnect(saveItemSVG, "activate", .hs_on_plot_save_button_clicked, 
+		data=list(win=myWin, ext="svg"))
 }
 
 .hs_on_plot_delete_event <- function(widget, event, user.data) {
@@ -289,7 +293,7 @@ setCairoWindowButtons <- function(name, identify=NA, centre=NA, zoomin=NA, zoomo
 			width=(xscale[2] - clickLoc$x), just="right", vp=plotVpp))
 		.hydrosanity$call[[myName]]$xscale <<- xscale.new
 	} else
-	if (myCallName %in% c("xyplot", "bwplot", "stripplot", "qqmath", "qq")) {
+	if (myCallName %in% c("xyplot", "bwplot", "stripplot", "qqmath", "qq", "levelplot")) {
 		# x and y scales
 		depth <- downViewport(trellis.vpname("panel", 1, 1))
 		xscale <- convertX(unit(c(0,1), "npc"), "native")
@@ -392,7 +396,7 @@ setCairoWindowButtons <- function(name, identify=NA, centre=NA, zoomin=NA, zoomo
 		xscale <- as.POSIXct(xscale)
 		.hydrosanity$call[[myName]]$xscale <<- xscale
 	} else
-	if (myCallName %in% c("xyplot", "bwplot", "stripplot", "qqmath", "qq")) {
+	if (myCallName %in% c("xyplot", "bwplot", "stripplot", "qqmath", "qq", "levelplot")) {
 		# x and y scales
 		depth <- downViewport(trellis.vpname("panel", 1, 1))
 		xscale <- as.numeric(convertX(unit(c(0,1), "npc"), "native"))
@@ -477,9 +481,9 @@ setCairoWindowButtons <- function(name, identify=NA, centre=NA, zoomin=NA, zoomo
 	# get filename
 	myExt <- if (!is.null(data)) { data$ext } else { 'pdf' }
 	myDefault <- paste(myName, '.', myExt, sep='')
-	filename <- choose.file.save(myDefault, caption="Save plot (pdf/png/ps)", 
-		filters=Filters[c("pdf","png","ps"),],
-		index=match(myExt, c("pdf","png","ps"))
+	filename <- choose.file.save(myDefault, caption="Save plot (pdf/png/ps/svg)", 
+		filters=Filters[c("pdf","png","ps","All"),],
+		index=match(myExt, c("pdf","png","ps","svg"))
 	)
 	myWin$present()
 	if (is.na(filename)) { return() }
@@ -494,8 +498,11 @@ setCairoWindowButtons <- function(name, identify=NA, centre=NA, zoomin=NA, zoomo
 	mySize <- .hydrosanity$win.gui[[myName]]$getWidget("drawingarea")$getAllocation()
 	myWidth <- mySize$width
 	myHeight <- mySize$height
-	myScale <- min(7/myWidth, 7/myHeight)
+	#myScale <- min(7/myWidth, 7/myHeight)
 	ext <- get.extension(filename)
+#	if (ext %in% c("png")) {
+		myScale <- 1/72
+#	}
 	if (ext %in% "pdf") {
 		dev.copy(pdf, file=filename, width=myWidth*myScale, height=myHeight*myScale)
 		dev.off()
@@ -505,8 +512,13 @@ setCairoWindowButtons <- function(name, identify=NA, centre=NA, zoomin=NA, zoomo
 		dev.off()
 	}
 	else if (ext %in% "png") {
-		devFn <- if (require(Cairo, quietly=T)) { CairoPNG } else { png }
-		dev.copy(devFn, file=filename, width=myWidth, height=myHeight)
+		#devFn <- if (require(Cairo, quietly=T)) { CairoPNG } else { png }
+		#dev.copy(devFn, file=filename, width=myWidth, height=myHeight)
+		dev.copy(Cairo_png, file=filename, width=myWidth*myScale, height=myHeight*myScale)
+		dev.off()
+	}
+	else if (ext %in% "svg") {
+		dev.copy(Cairo_svg, file=filename, width=myWidth*myScale, height=myHeight*myScale)
 		dev.off()
 	}
 	else {
@@ -564,6 +576,7 @@ insertTreeViewTextColumns <- function(treeView, colNames=colnames(treeView$getMo
 		treeView$insertColumnWithAttributes(
 			-1, gsub('_', ' ', colNames[i]), renderer, text=i-1)
 	}
+	invisible(NULL)
 }
 
 # note these indices are in the R convention (first element is #1)
@@ -573,7 +586,9 @@ treeViewGetSelectedIndices <- function(treeView) {
 	indices <- sapply(selPaths, function(x) x$getIndices()) + 1
 }
 
-setupIconView <- function(iconView) {
+setupIconView <- function(iconView, itemNames=names(hsp$data), selection=c("first", "all", "none")) {
+	selection <- match.arg(selection)
+	
 	rainPixbuf <- gdkPixbufNewFromFile(getpackagefile("icon_RAIN.png"))$retval
 	flowPixbuf <- gdkPixbufNewFromFile(getpackagefile("icon_FLOW.png"))$retval
 	otherPixbuf <- gdkPixbufNewFromFile(getpackagefile("icon_OTHER.png"))$retval
@@ -581,10 +596,12 @@ setupIconView <- function(iconView) {
 	
 	list_store <- gtkListStore("character", "GdkPixbuf")
 	
-	for (i in order(names(hsp$data))) {
+	for (i in itemNames) {
+		myRole <- attr(hsp$data[[i]], "role")
+		if (is.null(myRole)) { myRole <- "OTHER" }
 		iter <- list_store$append()$iter
-		list_store$set(iter, 0, names(hsp$data)[i])
-		list_store$set(iter, 1, switch(attr(hsp$data[[i]], "role"),
+		list_store$set(iter, 0, i)
+		list_store$set(iter, 1, switch(myRole,
 			"RAIN"=rainPixbuf,
 			"FLOW"=flowPixbuf,
 			otherPixbuf)
@@ -599,10 +616,16 @@ setupIconView <- function(iconView) {
 	iconView$setPixbufColumn(1)
 	iconView$setItemWidth(75)
 	if (is.null(selPaths)) {
-		iconView$selectPath(gtkTreePathNewFromString("0"))
+		if (selection == "first") {
+			iconView$selectPath(gtkTreePathNewFromString("0"))
+		}
+		if (selection == "all") {
+			iconView$selectAll()
+		}
 	} else {
 		for (p in selPaths) { iconView$selectPath(p) }
 	}
+	invisible(NULL)
 }
 
 iconViewGetSelectedNames <- function(iconView) {
@@ -751,11 +774,10 @@ editAsText <- function(x, title=NULL, edit.row.names=any(row.names(x) != 1:nrow(
 		title <- paste("Editing", deparse(substitute(x)))
 	}
 	# make table text block from data frame 'x'
-	foo <- ""
-	zz <- textConnection("foo", "w", local=T)
-	write.table(x, file=zz, sep="\t", quote=F, row.names=edit.row.names,
+	foo <- capture.output(
+		write.table(x, sep="\t", quote=F, row.names=edit.row.names,
 		col.names=if (edit.row.names) {NA} else {T})
-	close(zz)
+	)
 	tableTxt <- paste(paste(foo, collapse="\n"), "\n", sep='')
 	if (edit.row.names) { tableTxt <- paste("row.names", tableTxt, sep='') }
 	# show text box and repeat if there was an error

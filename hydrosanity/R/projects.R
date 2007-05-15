@@ -45,8 +45,10 @@ openProject <- function() {
 	datasetModificationUpdate()
 	theWidget("notebook")$setCurrentPage(1)
 	
-	theWidget("import_options_expander")$setExpanded(FALSE)
-	theWidget("import_makechanges_expander")$setExpanded(TRUE)
+	theWidget("import_import_expander")$setExpanded(FALSE)
+	theWidget("import_edit_expander")$setExpanded(TRUE)
+	theWidget("import_transform_expander")$setExpanded(FALSE)
+	theWidget("import_export_expander")$setExpanded(FALSE)
 	
 	setStatusBar("Loaded project from", filename)
 }
@@ -66,8 +68,9 @@ saveProject <- function(saveAs=F) {
 		if (is.na(filename)) { return() }
 	}
 	
-	if (get.extension(filename) != "hydrosanity")
-	filename <- sprintf("%s.hydrosanity", filename)
+	if (get.extension(filename) != "hydrosanity") {
+		filename <- paste(filename, ".hydrosanity", sep='')
+	}
 	
 	hsp$log <<- getTextviewText(theWidget("log_textview"))
 	hsp$version <<- VERSION
