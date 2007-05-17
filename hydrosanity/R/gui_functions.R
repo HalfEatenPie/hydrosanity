@@ -305,6 +305,8 @@ setCairoWindowButtons <- function(name, identify=NA, centre=NA, zoomin=NA, zoomo
 		grid.draw(editGrob(promptGrob, label="Click at the bottom-left corner of the region to zoom in to "))
 		# get lower limits
 		downViewport(plotVpp)
+		grid.rect(gp=gpar(col="black", lwd=4), name="tmp.focusRect")
+		grid.rect(gp=gpar(col="yellow", lwd=2), name="tmp.focusRect2")
 		clickLoc <- grid.locator()
 		upViewport(depth)
 		if (is.null(clickLoc)) {

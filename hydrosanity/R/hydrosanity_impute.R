@@ -61,27 +61,27 @@ updateImputePage <- function() {
 		tmp.predictors <- .(names(hsp$data)[sameRole])
 	}))
 	
-	impute.call <- call('impute.timeblobs')
-	impute.call[[2]] <- quote(hsp$data[tmp.predictors])
-	impute.call$which.impute <- quote(tmp.vars)
-	impute.call$timelim <- if (!is.null(hsp$timePeriod)) { quote(hsp$timePeriod) }
-	impute.call$maxGapLength <- if (!identical(maxGapLength, "any length")) {
+	impute.cmd <- call('impute.timeblobs')
+	impute.cmd[[2]] <- quote(hsp$data[tmp.predictors])
+	impute.cmd$which.impute <- quote(tmp.vars)
+	impute.cmd$timelim <- if (!is.null(hsp$timePeriod)) { quote(hsp$timePeriod) }
+	impute.cmd$maxGapLength <- if (!identical(maxGapLength, "any length")) {
 		maxGapLength
 	}
-	impute.call$method <- imputeMethod
-	impute.call$constant <- if (doImputeByConstant) { constType }
-	impute.call$maxPredictors <- if (doImputeByDistance) { byDistanceNSites }
-	impute.call$disaccumulate <- disaccMethod
-	impute.call$accumStepsColumn <- if (doAccumByColumn) { accumStepsColumn }
-	impute.call$maxGapLengthAccum <- if (doAccumByGaps) {
+	impute.cmd$method <- imputeMethod
+	impute.cmd$constant <- if (doImputeByConstant) { constType }
+	impute.cmd$maxPredictors <- if (doImputeByDistance) { byDistanceNSites }
+	impute.cmd$disaccumulate <- disaccMethod
+	impute.cmd$accumStepsColumn <- if (doAccumByColumn) { accumStepsColumn }
+	impute.cmd$maxGapLengthAccum <- if (doAccumByGaps) {
 		if (identical(maxAccumLength, "any length")) { NA } else
 		{ maxAccumLength }
 	}
 	
-	impute.assign.call <- quote(hsp$data[tmp.vars] <- foo)
-	impute.assign.call[[3]] <- impute.call
+	impute.assign.cmd <- quote(hsp$data[tmp.vars] <- foo)
+	impute.assign.cmd[[3]] <- impute.cmd
 	
-	guiDo(impute.assign.call, isExpression=T)
+	guiDo(impute.assign.cmd, isExpression=T)
 	
 	guiDo(rm(tmp.vars, tmp.predictors))
 	
