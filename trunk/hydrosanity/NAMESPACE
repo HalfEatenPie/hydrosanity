@@ -36,6 +36,7 @@ export(
 	aggregate.timeblob,
 	impute.timeblobs,
 	unimpute.timeblobs,
+	spatialField,
 	gaps,
 	rises,
 	lastTime,

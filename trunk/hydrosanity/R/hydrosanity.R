@@ -36,13 +36,15 @@ WEBSITE <- "http://code.google.com/p/hydrosanity/"
 		c('read.timeblob',
 		  'skip=3, sep=",", dataname="Flow (ML/day)", timeFormat="%H:%M_%d/%m/%Y", na.strings=c(\'""\')')
 )
-#if (!exists("APPWIN")) { APPWIN <- NA }
+
 APPWIN <- "hs_window"
 
 hydrosanity <- function() {
 	require(grid, quietly=TRUE)
 	require(lattice, quietly=TRUE)
-	require(RGtk2, quietly=TRUE) # From http://www.ggobi.org/rgtk2/
+	if (!require(RGtk2.10, quietly=TRUE)) {
+		require(RGtk2, quietly=TRUE)
+	}
 	require(cairoDevice, quietly=TRUE)
 	
 	if (exists('.hydrosanity') && !is.null(.hydrosanity$GUI)) {
@@ -147,10 +149,6 @@ hydrosanity <- function() {
 		colNames=c("Name", "Min", "Q25", "Median", "Q75", "Max", "Missing", ""))
 	
 	theWidget(APPWIN)$present()
-}
-
-on_drawingarea_button_press_event <- function(widget, event, ...) {
-	print(paste('x', event[["x"]], 'y', event[["y"]]))
 }
 
 addInitialLogMessage <- function() {
@@ -346,8 +344,8 @@ evalCallArgs <- function(myCall, pattern=".*") {
 }
 
 timestepTimeFormat <- function(timestep) {
-	if (length(grep("month", timestep))>0) { return("%Y-%b") }
-	if (length(grep("year", timestep))>0) { return("%Y") }
+	if (any(grep("month", timestep))) { return("%Y-%b") }
+	if (any(grep("year", timestep))) { return("%Y") }
 	return("")
 }
 

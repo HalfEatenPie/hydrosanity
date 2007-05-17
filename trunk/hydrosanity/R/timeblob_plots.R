@@ -384,14 +384,14 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 			if (qualTimeline) {
 				pushViewport(viewport(y=0, height=barThickness, 
 					just="top", xscale=xscale, clip="off"))
-				grid.xaxis.POSIXt(label=F)
+				if (nBlobs <= 4) { grid.xaxis.POSIXt(label=F) }
 				grid.lines(y=0)
 				pushViewport(viewport(xscale=xscale, clip="on"))
 				grid.timeline.bar(blob.list[[k]], colMap=colMap,
 					name=paste("timeline.bar",k,sep=''))
 				upViewport(2)
 			} else {
-				grid.xaxis.POSIXt(label=F)
+				if (nBlobs <= 4) { grid.xaxis.POSIXt(label=F) }
 			}
 		}
 		if ((superPos != 1) && newScale) {
@@ -495,6 +495,10 @@ applyColourMap <- function(qualityCodes, colMap) {
 	thisCol[is.na(thisCol)] <- colMap[[1]]
 	return(thisCol)
 }
+
+monthNames <- c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
+
+### AXIS STUFF ###
 
 # logLim should be given in log10 scale
 logAxisComponents <- function(logLim, label=T) {

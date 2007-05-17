@@ -431,7 +431,6 @@ summary.missing.timeblobs <- function(blob.list, timelim=NULL, timestep=NULL) {
 
 
 # this only handles regular series (the calculation of NA proportion requires it)
-# column 3 = "Quality (mode)"; cols 4+ = "%good", "%maybe", "%poor", "%disaccumulated", "%imputed"
 aggregate.timeblob <- function(blob, by="1 year", FUN=mean, fun.qual=c("worst","median","mode","omit"), start.month=1, max.na.proportion=0.01) {
 	# check types
 	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
@@ -445,7 +444,7 @@ aggregate.timeblob <- function(blob, by="1 year", FUN=mean, fun.qual=c("worst","
 		newStart$mon <- newMonth
 		if (newMonth > origMonth) { newStart$year <- newStart$year - 1 }
 		blob <- window(blob, start=newStart, extend=T)
-		# can not use "years" in cut.POSIXt (uses calendar years only)
+		# can not use "years" in cut.POSIXt (uses calendar years only),
 		# so convert to "months"
 		if (any(grep("year", by))) {
 			if (start.month != 1) {
@@ -471,11 +470,11 @@ aggregate.timeblob <- function(blob, by="1 year", FUN=mean, fun.qual=c("worst","
 	eachNA <- aggregate(blob$Data, by=list(dateGroups), FUN=function(x) {sum(is.na(x))})[,2]
 	newVals[eachNA > freqN * max.na.proportion] <- NA
 	# check that first and last groups have enough data points
-	firstN <- sum(dateGroups==dateGroups[1], na.rm=T)
+	firstN <- sum(!is.na(blob$Data[dateGroups==dateGroups[1]]))
 	if (firstN < freqN * (1-max.na.proportion)) {
 		newVals[1] <- NA
 	}
-	lastN <- sum(dateGroups==dateGroups[length(dateGroups)], na.rm=T)
+	lastN <- sum(!is.na(blob$Data[dateGroups==dateGroups[length(dateGroups)]]))
 	if (lastN < freqN * (1-max.na.proportion)) {
 		newVals[length(newVals)] <- NA
 	}
@@ -818,30 +817,142 @@ unimpute.timeblobs <- function(blob.list, timelim=NULL, type=c("imputed", "disac
 	return(blob.list)
 }
 
-running.average.timeblob <- function(blob, by="1 year", max.na.proportion=0.05) {
+spatialField <- function(blob.list, timelim=NULL, type=c("overall","annual","quarters","months"), start.month=1, linear=T, extrap=F, xo.length=40, yo.length=xo.length, countSurface=F) {
 	# check types
-	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
-	# find expected number of timesteps in smoothing kernel window
-	delta <- as.numeric.byString(attr(blob, "timestep"))
-	smoothDelta <- as.numeric.byString(by)
-	winSize <- round(smoothDelta / delta)
-	if (winSize <= 1) {
-		stop("'by' must be a longer interval than 'blob' timestep")
+	if (!require(akima, quietly=TRUE)) { stop("Require package 'akima'") }
+	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
+	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
+	if (length(blob.list) < 4) { stop("Need at least 4 items") }
+	if (is.null(timelim)) {
+		timelim <- c(start.timeblobs(blob.list), end.timeblobs(blob.list))
+	} else {
+		timelim <- as.POSIXct(timelim)
+		if (any(is.na(timelim))) { stop("'timelim' must be a pair of valid times (POSIXt)") }
+		blob.list <- lapply(blob.list, window, min(timelim), max(timelim))
 	}
-	winRear <- ceiling(winSize/2)
-	winFore <- floor(winSize/2)
-	# do smoothing
-	cumSum <- blob$Data
-	cumSum[is.na(cumSum)] <- 0
-	cumSum <- cumsum(cumSum)
-	cumNAs <- cumsum(is.na(blob$Data))
-	newBlob <- blob[,1:2]
-	newBlob$Data <- NA
-	winNAs <- cumNAs[seq(1+winSize,nrow(blob))] - cumNAs[seq(1,nrow(blob)-winSize)]
-	winSum <- cumSum[seq(1+winSize,nrow(blob))] - cumSum[seq(1,nrow(blob)-winSize)]
-	winSum[winNAs > max.na.proportion * winSize] <- NA
-	newBlob[seq(1+winRear,nrow(blob)-winFore)] <- winSum / (winSize - winNAs)
-	return(newBlob)
+	type <- match.arg(type)
+	if (!is.numeric(start.month)) { stop("'start.month' must be a number 1-12") }
+	endYear.month <- if (start.month == 1) { 12 } else { start.month - 1 }
+	monthQuarters <- rep(1:4, each=3)
+	shiftWrap <- function(x, shift) { x[(seq_along(x)-shift-1)%%length(x)+1] }
+	monthQuarters <- shiftWrap(monthQuarters, start.month-1)
+	waterYearMonthNames <- shiftWrap(monthNames, 12-(start.month-1))
+	quarterNames <- sapply(c(3,6,9,12), function(i) {
+		paste(waterYearMonthNames[seq(i-2,i)], collapse=" ")
+	})
+	# get locations
+	loc <- lapply(blob.list, attr, "location.xy")
+	ok <- (sapply(loc, length) == 2)
+	if (any(!ok)) {
+		stop(paste("These items do not have a valid 'location.xy' attribute:",
+			paste(names(blob.list)[!ok], collapse=", ")))
+	}
+	loc <- sapply(blob.list, attr, "location.xy")
+	loc <- data.frame(t(loc))
+	names(loc) <- c("X", "Y")
+	# construct marginal dimensions of grid
+	xo <- seq(min(loc$X), max(loc$X), length=xo.length)
+	yo <- seq(min(loc$Y), max(loc$Y), length=yo.length)
+	# construct synchronised monthly-scale time series
+	tmp.data <- lapply(blob.list, aggregate, by="months", fun.qual="omit")
+	tmp.data <- sync.timeblobs(tmp.data)
+	# initialise spatial grids
+	values <- list()
+	counts <- list()
+	values$accum <- matrix(as.numeric(0), nrow=yo.length, ncol=xo.length)
+	counts$accum <- matrix(as.integer(0), nrow=yo.length, ncol=xo.length)
+	if (type == "annual") {
+		thisYear <- NULL
+	}
+	if (type == "quarters") {
+		for (blah in quarterNames) {
+			values[[blah]] <- values$accum
+			counts[[blah]] <- counts$accum
+		}
+	}
+	if (type == "months") {
+		for (blah in monthNames) {
+			values[[blah]] <- values$accum
+			counts[[blah]] <- counts$accum
+		}
+	}
+	# generate surfaces for each month, etc
+	for (i in seq_along(tmp.data$Time)) {
+		myTime <- tmp.data$Time[i]
+		myMonth <- as.POSIXlt(myTime)$mon+1
+		myYear <- as.POSIXlt(myTime)$year+1900
+		waterYear <- if (myMonth < start.month) { myYear - 1 } else { myYear }
+		if (type == "annual") {
+			if (is.null(thisYear)) { thisYear <- waterYear }
+			if (waterYear > thisYear) {
+				# a new year
+				values$accum[] <- 0
+				counts$accum[] <- 0
+				thisYear <- waterYear
+			}
+		}
+		# find set of stations with valid data
+		ok <- !is.na(tmp.data[i,-1])
+		# need at least 4 points for spatial interpolation
+		if (sum(ok) < 4) { next }
+		# get this month's mean value for each station
+		dataPoints <- as.numeric(tmp.data[i, which(ok)+1])
+		# compute the spatial field (interpolation)
+		monthSurf <- interp(x=loc$X[ok], y=loc$Y[ok], z=dataPoints, 
+			xo=xo, yo=yo, linear=linear, extrap=extrap)$z
+		gridOK <- !is.na(monthSurf)
+		# store accumulated surface for this month
+		# increment 'count' for each cell that has data for this month
+		accumName <- "accum"
+		if (type == "months") {
+			accumName <- monthNames[myMonth]
+		}
+		if (type == "quarters") {
+			accumName <- quarterNames[monthQuarters[myMonth]]
+		}
+		counts[[accumName]] <- counts[[accumName]] + gridOK
+		monthSurf[!gridOK] <- 0
+		values[[accumName]] <- values[[accumName]] + monthSurf
+		# store accumulated surface for this water year
+		if ((type == "annual") && (myMonth == endYear.month)) {
+			values$accum[ (counts$accum < 12) ] <- NA
+			yearLabel <- as.character(waterYear)
+			if (any(!is.na(values$accum))) {
+				values[[yearLabel]] <- values$accum / 12
+				counts[[yearLabel]] <- counts$accum
+			}
+		}
+	}
+	# remove temporary (accumulation) grid
+	if (type != "overall") {
+		values$accum <- NULL
+		counts$accum <- NULL
+	}
+	if (type == "annual") {
+		if (length(values)==0) {
+			stop("No years with valid data (no locations with all 12 months non-missing)")
+		}
+	} else {
+		# divide by counts to get mean at each cell
+		for (i in seq_along(values)) {
+			values[[i]][ (counts[[i]]==0) ] <- NA
+			values[[i]] <- values[[i]] / counts[[i]]
+		}
+	}
+	# construct vectors x, y and z (as surface value)
+	# as well as other factors specifying any different grids
+	tmp.grid <- switch(type,
+		overall=expand.grid(x=xo, y=yo),
+		annual=expand.grid(x=xo, y=yo, year=names(values)),
+		quarters=expand.grid(x=xo, y=yo, quarter=names(values)),
+		months=expand.grid(x=xo, y=yo, month=names(values))
+	)
+	if (countSurface) {
+		tmp.grid$z <- c(unlist(counts, use.names=F))
+		return(tmp.grid)
+	}
+	tmp.grid$z <- c(unlist(values, use.names=F))
+	return(tmp.grid)
 }
 
 ## general functions for time series as numeric vectors

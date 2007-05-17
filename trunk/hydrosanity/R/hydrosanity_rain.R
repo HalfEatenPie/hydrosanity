@@ -4,7 +4,10 @@
 
 updateRainPage <- function() {
 	
-	setupIconView(theWidget("rain_iconview"), selection="all")
+	role <- sapply(hsp$data, attr, "role")
+	
+	setupIconView(theWidget("rain_iconview"), 
+		itemNames=names(hsp$data)[role=="RAIN"], selection="all")
 	
 	.hydrosanity$update$rain <<- F
 	theWidget(APPWIN)$present()
@@ -24,47 +27,44 @@ updateRainPage <- function() {
 	
 	loc <- lapply(hsp$data[selNames], attr, "location.xy")
 	ok <- (sapply(loc, length) == 2)
-	okNames <- names(loc)[ok]
 	
-	if (length(okNames) < 4) {
-		errorDialog("No items with valid locations. ",
-			"Try 'edit metadata' in the 'Dataset' tab.")
+	if (any(!ok)) {
+		errorDialog(paste("Some selected items do not have a valid 'location.xy' attribute:",
+			paste(selNames[!ok], collapse=", "),
+			". Try 'edit metadata' in the 'Dataset' tab."))
 		return()
 	}
 	
-	addLogComment("Generate rainfall map")
+	addLogComment("Generate locations map")
 	
 	guiDo(isExpression=T, bquote({
-		tmp.locs <- sapply(hsp$data[.(okNames)], attr, "location.xy")
-		tmp.locs <- data.frame(t(tmp.locs))
-		names(tmp.locs) <- c("X", "Y")
+		tmp.locs <- sapply(hsp$data[.(selNames)], attr, "location.xy")
+		tmp.locs <- data.frame(x=tmp.locs[1,], y=tmp.locs[2,])
 	}))
 	
-	# hydrosanity caption
-	# TODO
-	
 	plot.cmd <- quote(
-		xyplot(Y ~ X, tmp.locs, aspect="iso", panel=function(...) {
-			panel.points(...)
-			panel.text(..., labels=rownames(tmp.locs), pos=1)
-		}, prepanel=function(x, y, ...) {
-			list(xlim=extendrange(x, f=0.1),
-				ylim=extendrange(y, f=0.1))
-		})
+		xyplot(y ~ x, tmp.locs, aspect="iso", labels=rownames(tmp.locs),
+			panel=function(..., labels) {
+				panel.points(...)
+				panel.text(..., labels=labels, pos=1, cex=0.7)
+			}, prepanel=function(x, y, ...) {
+				list(xlim=extendrange(x, f=0.1),
+					ylim=extendrange(y, f=0.1))
+			})
 	)
 	
-	setPlotDevice("rainfall")
-	setCairoWindowButtons("rainfall", zoomin=T)
+	setPlotDevice("locations")
+	setCairoWindowButtons("locations", zoomin=T, centre=T)
 	
 	result <- guiDo(plot.cmd, isExpression=T)
 	# plot trellis object
 	guiDo(print(result), doLog=F)
 	
-	.hydrosanity$call[["rainfall"]] <<- evalCallArgs(plot.cmd, pattern="^tmp")
+	.hydrosanity$call[["locations"]] <<- evalCallArgs(plot.cmd, pattern="^tmp")
 	
 	guiDo(rm(tmp.locs))
 	
-	setStatusBar("Generated rainfall map")
+	setStatusBar("Generated locations map")
 }
 
 .hs_on_rain_view_surface_button_clicked <- function(button) {
@@ -77,101 +77,94 @@ updateRainPage <- function() {
 		errorDialog("No items selected.")
 		return()
 	}
+	if (length(selNames) < 4) {
+		errorDialog("Need at least 4 items for spatial interpolation.")
+		return()
+	}
 	nBlobs <- length(selNames)
 	
 	doOverall <- theWidget("rain_surface_overall_radiobutton")$getActive()
-	doSeasonal <- theWidget("rain_surface_seasonal_radiobutton")$getActive()
+	doQuarters <- theWidget("rain_surface_quarters_radiobutton")$getActive()
+	doMonths <- theWidget("rain_surface_months_radiobutton")$getActive()
 	doAnnual <- theWidget("rain_surface_annual_radiobutton")$getActive()
+	doSplines <- theWidget("rain_spline_radiobutton")$getActive()
+	doExtrap <- theWidget("rain_spline_extrapolation_checkbutton")$getActive()
+	gridSideCells <- theWidget("rain_gridcells_spinbutton")$getValue()
+	showPoints <- theWidget("rain_showpoints_checkbutton")$getActive()
+	showCounts <- theWidget("rain_showcounts_checkbutton")$getActive()
 	startMonth <- theWidget("explore_yearstart_combobox")$getActive() + 1
+	
+	myType <- if (doOverall) { "overall" } else
+		if (doAnnual) { "annual" } else
+		if (doQuarters) { "quarters" } else
+		if (doMonths) { "months" }
 	
 	loc <- lapply(hsp$data[selNames], attr, "location.xy")
 	ok <- (sapply(loc, length) == 2)
-	okNames <- names(loc)[ok]
 	
-	if (length(okNames) < 4) {
-		errorDialog("Need at least 4 items with valid locations ",
-			"(have only ", length(okNames), ").")
+	if (any(!ok)) {
+		errorDialog(paste("Some selected items do not have a valid 'location.xy' attribute:",
+			paste(selNames[!ok], collapse=", "),
+			". Try 'edit metadata' in the 'Dataset' tab."))
 		return()
 	}
 	
 	addLogComment("Generate rainfall map")
-	guiDo(require(akima))
 	
 	guiDo(isExpression=T, bquote({
-		tmp.locs <- sapply(hsp$data[.(okNames)], attr, "location.xy")
-		tmp.locs <- data.frame(t(tmp.locs))
-		names(tmp.locs) <- c("X", "Y")
+		tmp.names <- .(selNames)
 	}))
 	
-	xo <- seq(min(tmp.locs$X), max(tmp.locs$X), length=40)
-	yo <- seq(min(tmp.locs$Y), max(tmp.locs$Y), length=40)
+	guiDo({
+		tmp.locs <- sapply(hsp$data[tmp.names], attr, "location.xy")
+		tmp.locs <- data.frame(x=tmp.locs[1,], y=tmp.locs[2,])
+	})
 	
-	guiDo(isExpression=T, bquote({
-		tmp.data <- lapply(hsp$data[.(okNames)], aggregate, by="months", fun.qual="omit")
-		tmp.data <- sync.timeblobs(tmp.data, timelim=hsp$timePeriod)
-	}))
+	spatial.cmd <- call('spatialField')
+	spatial.cmd[[2]] <- quote(hsp$data[tmp.names])
+	spatial.cmd$timelim <- if (!is.null(hsp$timePeriod)) { quote(hsp$timePeriod) }
+	spatial.cmd$type <- myType
+	spatial.cmd$start.month <- if (startMonth != 1) { startMonth }
+	spatial.cmd$linear <- !doSplines
+	spatial.cmd$extrap <- if (doExtrap) { T }
+	spatial.cmd$xo.length <- gridSideCells
+	spatial.cmd$countSurface <- if (showCounts) { T }
 	
-	values <- list()
-	counts <- list()
-	if (doOverall) {
-		values$overall <- matrix(as.numeric(0), nrow=40, ncol=40)
-		counts$overall <- matrix(as.integer(0), nrow=40, ncol=40)
-	}
-	if (doSeasonal) {
-		for (i in 1:12) {
-			values[[i]] <- matrix(as.numeric(0), nrow=40, ncol=40)
-			counts[[i]] <- matrix(as.integer(0), nrow=40, ncol=40)
-		}
-	}
-	if (doAnnual) {
-		values$this <- matrix(as.numeric(0), nrow=40, ncol=40)
-		counts$this <- matrix(as.integer(0), nrow=40, ncol=40)
-	}
+	grid.cmd <- quote(tmp.grid <- foo)
+	grid.cmd[[3]] <- spatial.cmd
+	guiDo(grid.cmd, isExpression=T)
 	
-	for (i in seq_along(tmp.data$Time)) {
-		myTime <- tmp.data$Time[i]
-		# store values$this in values[[year]]
-		
-		# generate surface for this month
-		ok <- !is.na(tmp.data[i,-1])
-		if (!any(ok)) { next }
-		monthPoints <- as.numeric(tmp.data[i, which(ok)+1])
-		monthSurf <- interp(x=tmp.locs$X[ok], y=tmp.locs$Y[ok], 
-			z=monthPoints, xo=xo, yo=yo, linear=T)$z
-		gridOK <- !is.na(monthSurf)
-		
-		thisIndex <- NA
-		if (doOverall) { thisIndex <- "overall" }
-		if (doSeasonal) { thisIndex <- as.POSIXlt(myTime)$mon+1 }
-		if (doAnnual) { thisIndex <- "this" }
-		counts[[thisIndex]] <- counts[[thisIndex]] + gridOK
-		monthSurf[!gridOK] <- 0
-		values[[thisIndex]] <- values[[thisIndex]] + monthSurf
-		#print(myTime)
-		#print(summary(c(counts$overall)))
-	}
-	#counts$overall[counts$overall==0] <- NA
-	if (doOverall) {
-		values$overall <- values$overall / counts$overall
-	}
-	if (doSeasonal) {
-		for (i in 1:12) {
-			values[[i]] <- values[[i]] / counts[[i]]
-		}
-	}
-	if (doAnnual) {
-		
-	}
-	
-	tmp.grid <<- expand.grid(x=xo, y=yo)
-	tmp.grid$z <<- as.vector(values$overall)
-	
-	plot.cmd <- quote(
-		levelplot(z ~ x * y, tmp.grid, aspect="iso")
+	plot.cmd <- switch(myType,
+		overall=quote(
+			levelplot(z ~ x * y, tmp.grid, aspect="iso")
+		),
+		annual=quote(
+			levelplot(z ~ x * y | year, tmp.grid, aspect="iso",
+				as.table=T)
+		),
+		quarters=quote(
+			levelplot(z ~ x * y | quarter, tmp.grid, aspect="iso",
+				as.table=T)
+		),
+		months=quote(
+			levelplot(z ~ x * y | month, tmp.grid, aspect="iso",
+				as.table=T)
+		)
 	)
 	
+	if (showPoints) {
+		plot.cmd$locations <- quote(tmp.locs)
+		plot.cmd$panel <- function(..., locations) {
+			panel.levelplot(...)
+			panel.points(locations)
+		}
+	}
+	
+	# hydrosanity caption
+	# TODO
+	
 	setPlotDevice("rainfall")
-	setCairoWindowButtons("rainfall", zoomin=T)
+	setCairoWindowButtons("rainfall", identify=T, zoomin=T, centre=T)
 	
 	result <- guiDo(plot.cmd, isExpression=T)
 	# plot trellis object
@@ -179,7 +172,13 @@ updateRainPage <- function() {
 	
 	.hydrosanity$call[["rainfall"]] <<- evalCallArgs(plot.cmd, pattern="^tmp")
 	
-	guiDo(rm(tmp.locs, tmp.data))
+	# construct call to panel.identify() for later use
+	id.cmd <- call('panel.identify')
+	id.cmd$x <- tmp.locs
+	id.cmd$labels <- rownames(tmp.locs)
+	.hydrosanity$id.call[["rainfall"]] <<- id.cmd
+	
+	guiDo(rm(tmp.names, tmp.locs, tmp.grid))
 	
 	setStatusBar("Generated rainfall map")
 }
