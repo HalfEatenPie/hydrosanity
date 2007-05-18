@@ -348,7 +348,20 @@ updateImportPage <- function() {
 	
 	blobNames <- names(hsp$data)[blobIndices]
 	
-	
+	for (x in blobNames) {
+		addLogComment("Extract extra columns into new item(s)")
+		myExtras <- names(hsp$data[[x]])[-(1:3)]
+		for (extraName in myExtras) {
+			newBlobName <- make.names(paste(x,extraName,sep='.'))
+			guiDo(isExpression=T, bquote(
+				hsp$data[[.(newBlobName)]] <- with(hsp$data[[.(x)]],
+					timeblob(Time, Data=extraName))
+				hsp$data[[.(x)]][[.(extraName)]] <- NULL
+			))
+		}
+		setStatusBar(sprintf('Extracted extra columns of item %s', x))
+	}
+	datasetModificationUpdate()
 }
 
 .hs_on_import_makefactor_button_clicked <- function(button) {

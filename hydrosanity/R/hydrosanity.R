@@ -42,9 +42,9 @@ APPWIN <- "hs_window"
 hydrosanity <- function() {
 	require(grid, quietly=TRUE)
 	require(lattice, quietly=TRUE)
-	if (!require(RGtk2.10, quietly=TRUE)) {
-		require(RGtk2, quietly=TRUE)
-	}
+	#if (!require(RGtk2.10, quietly=TRUE)) {
+	require(RGtk2, quietly=TRUE)
+	#}
 	require(cairoDevice, quietly=TRUE)
 	
 	if (exists('.hydrosanity') && !is.null(.hydrosanity$GUI)) {
