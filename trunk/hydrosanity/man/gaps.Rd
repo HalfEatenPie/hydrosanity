@@ -1,12 +1,16 @@
 \name{gaps}
 \alias{gaps}
-
-\title{Find Runs of Consecutive Missing Values}
+\alias{expand.indices}
+\alias{rises}
+\alias{lastTime}
+\title{Find Runs of Consecutive Missing Values, etc}
 \description{
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-gaps(x, internal.only = T)
+gaps(x, max.length = Inf, internal.only = T)
+
+expand.indices(info)
 
 rises(x)
 
@@ -15,6 +19,8 @@ lastTime(x)
 \arguments{
   \item{x}{ ~~Describe \code{x} here~~ }
   \item{internal.only}{ ~~Describe \code{internal.only} here~~ }
+  \item{max.length}{ ~~Describe \code{max.length} here~~ }
+  \item{info}{ ~~Describe \code{info} here~~ }
 }
 \details{
   ~~ If necessary, more details than the description above ~~

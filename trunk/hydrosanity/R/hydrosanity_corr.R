@@ -132,6 +132,8 @@ updateCorrPage <- function() {
 	doAnteFlow <- theWidget("corr_relationplot_anteflow_checkbutton")$getActive()
 	anteFlowIntervals <- theWidget("corr_relationplot_anteflow_spinbutton")$getValue()
 	doConditioning <- (doSeasons || doAnteFlow)
+	doSmooth <- theWidget("corr_smooth_checkbutton")$getActive()
+	smoothSpan <- theWidget("corr_smooth_span_spinbutton")$getValue()
 	
 	#if (doRises && doAnteFlow) {
 	#	errorDialog("Can not condition on antecedent flow when using only flow rises.")
@@ -216,13 +218,16 @@ updateCorrPage <- function() {
 		if (doConditioning) { paste('|', conditionVars) }))
 	plot.cmd[[3]] <- quote(tmp.data)
 	#plot.cmd$scales$log <- T
-	#plot.cmd$type <- c("p", "smooth") breaks with missing values, so:
-	plot.cmd$panel <- function(x, y, ...) {
-		panel.xyplot(x, y, ...)
-		ok <- is.finite(x) & is.finite(y)
-		panel.loess(x[ok], y[ok], span=1,
-		col.line=trellis.par.get("superpose.line")$col[2],
-		lty=trellis.par.get("superpose.line")$lty[2], ...)
+	if (doSmooth) {
+		#plot.cmd$type <- c("p", "smooth") breaks with missing values, so:
+		plot.cmd$span <- smoothSpan
+		plot.cmd$panel <- function(x, y, ..., span) {
+			panel.xyplot(x, y, ...)
+			ok <- is.finite(x) & is.finite(y)
+			try(panel.loess(x[ok], y[ok], span=span,
+			col.line=trellis.par.get("superpose.line")$col[2],
+			lty=trellis.par.get("superpose.line")$lty[2], ...))
+		}
 	}
 	plot.cmd$xscale.components <- quote(lattice.x.prettylog)
 	plot.cmd$yscale.components <- quote(lattice.y.prettylog)
@@ -239,7 +244,7 @@ updateCorrPage <- function() {
 	plot.cmd$sub <- quote(tmp.caption)
 	
 	setPlotDevice("rainfall-runoff")
-	setCairoWindowButtons("rainfall-runoff", identify=T, zoomin=T, log=F)
+	setCairoWindowButtons("rainfall-runoff", identify=T, zoomin=T, center=T, log=F)
 	
 	result <- guiDo(plot.cmd, isExpression=T)
 	# plot trellis object

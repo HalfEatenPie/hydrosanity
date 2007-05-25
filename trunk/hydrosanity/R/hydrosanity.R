@@ -108,6 +108,7 @@ hydrosanity <- function() {
 	theWidget("import_time_format_codes_combobox")$setActive(0)
 	theWidget("import_time_step_comboboxentry")$setActive(4)
 	theWidget("import_makefactor_comboboxentry")$setActive(0)
+	theWidget("import_accum_gaps_comboboxentry")$setActive(3)
 	theWidget("import_transform_timestep_comboboxentry")$setActive(0)
 	theWidget("import_transform_yearstart_combobox")$setActive(0)
 	theWidget("import_transform_aggrfun_combobox")$setActive(0)
@@ -121,8 +122,9 @@ hydrosanity <- function() {
 	theWidget("explore_yearstart_combobox")$setActive(0)
 	theWidget("explore_cdf_aggr1_comboboxentry")$setActive(2)
 	theWidget("explore_cdf_aggr2_comboboxentry")$setActive(4)
+	theWidget("impute_aggr1_comboboxentry")$setActive(2)
+	theWidget("impute_aggr2_comboboxentry")$setActive(4)
 	theWidget("impute_missing_gaps_comboboxentry")$setActive(0)
-	theWidget("impute_accum_gaps_comboboxentry")$setActive(3)
 	theWidget("impute_missing_constant_combobox")$setActive(0)
 	theWidget("corr_smoothed_by_comboboxentry")$setActive(1)
 	theWidget("corr_relationplot_lag_comboboxentry")$setActive(0)
@@ -198,6 +200,9 @@ timeperiodModificationUpdate <- function() {
 		page.num=theWidget("notebook")$getCurrentPage())
 }
 
+.hs_on_menu_update_activate <- function(...) {
+	datasetModificationUpdate()
+}
 
 .hs_on_notebook_switch_page <- function(widget, page, page.num, ...) {
 	theWidget(APPWIN)$setSensitive(F)
