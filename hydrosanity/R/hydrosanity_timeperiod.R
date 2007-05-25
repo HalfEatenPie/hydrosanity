@@ -44,9 +44,9 @@ updateTimePeriodPage <- function() {
 	for (i in seq(along=hsp$data)) {
 		dfName[i] <- names(hsp$data)[i]
 		subBlob <- window(hsp$data[[i]], hsp$timePeriod[1], hsp$timePeriod[2])
-		myQuantiles <- format(quantile(
+		myQuantiles <- round(quantile(
 			subBlob$Data, probs=c(0, 0.25, 0.5, 0.75, 1), na.rm=T), 
-			digits=2, scientific=2)
+			digits=1)
 		dfMin[i] <- myQuantiles[1]
 		dfQ25[i] <- myQuantiles[2]
 		dfMedian[i] <- myQuantiles[3]

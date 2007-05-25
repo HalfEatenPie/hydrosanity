@@ -1,29 +1,35 @@
 \name{impute.timeblobs}
 \alias{impute.timeblobs}
+\alias{imputeGaps.timeblobs}
+\alias{disaccumulate.timeblobs}
+\alias{quick.disaccumulate.timeblob}
 \alias{unimpute.timeblobs}
 \title{Fill Gaps in Time Series}
 \description{
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-impute.timeblobs(blob.list, which.impute = names(blob.list), timelim = NULL, withinTimeframe = NA, maxGapLength = NA, internalGapsOnly = F, method = c("constant", "distance", "correlation", "regression"), constant = c("mean", "trim.mean", "zero", "extend"), trim = 0.01, maxPredictors = 3, disaccumulate = c("column", "gaps", "no"), accumStepsColumn = "AccumSteps", maxGapLengthAccum = "4 days")
+impute.timeblobs(blob.list, which.impute = names(blob.list), timelim = NULL, withinTimeframe = NA, method = c("distance", "constant"), constant = c("mean", "zero", "extend"), trim = 0)
 
-unimpute.timeblobs(blob.list, timelim=NULL, type=c("imputed", "disaccumulated"))
+imputeGaps.timeblobs(blob.list, which.impute = names(blob.list), maxGapLength = Inf, internalGapsOnly = F, ...)
+
+disaccumulate.timeblobs(blob.list, which.impute = names(blob.list), ...)
+
+quick.disaccumulate.timeblob(blob)
+
+unimpute.timeblobs(blob.list, timelim = NULL, type = c("imputed", "disaccumulated"))
 }
 \arguments{
   \item{blob.list}{ ~~Describe \code{blob.list} here~~ }
   \item{which.impute}{ ~~Describe \code{which.impute} here~~ }
   \item{timelim}{ ~~Describe \code{timelim} here~~ }
   \item{withinTimeframe}{ ~~Describe \code{withinTimeframe} here~~ }
-  \item{maxGapLength}{ ~~Describe \code{maxGapLength} here~~ }
-  \item{internalGapsOnly}{ ~~Describe \code{internalGapsOnly} here~~ }
   \item{method}{ ~~Describe \code{method} here~~ }
   \item{constant}{ ~~Describe \code{constant} here~~ }
   \item{trim}{ ~~Describe \code{trim} here~~ }
-  \item{maxPredictors}{ ~~Describe \code{maxPredictors} here~~ }
-  \item{disaccumulate}{ ~~Describe \code{disaccumulate} here~~ }
-  \item{accumStepsColumn}{ ~~Describe \code{accumStepsColumn} here~~ }
-  \item{maxGapLengthAccum}{ ~~Describe \code{maxGapLengthAccum} here~~ }
+  \item{maxGapLength}{ ~~Describe \code{maxGapLength} here~~ }
+  \item{internalGapsOnly}{ ~~Describe \code{internalGapsOnly} here~~ }
+  \item{blob}{ ~~Describe \code{blob} here~~ }
   \item{type}{ ~~Describe \code{type} here~~ }
 }
 \details{

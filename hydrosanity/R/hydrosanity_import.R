@@ -397,6 +397,44 @@ updateImportPage <- function() {
 	datasetModificationUpdate()
 }
 
+.hs_on_import_set_accums_button_clicked <- function(button) {
+	theWidget(APPWIN)$setSensitive(F)
+	on.exit(theWidget(APPWIN)$setSensitive(T))
+	setStatusBar("")
+	
+	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
+	if (length(blobIndices)==0) {
+		errorDialog("No items selected.")
+		return()
+	}
+	nBlobs <- length(blobIndices)
+	blobNames <- names(hsp$data)[blobIndices]
+	
+	maxAccumLength <- theWidget("import_accum_gaps_comboboxentry")$getActiveText()
+	
+	addLogComment("Set multiple accumulations")
+	
+	for (x in blobNames) {
+		maxGapStepsAccum <- if (is.na(maxGapLengthAccum))
+			{ Inf } else { round(
+			as.numeric.byString(maxGapLengthAccum)
+			/ as.numeric.byString(attr(hsp$data[[x]], "timestep"))) }
+		guiDo(isExpression=T, bquote(
+			tmp.gapInfo <- gaps(hsp$data[[.(x)]]$Data, internal.only=T, 
+				max.length=.(maxGapStepsAccum))
+		))
+		if (nrow(tmp.gapInfo) > 0) {
+			guiDo(isExpression=T, bquote({
+				hsp$data[[.(x)]]$AccumSteps <- as.integer(1)
+				hsp$data[[.(x)]]$AccumSteps[gapInfo$start + gapInfo$length] <-
+					gapInfo$length + 1
+			}))
+		} else {
+			addToLog("# No gaps fit the criteria.")
+		}
+	}
+}
+
 .hs_on_export_button_clicked <- function(button) {
 	theWidget(APPWIN)$setSensitive(F)
 	on.exit(theWidget(APPWIN)$setSensitive(T))
@@ -468,9 +506,10 @@ updateImportPage <- function() {
 	} else {
 		for (i in seq(along=blobNames)) {
 			x <- blobNames[i]
+			myFilename <- filename
 			if (nBlobs > 1) {
 				# use blob name to identify each file
-				myFilename <- sub('%NAME%', x, filename)
+				myFilename <- sub('%NAME%', x, myFilename)
 				if (identical(filename, myFilename)) {
 					# or just put a number in the filename
 					myFilename <- paste(sep='',
@@ -600,6 +639,8 @@ setDataRole <- function(blobName, role=NULL, doLogComment=T) {
 	'Importing data from R must be done from the R console, using a command like:',
 	'\n\n',
 	'<tt>hsp$data[["myName"]] &lt;- timeblob(Time=myTime, Data=myData)</tt>',
+	'\n\n',
+	'and then choose <i>Update</i> from the <i>View</i> menu.',
 	'\n\n',
 	'See <tt>help(timeblob)</tt> for details.'))
 }
