@@ -244,7 +244,7 @@ updateCorrPage <- function() {
 	plot.cmd$sub <- quote(tmp.caption)
 	
 	setPlotDevice("rainfall-runoff")
-	setCairoWindowButtons("rainfall-runoff", identify=T, zoomin=T, center=T, log=F)
+	setCairoWindowButtons("rainfall-runoff", identify=T, zoomin=T, centre=T, log=F)
 	
 	result <- guiDo(plot.cmd, isExpression=T)
 	# plot trellis object
