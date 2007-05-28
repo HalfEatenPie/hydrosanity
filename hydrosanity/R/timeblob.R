@@ -543,25 +543,25 @@ quick.disaccumulate.timeblob <- function(blob) {
 	# check types
 	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
 	if (is.null(blob$AccumSteps)) { return(blob) }
-	spanEnd <- which(blob$AccumSteps > 1)
-	if (length(spanEnd) == 0) {
+	spanInfo <- data.frame(end=which(blob$AccumSteps > 1))
+	if (nrow(spanInfo) == 0) {
 		blob$AccumSteps <- NULL
 		return(blob)
 	}
-	spanLength <- blob$AccumSteps[spanEnd]
-	spanStart <- spanEnd - spanLength + 1
-	spanAccum <- blob$Data[spanEnd]
-	# concatenated indices of all the time steps in accums (whee!)
-	allSpans <- sequence(spanLength) + rep(spanStart, times=spanLength) - 1
+	spanInfo$length <- blob$AccumSteps[spanInfo$end]
+	spanInfo$start <- with(spanInfo, end - length + 1)
+	spanInfo$accum <- blob$Data[spanInfo$end]
+	# concatenated indices of all the time steps in accums
+	allSpans <- expand.indices(spanInfo)
 	# evenly redistribute
-	blob$Data[allSpans] <- rep(spanAccum / spanLength, times=spanLength)
+	blob$Data[allSpans] <- with(spanInfo, rep(accum / length, times=length))
 	levels(blob$Qual) <- union(levels(blob$Qual), "disaccumulated")
 	blob$Qual[allSpans] <- "disaccumulated"
 	blob$AccumSteps <- NULL
 	return(blob)
 }
 
-impute.timeblobs <- function(blob.list, which.impute=names(blob.list), timelim=NULL, extend=F, withinTimeframe=NA, method=c("distance", "correlation", "constant"), constant=c("mean", "zero", "extend"), trim=0) {
+impute.timeblobs <- function(blob.list, which.impute=names(blob.list), timelim=NULL, extend=F, withinTimeframe=NA, method=c("distance", "constant"), constant=c("mean", "zero", "extend"), trim=0) {
 	# check types
 	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
 	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
@@ -631,7 +631,8 @@ impute.timeblobs <- function(blob.list, which.impute=names(blob.list), timelim=N
 	}
 	
 	# find all multiple accumulations (using AccumSteps column)
-	# and set to NA to indicate a missing value there.
+	# and set to NA to indicate a missing value there (it is part of the gap)
+	# this is so that Data column is directly comparable to Imputed
 	for (x in names(blob.list)) {
 		if (!is.null(blob.list[[x]]$AccumSteps)) {
 			spanEnd <- which(blob.list[[x]]$AccumSteps > 1)
@@ -690,6 +691,7 @@ impute.timeblobs <- function(blob.list, which.impute=names(blob.list), timelim=N
 			dropRows <- c(dropRows, names(scales)[is.na(scales)])
 			# drop these rows
 			subsets <- subsets[ !(row.names(subsets) %in% dropRows), ]
+			predictorSubsets <- list()
 			predictors <- character()
 			for (x in names(subsets)) {
 				# make it a vector of names
@@ -699,27 +701,43 @@ impute.timeblobs <- function(blob.list, which.impute=names(blob.list), timelim=N
 				xNames <- xNames[byDistance]
 				# only consider closest two sites
 				length(xNames) <- min(2, length(xNames))
-				predictors <- c(predictors, xNames)
+				predictorSubsets[[x]] <- xNames
 			}
-			print("distances:")
+			predictors <- unlist(predictorSubsets)
+			print(predictorSubsets)
+			cat("DISTANCES:\n")
 			print(dist[predictors])
-			print("scale factors (ratio of means):")
+			cat("SCALE factors (ratio of means):\n")
 			print(scales[predictors])
 			# set up data
 			ROWS <- 1 # constant
 			imputed <- rep(as.numeric(NA), nrow(blob))
 			data.matrix <- as.matrix(rawSync[make.names(predictors)])
+			colnames(data.matrix) <- predictors
 			# inverse distance weighting
 			weights <- 1 / dist[predictors]
 			# and scale according to ratio of means
 			weights <- weights * scales[predictors]
 			weights.matrix <- matrix(weights, byrow=T,
 				ncol=length(predictors), nrow=nrow(data.matrix))
+			colnames(weights.matrix) <- predictors
 			weights.matrix[is.na(data.matrix)] <- 0
-			# TODO: exclude second-choice sites when first-choice exists
+			# exclude second-choice sites when first-choice exists
+			for (x in names(subsets)) {
+				if (length(predictorSubsets[[x]]) > 1) {
+					firstChoice <- predictorSubsets[[x]][1]
+					secondChoice <- predictorSubsets[[x]][2]
+					firstOK <- !is.na(data.matrix[,firstChoice])
+					weights.matrix[firstOK,secondChoice] <- 0
+				}
+			}
 			# normalise weights at each time step
 			weights.normalise <- apply(weights.matrix, ROWS, sum)
 			weights.matrix <- weights.matrix / weights.normalise
+			cat("DATA:\n")
+			print(summary(data.matrix))
+			cat("WEIGHTS:\n")
+			print(summary(weights.matrix))
 			# apply weights
 			data.matrix <- data.matrix * weights.matrix
 			# compute the interpolated values
@@ -731,74 +749,81 @@ impute.timeblobs <- function(blob.list, which.impute=names(blob.list), timelim=N
 	return(blob.list[which.impute])
 }
 
-imputeGaps.timeblobs <- function(blob.list, which.impute=names(blob.list), maxGapLength=Inf, internalGapsOnly=F, ...) {
+imputeGaps.timeblobs <- function(blob.list, which.impute=names(blob.list), type=c("disaccumulated", "imputed"), fallBackToConstantDisaccum=T, maxGapLength=Inf, internalGapsOnly=F, ...) {
+	type <- match.arg(type, several.ok=T)
 	# first, impute
 	imputed.blobs <- impute.timeblobs(blob.list, which.impute=which.impute, ...)
 	# then, fill in the imputed values in gaps
 	for (x in which.impute) {
-		lim <- findInterval(range(imputed.blobs[[x]]$Time), blob.list[[x]]$Time)
-		subWin <- seq(lim[1], lim[2])
-		levels(blob.list[[x]]$Qual) <- union(levels(blob.list[[x]]$Qual),
-			"imputed")
-		subData <- blob.list[[x]]$Data[subWin]
-		allGaps <- expand.indices(gaps(subData, max.length=maxGapLength,
-			internal.only=internalGapsOnly))
-		allGapsOrig <- allGaps + lim[1] - 1
-		blob.list[[x]]$Data[allGapsOrig] <- imputed.blobs[[x]]$Imputed[allGaps]
-		blob.list[[x]]$Qual[allGapsOrig] <- "imputed"
-	}
-	return(blob.list)
-}
-
-disaccumulate.timeblobs <- function(blob.list, which.impute=names(blob.list), ...) {
-	# first, impute
-	imputed.blobs <- impute.timeblobs(blob.list, which.impute=which.impute, ...)
-	# then, scale the imputed values in gaps to match accumulated values
-	for (x in which.impute) {
-		if (is.null(blob.list[[x]]$AccumSteps)) { next }
-		spanEnd <- which(blob$AccumSteps > 1)
-		if (length(spanEnd) == 0) {
-			blob$AccumSteps <- NULL
-			return(blob)
+		impBlob <- imputed.blobs[[x]]
+		imputedPeriod <- c(start(impBlob), end(impBlob))
+		lim <- window(blob.list[[x]], start(impBlob), end(impBlob), 
+			return.indices=T)
+		#lim <- findInterval(imputedPeriod, blob.list[[x]]$Time)
+		# first disaccumulate
+		spanInfo <- data.frame(end=which(impBlob$AccumSteps > 1))
+		if (("disaccumulated" %in% type) && (nrow(spanInfo) > 0)) {
+			spanInfo$length <- impBlob$AccumSteps[spanInfo$end]
+			spanInfo$start <- with(spanInfo, end - length + 1)
+			# drop any gaps which were not completely imputed
+			cumNAs <- cumsum(is.na(impBlob$Imputed))
+			spanNAs <- with(spanInfo, cumNAs[end] -
+				ifelse(start==0, 0, cumNAs[start-1]))
+			ok <- (spanNAs == 0)
+			spanInfo <- spanInfo[ok,]
+			# get known (observed) totals
+			spanInfo$accum <- blob.list[[x]]$Data[spanInfo$end + lim[1] - 1]
+			# work out sum of imputed values in each gap
+			cumSum <- cumsum(ifelse(is.na(impBlob$Imputed), 0, 
+				impBlob$Imputed))
+			spanInfo$sum <- cumSum[spanInfo$end] - 
+				ifelse(spanInfo$start==0, 0, cumSum[spanInfo$start-1])
+			# concatenated indices of all the time steps in accums
+			allSpans <- expand.indices(spanInfo)
+			allSpansOrig <- allSpans + lim[1] - 1
+			levels(blob.list[[x]]$Qual) <- union(levels(blob.list[[x]]$Qual),
+				"disaccumulated")
+			# insert rescaled imputed values into gaps
+			blob.list[[x]]$Data[allSpansOrig] <- impBlob$Imputed[allSpans] *
+				with(spanInfo, rep(accum / sum, times=length))
+			blob.list[[x]]$Qual[allSpansOrig] <- "disaccumulated"
+			blob.list[[x]]$AccumSteps[allSpansOrig] <- 1
+			if (fallBackToConstantDisaccum) {
+				constBlob <- quick.disaccumulate.timeblob(
+					window(blob.list[[x]], start(impBlob), end(impBlob)))
+				blobWindow <- seq(lim[1], lim[2])
+				blob.list[[x]]$Data[blobWindow] <- constBlob$Data
+				blob.list[[x]]$Qual[blobWindow] <- constBlob$Qual
+			}
+			# remove AccumSteps column if no longer relevant
+			if (!any(blob.list[[x]]$AccumSteps > 0)) {
+				blob.list[[x]]$AccumSteps <- NULL
+			}
 		}
-		spanLength <- blob$AccumSteps[spanEnd]
-		spanStart <- spanEnd - spanLength + 1
-		spanAccum <- blob$Data[spanEnd]
-		# concatenated indices of all the time steps in accums (whee!)
-		allSpans <- sequence(spanLength) + rep(spanStart, times=spanLength) - 1
-		# evenly redistribute
-		blob$Data[allSpans] <- rep(spanAccum / spanLength, times=spanLength)
-		levels(blob$Qual) <- union(levels(blob$Qual), "disaccumulated")
-		blob$Qual[allSpans] <- "disaccumulated"
-		blob$AccumSteps <- NULL
-		
-		
-		!@#$%^&*(
-		
-		
-		
-		spanEnd <- which(blob$AccumSteps > 1)
-		spanLength <- blob$AccumSteps[spanEnd]
-		spanStart <- spanEnd - spanLength + 1
-		spanAccum <- blob$Data[spanEnd]
-		cumSum <- cumsum(ifelse(is.na(blob$Data), 0, blob$Data))
-		spanSum <- cumSum[spanEnd] - 
-			ifelse(spanStart==0, 0, cumSum[spanStart-1])
-		
-		# TODO: check whether the whole gap was filled in;
-		#       otherwise cancel it
-		
-		# concatenated indices of all the time steps in accums (whee!)
-		allSpans <- sequence(spanLength) + rep(spanStart, times=spanLength) - 1
-		
-		spanReScale <- rep(spanAccum / spanSum, times=spanLength)
-		blob$Data[allSpans] <- blob$Data[allSpans] * spanReScale
-		blob$Qual[allSpans] <- "disaccumulated"
-		blob$AccumSteps[allSpans] <- 1
+		if ("imputed" %in% type) {
+			# need to take window here; it may have been modified above
+			tmpBlob <- window(blob.list[[x]], start(impBlob), end(impBlob))
+			# if there are any multiple accumulations, treat as gaps
+			# i.e. set the end step to NA, overwriting the total value
+			# NB: this throws away information -- cannot be reversed! (TODO)
+			if (!is.null(blob.list[[x]]$AccumSteps)) {
+				tmpBlob$Data[(tmpBlob$AccumSteps > 1)] <- NA
+			}
+			allGaps <- expand.indices(gaps(tmpBlob$Data, max.length=maxGapLength,
+				internal.only=internalGapsOnly))
+			allGapsOrig <- allGaps + lim[1] - 1
+			levels(blob.list[[x]]$Qual) <- union(levels(blob.list[[x]]$Qual),
+				"imputed")
+			blob.list[[x]]$Data[allGapsOrig] <- impBlob$Imputed[allGaps]
+			blob.list[[x]]$Qual[allGapsOrig] <- "imputed"
+		}
+		# remove quality code levels if possible
+		blob.list[[x]]$Qual <- blob.list[[x]]$Qual[,drop=T]
 	}
+	return(blob.list[which.impute])
 }
 
-unimpute.timeblobs <- function(blob.list, timelim=NULL, type=c("imputed", "disaccumulated")) {
+unimputeGaps.timeblobs <- function(blob.list, timelim=NULL, type=c("imputed", "disaccumulated")) {
 	# check types
 	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
 	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
@@ -822,7 +847,7 @@ unimpute.timeblobs <- function(blob.list, timelim=NULL, type=c("imputed", "disac
 		}
 		# set imputed values back to NA
 		blob.list[[x]]$Data[imputed] <- NA
-		blob.list[[x]]$Qual[imputed] <- "good" # or whatever
+		blob.list[[x]]$Qual[imputed] <- NA # or whatever
 	}
 	
 	# revert disaccumulated values
@@ -839,24 +864,22 @@ unimpute.timeblobs <- function(blob.list, timelim=NULL, type=c("imputed", "disac
 		}
 		# indices and lengths of strings of consecutive "disaccumulated"
 		spanInfo <- gaps(ifelse(accumd, NA, T), internal.only=F)
-		spanEnd <- spanInfo$gap.end
-		spanLength <- spanInfo$gap.length
-		spanStart <- spanEnd - spanLength + 1
-		spanSum <- mapply(
+		spanInfo$end <- with(spanInfo, start + length - 1)
+		spanInfo$sum <- mapply(
 			function(start,len) {
 				sum(blob.list[[x]]$Data[seq(start,length=len)])
-			}, spanStart, spanLength)
+			}, spanInfo$start, spanInfo$length)
 		# set values back to NA
 		blob.list[[x]]$Data[accumd] <- NA
-		blob.list[[x]]$Qual[accumd] <- "good" # or whatever
+		blob.list[[x]]$Qual[accumd] <- NA # or whatever
 		# set accum value
-		blob.list[[x]]$Data[spanEnd] <- spanSum
-		blob.list[[x]]$Qual[spanEnd] <- "suspect" # or whatever
+		blob.list[[x]]$Data[spanInfo$end] <- spanInfo$sum
+		blob.list[[x]]$Qual[spanInfo$end] <- "suspect" # or whatever
 		# keep track of number of days of accumulation
 		if (is.null(blob.list[[x]]$AccumSteps)) {
-			blob.list[[x]]$AccumSteps <- rep(1, nrow(blob.list[[x]]))
+			blob.list[[x]]$AccumSteps <- as.integer(1)
 		}
-		blob.list[[x]]$AccumSteps[spanEnd] <- spanLength
+		blob.list[[x]]$AccumSteps[spanInfo$end] <- spanInfo$length
 	}
 	
 	# remove quality code levels if possible
