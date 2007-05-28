@@ -475,10 +475,8 @@ aggregate.timeblob <- function(blob, by="1 year", FUN=mean, fun.qual=c("worst","
 	if (hasExtraVars) {
 		aggrVars <- c(aggrVars, names(blob)[-(1:3)])
 	}
-	str(aggregate(as.data.frame(blob[aggrVars]), 
-		by=list(dateGroups), FUN=FUN, na.rm=T, ...)[,-1])
 	allNewVals <- aggregate(as.data.frame(blob[aggrVars]), 
-		by=list(dateGroups), FUN=FUN, na.rm=T, ...)[,-1]
+		by=list(dateGroups), FUN=FUN, na.rm=T, ...)[-1]
 	newVals <- allNewVals[,1]
 	# set NA values
 	eachNA <- aggregate(blob$Data, by=list(dateGroups), FUN=function(x) {sum(is.na(x))})[,-1]
