@@ -5,7 +5,7 @@
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-\method{aggregate}{timeblob}(blob, by = "1 year", FUN = mean, fun.qual = c("worst", "median", "mode", "omit"), start.month = 1, max.na.proportion = 0.01)
+\method{aggregate}{timeblob}(blob, by = "1 year", FUN = mean, fun.qual = c("worst", "median", "mode", "omit"), start.month = 1, max.na.proportion = 0.01, ...)
 }
 \arguments{
   \item{blob}{ ~~Describe \code{blob} here~~ }
@@ -14,6 +14,7 @@
   \item{fun.qual}{ ~~Describe \code{fun.qual} here~~ }
   \item{start.month} ~~Describe \code{start.month} here~~ }
   \item{max.na.proportion}{ ~~Describe \code{max.na.proportion} here~~ }
+  \item{\dots}{ ~~Describe \code{\dots} here~~ }
 }
 \details{
   ~~ If necessary, more details than the description above ~~

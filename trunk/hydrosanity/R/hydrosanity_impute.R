@@ -149,16 +149,12 @@ updateImputePage <- function() {
 		tmp.predictors <- .(names(hsp$data)[sameRole])
 	}))
 	
-	imputeFn <- if (justDisaccumulate) {
-		'disaccumulate.timeblobs'
-	} else {
-		'imputeGaps.timeblobs'
-	}
-	impute.cmd <- call(imputeFn)
+	impute.cmd <- call('imputeGaps.timeblobs')
 	impute.cmd[[2]] <- quote(hsp$data[tmp.predictors])
 	impute.cmd$which.impute <- quote(tmp.vars)
 	impute.cmd$timelim <- if (!is.null(hsp$timePeriod)) { quote(hsp$timePeriod) }
 	impute.cmd$extend <- if (!doInternalGapsOnly) { T }
+	impute.cmd$type <- if (justDisaccumulate) { "disaccumulate" }
 	impute.cmd$method <- imputeMethod
 	impute.cmd$constant <- if (doImputeByConstant) { constType }
 	impute.cmd$trim <- if (doTrim) { 0.01 }
@@ -192,7 +188,7 @@ updateImputePage <- function() {
 	
 	guiDo(isExpression=T, bquote({
 		tmp.vars <- .(selNames)
-		hsp$data[tmp.vars] <- unimpute.timeblobs(hsp$data[tmp.vars], 
+		hsp$data[tmp.vars] <- unimputeGaps.timeblobs(hsp$data[tmp.vars], 
 			timelim=hsp$timePeriod, type="imputed")
 		rm(tmp.vars)
 	}))
@@ -215,7 +211,7 @@ updateImputePage <- function() {
 	
 	guiDo(isExpression=T, bquote({
 		tmp.vars <- .(selNames)
-		hsp$data[tmp.vars] <- unimpute.timeblobs(hsp$data[tmp.vars], 
+		hsp$data[tmp.vars] <- unimputeGaps.timeblobs(hsp$data[tmp.vars], 
 			timelim=hsp$timePeriod, type="disaccumulated")
 		rm(tmp.vars)
 	}))

@@ -1,9 +1,8 @@
 \name{impute.timeblobs}
 \alias{impute.timeblobs}
 \alias{imputeGaps.timeblobs}
-\alias{disaccumulate.timeblobs}
 \alias{quick.disaccumulate.timeblob}
-\alias{unimpute.timeblobs}
+\alias{unimputeGaps.timeblobs}
 \title{Fill Gaps in Time Series}
 \description{
   ~~ A concise (1-5 lines) description of what the function does. ~~
@@ -11,13 +10,11 @@
 \usage{
 impute.timeblobs(blob.list, which.impute = names(blob.list), timelim = NULL, withinTimeframe = NA, method = c("distance", "constant"), constant = c("mean", "zero", "extend"), trim = 0)
 
-imputeGaps.timeblobs(blob.list, which.impute = names(blob.list), maxGapLength = Inf, internalGapsOnly = F, ...)
-
-disaccumulate.timeblobs(blob.list, which.impute = names(blob.list), ...)
+imputeGaps.timeblobs(blob.list, which.impute = names(blob.list), type = c("imputed", "disaccumulated"), fallBackToConstantDisaccum = T, maxGapLength = Inf, internalGapsOnly = F, ...)
 
 quick.disaccumulate.timeblob(blob)
 
-unimpute.timeblobs(blob.list, timelim = NULL, type = c("imputed", "disaccumulated"))
+unimputeGaps.timeblobs(blob.list, timelim = NULL, type = c("imputed", "disaccumulated"))
 }
 \arguments{
   \item{blob.list}{ ~~Describe \code{blob.list} here~~ }
@@ -27,10 +24,12 @@ unimpute.timeblobs(blob.list, timelim = NULL, type = c("imputed", "disaccumulate
   \item{method}{ ~~Describe \code{method} here~~ }
   \item{constant}{ ~~Describe \code{constant} here~~ }
   \item{trim}{ ~~Describe \code{trim} here~~ }
+  \item{type}{ ~~Describe \code{type} here~~ }
+  \item{fallBackToConstantDisaccum}{ ~~Describe \code{fallBackToConstantDisaccum} here~~ }
   \item{maxGapLength}{ ~~Describe \code{maxGapLength} here~~ }
   \item{internalGapsOnly}{ ~~Describe \code{internalGapsOnly} here~~ }
+  \item{\dots}{ ~~Describe \code{\dots} here~~ }
   \item{blob}{ ~~Describe \code{blob} here~~ }
-  \item{type}{ ~~Describe \code{type} here~~ }
 }
 \details{
   ~~ If necessary, more details than the description above ~~

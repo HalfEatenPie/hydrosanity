@@ -410,15 +410,14 @@ updateImportPage <- function() {
 	nBlobs <- length(blobIndices)
 	blobNames <- names(hsp$data)[blobIndices]
 	
-	maxAccumLength <- theWidget("import_accum_gaps_comboboxentry")$getActiveText()
+	maxGapLengthAccum <- theWidget("import_accum_gaps_comboboxentry")$getActiveText()
 	
 	addLogComment("Set multiple accumulations")
 	
 	for (x in blobNames) {
-		maxGapStepsAccum <- if (is.na(maxGapLengthAccum))
-			{ Inf } else { round(
+		maxGapStepsAccum <- round(
 			as.numeric.byString(maxGapLengthAccum)
-			/ as.numeric.byString(attr(hsp$data[[x]], "timestep"))) }
+			/ as.numeric.byString(attr(hsp$data[[x]], "timestep")))
 		guiDo(isExpression=T, bquote(
 			tmp.gapInfo <- gaps(hsp$data[[.(x)]]$Data, internal.only=T, 
 				max.length=.(maxGapStepsAccum))
@@ -426,13 +425,17 @@ updateImportPage <- function() {
 		if (nrow(tmp.gapInfo) > 0) {
 			guiDo(isExpression=T, bquote({
 				hsp$data[[.(x)]]$AccumSteps <- as.integer(1)
-				hsp$data[[.(x)]]$AccumSteps[gapInfo$start + gapInfo$length] <-
-					gapInfo$length + 1
+				with(tmp.gapInfo, 
+					hsp$data[[.(x)]]$AccumSteps[start + length] <-
+						length + 1
+				)
 			}))
 		} else {
 			addToLog("# No gaps fit the criteria.")
 		}
 	}
+	guiDo(rm(tmp.gapInfo))
+	datasetModificationUpdate()
 }
 
 .hs_on_export_button_clicked <- function(button) {
