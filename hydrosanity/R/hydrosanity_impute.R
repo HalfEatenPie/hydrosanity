@@ -30,6 +30,17 @@ updateImputePage <- function() {
 	aggr2By <- theWidget("impute_aggr2_comboboxentry")$getActiveText()
 	startMonth <- theWidget("explore_yearstart_combobox")$getActive() + 1
 	
+	doByDistance <- theWidget("impute_missing_distance_radiobutton")$getActive()
+	doByCorrelation <- theWidget("impute_missing_correlation_radiobutton")$getActive()
+	doByConstant <- theWidget("impute_missing_constant_radiobutton")$getActive()
+	constTypeIdx <- theWidget("impute_missing_constant_combobox")$getActive() + 1
+	constType <- switch(constTypeIdx, "mean", "mean", "zero", "extend")
+	doTrim <- (constTypeIdx == 2)
+	imputeMethod <- c(
+		if (doByDistance) { "distance" },
+		if (doByCorrelation) { "correlation" },
+		if (doByConstant) { "constant" })
+	
 	addLogComment("View imputed vs actual values scatterplot")
 	
 	roles <- sapply(hsp$data, attr, "role")
@@ -50,7 +61,9 @@ updateImputePage <- function() {
 	impute.cmd$which.impute <- quote(tmp.vars)
 	impute.cmd$timelim <- if (!is.null(hsp$timePeriod)) { quote(hsp$timePeriod) }
 	impute.cmd$extend <- T
-	impute.cmd$method <- "distance"
+	impute.cmd$method <- imputeMethod
+	impute.cmd$constant <- if (doByConstant) { constType }
+	impute.cmd$trim <- if (doTrim) { 0.01 }
 	
 	impute.assign.cmd <- quote(tmp.data <- foo)
 	impute.assign.cmd[[3]] <- impute.cmd
@@ -123,16 +136,16 @@ updateImputePage <- function() {
 	maxGapLength <- theWidget("impute_missing_gaps_comboboxentry")$getActiveText()
 	doInternalGapsOnly <- theWidget("impute_missing_gaps_internal_checkbutton")$getActive()
 	doLocally <- theWidget("impute_locally_checkbutton")$getActive()
-	doImputeByDistance <- theWidget("impute_missing_distance_radiobutton")$getActive()
-	doImputeByLM <- theWidget("impute_missing_regression_radiobutton")$getActive()
-	doImputeByConstant <- theWidget("impute_missing_constant_radiobutton")$getActive()
+	doByDistance <- theWidget("impute_missing_distance_radiobutton")$getActive()
+	doByCorrelation <- theWidget("impute_missing_correlation_radiobutton")$getActive()
+	doByConstant <- theWidget("impute_missing_constant_radiobutton")$getActive()
 	constTypeIdx <- theWidget("impute_missing_constant_combobox")$getActive() + 1
 	constType <- switch(constTypeIdx, "mean", "mean", "zero", "extend")
 	doTrim <- (constTypeIdx == 2)
 	imputeMethod <- c(
-		if (doImputeByDistance) { "distance" },
-		if (doImputeByLM) { "regression" },
-		if (doImputeByConstant) { "constant" })
+		if (doByDistance) { "distance" },
+		if (doByCorrelation) { "correlation" },
+		if (doByConstant) { "constant" })
 	
 	addLogComment("Impute missing values")
 	
@@ -156,7 +169,7 @@ updateImputePage <- function() {
 	impute.cmd$extend <- if (!doInternalGapsOnly) { T }
 	impute.cmd$type <- if (justDisaccumulate) { "disaccumulate" }
 	impute.cmd$method <- imputeMethod
-	impute.cmd$constant <- if (doImputeByConstant) { constType }
+	impute.cmd$constant <- if (doByConstant) { constType }
 	impute.cmd$trim <- if (doTrim) { 0.01 }
 	
 	impute.assign.cmd <- quote(hsp$data[tmp.vars] <- foo)

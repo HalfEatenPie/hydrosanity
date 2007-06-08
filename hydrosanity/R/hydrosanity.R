@@ -136,7 +136,7 @@ hydrosanity <- function() {
 	# set up table format on import page
 	importTreeView <- theWidget("import_summary_treeview")
 	insertTreeViewTextColumns(importTreeView, 
-		colNames=c("Name", "Data", "Start", "End", "Length", "Timestep", "Location_X.Y", "Qual", "Extra_data", "Role"),
+		colNames=c("Name", "Data", "Start", "End", "Length", "Timestep", "Location_X.Y.Z", "Qual", "Extra_data", "Role"),
 		editors=list(Name=.hs_on_import_summary_treeview_name_edited,
 			Data=.hs_on_import_summary_treeview_dataname_edited,
 			Role=.hs_on_import_summary_treeview_role_edited),
@@ -174,41 +174,7 @@ hsp <- list(data=list())")
 	addLogSeparator()
 }
 
-datasetModificationUpdate <- function() {
-	.hydrosanity$modified <<- T
-	
-	# set all pages to be updated
-	.hydrosanity$update[] <<- T
-	
-	# sort hsp$data by name
-	if (is.unsorted(names(hsp$data))) {
-		hsp$data <<- hsp$data[order(names(hsp$data))]
-	}
-	
-	.hs_on_notebook_switch_page(
-		page.num=theWidget("notebook")$getCurrentPage())
-}
-
-timeperiodModificationUpdate <- function() {
-	.hydrosanity$modified <<- T
-	
-	.hydrosanity$update$timeperiod <<- T
-	.hydrosanity$update$impute <<- T
-	.hydrosanity$update$corr <<- T
-	
-	.hs_on_notebook_switch_page(
-		page.num=theWidget("notebook")$getCurrentPage())
-}
-
-.hs_on_menu_update_activate <- function(...) {
-	datasetModificationUpdate()
-}
-
-.hs_on_notebook_switch_page <- function(widget, page, page.num, ...) {
-	theWidget(APPWIN)$setSensitive(F)
-	on.exit(theWidget(APPWIN)$setSensitive(T))
-	setStatusBar("")
-	
+updateNow <- function(page.num=theWidget("notebook")$getCurrentPage()) {
 	if (page.num == 1) {
 		if (.hydrosanity$update$import) { updateImportPage() }
 	}
@@ -230,9 +196,45 @@ timeperiodModificationUpdate <- function() {
 	if (page.num == 7) {
 		if (.hydrosanity$update$corr) { updateCorrPage() }
 	}
-	theWidget(APPWIN)$present()
 }
 
+datasetModificationUpdate <- function() {
+	.hydrosanity$modified <<- T
+	
+	# set all pages to be updated
+	.hydrosanity$update[] <<- T
+	
+	# sort hsp$data by name
+	if (is.unsorted(names(hsp$data))) {
+		hsp$data <<- hsp$data[order(names(hsp$data))]
+	}
+	
+	updateNow()
+}
+
+timeperiodModificationUpdate <- function() {
+	.hydrosanity$modified <<- T
+	
+	.hydrosanity$update$timeperiod <<- T
+	.hydrosanity$update$impute <<- T
+	.hydrosanity$update$corr <<- T
+	
+	updateNow()
+}
+
+.hs_on_menu_update_activate <- function(...) {
+	datasetModificationUpdate()
+}
+
+.hs_on_notebook_switch_page <- function(widget, page, page.num, ...) {
+	theWidget(APPWIN)$setSensitive(F)
+	on.exit(theWidget(APPWIN)$setSensitive(T))
+	setStatusBar("")
+	
+	updateNow(page.num=page.num)
+	
+	theWidget(APPWIN)$present()
+}
 
 .hs_on_menu_quit_activate <- function(action, window) {
 	if (.hydrosanity$modified && (length(hsp$data) > 0)) {

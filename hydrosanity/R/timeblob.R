@@ -559,7 +559,7 @@ quick.disaccumulate.timeblob <- function(blob) {
 	return(blob)
 }
 
-impute.timeblobs <- function(blob.list, which.impute=names(blob.list), timelim=NULL, extend=F, withinTimeframe=NA, method=c("distance", "constant"), constant=c("mean", "zero", "extend"), trim=0) {
+impute.timeblobs <- function(blob.list, which.impute=names(blob.list), timelim=NULL, extend=F, withinTimeframe=NA, method=c("distance", "correlation", "constant"), constant=c("mean", "zero", "extend"), trim=0) {
 	# check types
 	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
 	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
@@ -597,15 +597,23 @@ impute.timeblobs <- function(blob.list, which.impute=names(blob.list), timelim=N
 		}
 	}
 	
-	pairScales <- list()
-	pairDistance <- list()
+	# calculate distances
 	loc <- NA
+	pairDistance <- NA
 	if (method == "distance") {
+		loc <- sapply(blob.list, attr, "location.xy")
+		loc <- data.frame(x=loc[1,], y=loc[2,])
+		pairDistance <- as.matrix(dist(loc))
+		diag(pairDistance) <- NA
+	}
+	
+	pairScales <- list()
+	if (method %in% c("distance", "correlation")) {
+		tmp.data <- lapply(blob.list, quick.disaccumulate.timeblob)
+		tmp.data <- sync.timeblobs(tmp.data)
 		# calculate scaling matrix:
 		# ratio of some function (eg mean) between each pair of sites
 		# (using only pairwise-complete observations)
-		tmp.data <- lapply(blob.list, quick.disaccumulate.timeblob)
-		tmp.data <- sync.timeblobs(tmp.data)
 		for (x in make.names(which.impute)) {
 			blob.ok <- !is.na(tmp.data[[x]])
 			for (yName in names(blob.list)) {
@@ -621,11 +629,6 @@ impute.timeblobs <- function(blob.list, which.impute=names(blob.list), timelim=N
 			}
 		}
 		rm(tmp.data)
-		# distances
-		loc <- sapply(blob.list, attr, "location.xy")
-		loc <- data.frame(x=loc[1,], y=loc[2,])
-		pairDistance <- as.matrix(dist(loc))
-		diag(pairDistance) <- NA
 	}
 	
 	# find all multiple accumulations (using AccumSteps column)
@@ -643,6 +646,8 @@ impute.timeblobs <- function(blob.list, which.impute=names(blob.list), timelim=N
 	for (x in names(blob.list)) {
 		blob.list[[x]]$Data[ (blob.list[[x]]$Qual == "imputed") ] <- NA
 	}
+	
+	ROWS <- 1 # constant
 	
 	for (blobName in which.impute) {
 		print(paste("*** going to impute site", blobName))
@@ -708,7 +713,6 @@ impute.timeblobs <- function(blob.list, which.impute=names(blob.list), timelim=N
 			cat("SCALE factors (ratio of means):\n")
 			print(scales[predictors])
 			# set up data
-			ROWS <- 1 # constant
 			imputed <- rep(as.numeric(NA), nrow(blob))
 			data.matrix <- as.matrix(rawSync[make.names(predictors)])
 			colnames(data.matrix) <- predictors
@@ -740,9 +744,62 @@ impute.timeblobs <- function(blob.list, which.impute=names(blob.list), timelim=N
 			data.matrix <- data.matrix * weights.matrix
 			# compute the interpolated values
 			imputed <- apply(data.matrix, ROWS, sum, na.rm=T)
+			noprediction <- apply(is.na(data.matrix), ROWS, all)
+			imputed[noprediction] <- NA
 			imputed[!is.finite(imputed)] <- NA
 			blob.list[[blobName]]$Imputed <- imputed
 		}
+		
+		if (method == "correlation") {
+			# synchronise all other data to this blob
+			rawSync <- syncTo.timeblobs(blob.list, blob)
+			blobNameOK <- make.names(blobName) # in rawSync
+			blobIndex <- match(blobName, names(blob.list))
+			
+			scales <- pairScales[[blobNameOK]]
+			
+			# calculate correlations with blob$Data
+			cors <- sapply(rawSync[-1], cor, blob$Data, use="complete")
+			names(cors) <- names(blob.list)
+			cors <- rev(sort(cors))
+			
+			predictors <- names(cors)[cors > 0.1]
+			predictors <- predictors[(predictors != blobName)]
+			
+			cat("CORRELATIONS:\n")
+			print(cors[predictors])
+			cat("SCALE factors (ratio of means):\n")
+			print(scales[predictors])
+			
+			data.matrix <- as.matrix(rawSync[make.names(predictors)])
+			colnames(data.matrix) <- predictors
+			
+			data.matrix <- data.matrix * 
+				rep(scales[predictors], each=nrow(data.matrix))
+			
+			masked <- rep(F, nrow(data.matrix))
+			i <- 1
+			predicted.frac <- sum(!is.na(data.matrix[!masked,i])) / nrow(data.matrix)
+			print(paste(predictors[i], ": predicted", round(100*predicted.frac), "%"))
+			
+			i <- 2
+			while (i <= ncol(data.matrix)) {
+				masked <- masked | !is.na(data.matrix[,i-1])
+				data.matrix[masked,i] <- NA
+				if (sum(!masked) > 0) {
+					predicted.frac <- sum(!is.na(data.matrix[!masked,i])) / nrow(data.matrix)
+					print(paste(predictors[i], ": predicted", round(100*predicted.frac), "%"))
+				}
+				i <- i + 1
+			}
+			
+			# compute the interpolated values
+			imputed <- apply(data.matrix, ROWS, sum, na.rm=T)
+			noprediction <- apply(is.na(data.matrix), ROWS, all)
+			imputed[noprediction] <- NA
+			blob.list[[blobName]]$Imputed <- imputed
+		}
+		
 	}
 	return(blob.list[which.impute])
 }
@@ -889,6 +946,38 @@ unimputeGaps.timeblobs <- function(blob.list, timelim=NULL, type=c("imputed", "d
 	# TODO
 	
 	return(blob.list)
+}
+
+spatialElevation <- function(blob.list, linear=T, extrap=F, xo.length=40, yo.length=xo.length) {
+	# check types
+	if (!require(akima, quietly=TRUE)) { stop("Require package 'akima'") }
+	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
+	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
+	if (length(blob.list) < 4) { stop("Need at least 4 items") }
+	# get locations
+	loc <- lapply(blob.list, attr, "location.xy")
+	ok <- (sapply(loc, length) == 2)
+	if (any(!ok)) {
+		stop(paste("These items do not have a valid 'location.xy' attribute:",
+			paste(names(blob.list)[!ok], collapse=", ")))
+	}
+	loc <- lapply(blob.list, attr, "elevation")
+	ok <- (sapply(loc, length) == 1)
+	if (any(!ok)) {
+		stop(paste("These items do not have a valid 'elevation' attribute:",
+			paste(names(blob.list)[!ok], collapse=", ")))
+	}
+	loc <- sapply(blob.list, attr, "location.xy")
+	loc <- data.frame(x=loc[1,], y=loc[2,])
+	loc$z <- sapply(blob.list, attr, "elevation")
+	# construct marginal dimensions of grid
+	xo <- seq(min(loc$x), max(loc$x), length=xo.length)
+	yo <- seq(min(loc$y), max(loc$y), length=yo.length)
+	tmp.grid <- expand.grid(x=xo, y=yo)
+	# compute the spatial field (interpolation)
+	tmp.grid$z <- as.vector(interp(x=loc$x, y=loc$y, z=loc$z, 
+		xo=xo, yo=yo, linear=linear, extrap=extrap)$z)
+	return(tmp.grid)
 }
 
 spatialField <- function(blob.list, timelim=NULL, type=c("overall","annual","quarters","months"), start.month=1, linear=T, extrap=F, xo.length=40, yo.length=xo.length, countSurface=F) {

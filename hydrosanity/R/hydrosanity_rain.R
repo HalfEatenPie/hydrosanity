@@ -25,6 +25,8 @@ updateRainPage <- function() {
 	}
 	nBlobs <- length(selNames)
 	
+	doElevContours <- theWidget("rain_elevation_contours_checkbutton")$getActive()
+	
 	loc <- lapply(hsp$data[selNames], attr, "location.xy")
 	ok <- (sapply(loc, length) == 2)
 	
@@ -43,15 +45,28 @@ updateRainPage <- function() {
 	}))
 	
 	plot.cmd <- quote(
-		xyplot(y ~ x, tmp.locs, aspect="iso", labels=rownames(tmp.locs),
-			panel=function(..., labels) {
-				panel.points(...)
-				panel.text(..., labels=labels, pos=1, cex=0.7)
-			}, prepanel=function(x, y, ...) {
-				list(xlim=extendrange(x, f=0.1),
-					ylim=extendrange(y, f=0.1))
-			})
+		xyplot(y ~ x, tmp.locs, aspect="iso", labels=rownames(tmp.locs))
 	)
+	plot.cmd$panel <- function(..., labels) {
+		panel.points(...)
+		panel.text(..., labels=labels, pos=1, cex=0.7)
+	}
+	if (doElevContours) {
+		guiDo(isExpression=T, bquote(
+			tmp.elev <- spatialElevation(hsp$data[.(selNames)])
+		))
+		plot.cmd$elev.grid <- quote(tmp.elev)
+		plot.cmd$panel <- function(..., labels, elev.grid) {
+			with(elev.grid, panel.contourplot(x, y, z, subscripts=T, 
+				contour=T, col.regions=grey(0.9), col=grey(0.5), col.text=grey(0.5)))
+			panel.points(...)
+			panel.text(..., labels=labels, pos=1, cex=0.7)
+		}
+	}
+	plot.cmd$prepanel <- function(x, y, ...) {
+		list(xlim=extendrange(x, f=0.1),
+			ylim=extendrange(y, f=0.1))
+	}
 	
 	setPlotDevice("locations")
 	setCairoWindowButtons("locations", zoomin=T, centre=T)
@@ -92,6 +107,7 @@ updateRainPage <- function() {
 	gridSideCells <- theWidget("rain_gridcells_spinbutton")$getValue()
 	showPoints <- theWidget("rain_showpoints_checkbutton")$getActive()
 	showCounts <- theWidget("rain_showcounts_checkbutton")$getActive()
+	doElevContours <- theWidget("rain_elevation_contours_checkbutton")$getActive()
 	startMonth <- theWidget("explore_yearstart_combobox")$getActive() + 1
 	
 	myType <- if (doOverall) { "overall" } else

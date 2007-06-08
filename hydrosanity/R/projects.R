@@ -18,6 +18,7 @@ openProject <- function() {
 	if (filename=="") { return() }
 	
 	hydrosanity()
+	theWidget(APPWIN)$setSensitive(F)
 	load(filename, .GlobalEnv)
 	hsp$projectFile <<- filename
 	.hydrosanity$modified <<- F
@@ -42,8 +43,8 @@ openProject <- function() {
 	hsp$version <<- NULL
 	
 	# switch to first page and trigger update
-	datasetModificationUpdate()
 	theWidget("notebook")$setCurrentPage(1)
+	datasetModificationUpdate()
 	
 	theWidget("import_import_expander")$setExpanded(FALSE)
 	theWidget("import_edit_expander")$setExpanded(TRUE)
