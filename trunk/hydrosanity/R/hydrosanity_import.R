@@ -22,9 +22,14 @@ updateImportPage <- function() {
 		
 		dfLoc[i] <- 'NA'
 		myLoc <- attr(hsp$data[[i]], "location.xy")
+		myElev <- attr(hsp$data[[i]], "elevation")
 		if (!is.null(myLoc)) {
 			myLoc <- format(round(myLoc, digits=2))
-			dfLoc[i] <- paste('(', myLoc[1], ', ', myLoc[2], ')', sep='')
+			if (is.null(myElev)) { myElev <- 'NA' } else {
+				myElev <- format(round(myElev, digits=2))
+			}
+			dfLoc[i] <- paste('(', myLoc[1], ', ', myLoc[2], 
+				', ', myElev, ')', sep='')
 		}
 		
 		dfQual[i] <- class(hsp$data[[i]]$Qual)[1]
@@ -63,7 +68,7 @@ updateImportPage <- function() {
 		End=dfEnd,
 		Length=dfLength,
 		Timestep=dfFreq,
-		Location_X.Y=dfLoc,
+		Location_X.Y.Z=dfLoc,
 		Qual=dfQual,
 		Extra_data=dfExtra,
 		Role=dfRole,
@@ -248,7 +253,7 @@ updateImportPage <- function() {
 	}
 	
 	dfName <- dfData <- dfRole <- character(length(blobIndices))
-	dfLocX <- dfLocY <- numeric(length(blobIndices))
+	dfLocX <- dfLocY <- dfElev <- numeric(length(blobIndices))
 	
 	for (k in seq(along=blobIndices)) {
 		# 'i' indexes hsp$data; 'k' indexes metadata (subset)
@@ -261,6 +266,9 @@ updateImportPage <- function() {
 		if (is.null(myLoc)) { myLoc <- c(NA, NA) }
 		dfLocX[k] <- myLoc[1]
 		dfLocY[k] <- myLoc[2]
+		myElev <- attr(hsp$data[[i]], "elevation")
+		if (is.null(myElev)) { myElev <- NA }
+		dfElev[k] <- myElev
 	}
 	dfRole <- factor(dfRole, levels=c("RAIN", "FLOW", "OTHER"))
 	
@@ -270,6 +278,7 @@ updateImportPage <- function() {
 		Role=dfRole,
 		X_Long=dfLocX,
 		Y_Lat=dfLocY,
+		Z_Elev=dfElev,
 		check.names=F,
 		stringsAsFactors=F
 	)
@@ -303,6 +312,11 @@ updateImportPage <- function() {
 			myLoc <- c(newMeta$X_Long[k], newMeta$Y_Lat[k])
 			attr(hsp$data[[i]], "location.xy") <<- 
 				if (any(is.na(myLoc))) { NULL } else { myLoc }
+		}
+		if (!is.null(newMeta$Z_Elev)) {
+			myElev <- newMeta$Z_Elev[k]
+			if (is.na(myElev)) { myElev <- NULL }
+			attr(hsp$data[[i]], "elevation") <<- myElev
 		}
 	}
 	
