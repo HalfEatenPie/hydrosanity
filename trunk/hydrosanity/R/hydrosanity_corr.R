@@ -8,13 +8,13 @@ updateCorrPage <- function() {
 	
 	.hs_on_corr_iconview_selection_changed()
 	
-	.hydrosanity$update$corr <<- F
-	theWidget(APPWIN)$present()
+	StateEnv$update$corr <- F
+	StateEnv$win$present()
 }
 
 .hs_on_corr_ccfplot_button_clicked <- function(button) {
-	theWidget(APPWIN)$setSensitive(F)
-	on.exit(theWidget(APPWIN)$setSensitive(T))
+	StateEnv$win$setSensitive(F)
+	on.exit(StateEnv$win$setSensitive(T))
 	setStatusBar("")
 	
 	selNames <- iconViewGetSelectedNames(theWidget("corr_iconview"))
@@ -40,12 +40,12 @@ updateCorrPage <- function() {
 		selNames <- rev(selNames)
 	}
 	
-	rawdata.cmd <- bquote(hsp$data[.(selNames)])
+	rawdata.call <- bquote(hsp$data[.(selNames)])
 	
 	tmpObjs <- c('tmp.data')
 	
-	guiDo(isExpression=T, bquote(
-		tmp.data <- sync.timeblobs(.(rawdata.cmd), timelim=hsp$timePeriod)
+	guiDo(call=bquote(
+		tmp.data <- sync.timeblobs(.(rawdata.call), timelim=hsp$timePeriod)
 	))
 	
 	if (doRises) {
@@ -63,7 +63,7 @@ updateCorrPage <- function() {
 		winSize <- round(smoothDelta / delta)
 		
 		for (x in 2:3) {
-			guiDo(isExpression=T, bquote(
+			guiDo(call=bquote(
 				tmp.data[[.(x)]] <- filter(tmp.data[[.(x)]], 
 					rep(1/.(winSize), .(winSize)))
 			))
@@ -79,7 +79,7 @@ updateCorrPage <- function() {
 	guiDo(tmp.ccf <- ccf(tmp.data[[2]], tmp.data[[3]], plot=F, 
 		na.action=na.contiguous))
 	
-	plot.cmd <- quote(
+	plot.call <- quote(
 		xyplot(CCF ~ Lag, data=data.frame(CCF=tmp.ccf$acf, Lag=tmp.ccf$lag),
 			type="h", panel=function(...) {
 				panel.abline(h=0)
@@ -90,33 +90,28 @@ updateCorrPage <- function() {
 	# hydrosanity caption
 	addToLog("## Make hydrosanity caption")
 	tmpObjs <- c(tmpObjs, 'tmp.n', 'tmp.caption')
-	guiDo(isExpression=T, bquote({
+	guiDo(call=bquote({
 		tmp.n <- sum(!is.na(tmp.data[[2]]) & !is.na(tmp.data[[3]]))
 		tmp.caption <- hydrosanity.caption(
 			range(tmp.data$Time), # TODO: should add timestep to this
 			by=.(attr(tmp.data, "timestep")), n=tmp.n, series=1)
 	}))
-	plot.cmd$sub <- quote(tmp.caption)
+	plot.call$sub <- quote(tmp.caption)
 	
-	setPlotDevice("cross-correlation")
-	setCairoWindowButtons("cross-correlation", zoomin=T)
-	
-	result <- guiDo(plot.cmd, isExpression=T)
-	# plot trellis object
-	guiDo(print(result), doLog=F)
-	
-	.hydrosanity$call[["cross-correlation"]] <<- evalCallArgs(plot.cmd, pattern="^tmp")
+	addToLog(paste(deparse(plot.call), collapse="\n"))
+	guiDo(plotAndPlay(plot.call=plot.call, name="cross-correlation", 
+		nav.scales="x", eval.args="^tmp"), doLog=F)
 	
 	if (length(tmpObjs) > 0) {
-		addToLog(paste('rm(', paste(tmpObjs, collapse=', '), ')', sep=''))
-		rm(list=tmpObjs, envir=.GlobalEnv)
+		guiDo(call=bquote(rm(list=.(tmpObjs))))
 	}
+	
 	setStatusBar("Generated cross-correlation plot")
 }
 
 .hs_on_corr_relationplot_button_clicked <- function(button) {
-	theWidget(APPWIN)$setSensitive(F)
-	on.exit(theWidget(APPWIN)$setSensitive(T))
+	StateEnv$win$setSensitive(F)
+	on.exit(StateEnv$win$setSensitive(T))
 	setStatusBar("")
 	
 	selNames <- iconViewGetSelectedNames(theWidget("corr_iconview"))
@@ -151,16 +146,16 @@ updateCorrPage <- function() {
 		selNames <- rev(selNames)
 	}
 	
-	rawdata.cmd <- bquote(hsp$data[.(selNames)])
+	rawdata.call <- bquote(hsp$data[.(selNames)])
 	
 	tmpObjs <- c('tmp.data')
 	
-	guiDo(isExpression=T, bquote(
-		tmp.data <- sync.timeblobs(.(rawdata.cmd), timelim=hsp$timePeriod)
+	guiDo(call=bquote(
+		tmp.data <- sync.timeblobs(.(rawdata.call), timelim=hsp$timePeriod)
 	))
 	
 	if (doSeasons) {
-		guiDo(isExpression=T, bquote(
+		guiDo(call=bquote(
 			tmp.data$Season <- equal.count(as.POSIXlt(tmp.data$Time)$yday, 
 				number=.(seasonIntervals), overlap=0)
 		))
@@ -171,7 +166,8 @@ updateCorrPage <- function() {
 			errorDialog("Must have one each of FLOW and RAIN to calculate antecedent flow.")
 			return()
 		}
-		guiDo(isExpression=T, bquote({
+		tmpObjs <- c(tmpObjs, 'tmp.ante')
+		guiDo(call=bquote({
 			tmp.ante <- log10(tmp.data[[2]][lastTime(tmp.data[[3]]==0)])
 			tmp.ante <- pmax(tmp.ante, range(tmp.ante, finite=T)[1]/2)
 			tmp.data$AnteFlow <- equal.count(tmp.ante, 
@@ -201,7 +197,7 @@ updateCorrPage <- function() {
 		addToLog("## Shift indices by the specified lag")
 		lagSteps <- round(as.numeric.byString(lagSpec) / 
 			as.numeric.byString(attr(tmp.data, "timestep")))
-		guiDo(isExpression=T, bquote(tmp.lag <- .(lagSteps)))
+		guiDo(call=bquote(tmp.lag <- .(lagSteps)))
 	}
 	# lag.timeblob?
 	guiDo({
@@ -210,18 +206,18 @@ updateCorrPage <- function() {
 		tmp.data[[3]] <- tmp.data[[3]][tmp.z]
 	})
 	
-	plot.cmd <- call('xyplot')
+	plot.call <- call('xyplot')
 	conditionVars <- paste(c(if(doSeasons){'Season'},
 				if(doAnteFlow){'AnteFlow'}), collapse=' * ')
-	plot.cmd[[2]] <- as.formula(paste(
+	plot.call[[2]] <- as.formula(paste(
 		names(tmp.data)[2], '~', names(tmp.data)[3], 
 		if (doConditioning) { paste('|', conditionVars) }))
-	plot.cmd[[3]] <- quote(tmp.data)
-	#plot.cmd$scales$log <- T
+	plot.call[[3]] <- quote(tmp.data)
+	#plot.call$scales$log <- T
 	if (doSmooth) {
-		#plot.cmd$type <- c("p", "smooth") breaks with missing values, so:
-		plot.cmd$span <- smoothSpan
-		plot.cmd$panel <- function(x, y, ..., span) {
+		#plot.call$type <- c("p", "smooth") breaks with missing values, so:
+		plot.call$span <- smoothSpan
+		plot.call$panel <- function(x, y, ..., span) {
 			panel.xyplot(x, y, ...)
 			ok <- is.finite(x) & is.finite(y)
 			try(panel.loess(x[ok], y[ok], span=span,
@@ -229,39 +225,33 @@ updateCorrPage <- function() {
 			lty=trellis.par.get("superpose.line")$lty[2], ...))
 		}
 	}
-	plot.cmd$xscale.components <- quote(lattice.x.prettylog)
-	plot.cmd$yscale.components <- quote(lattice.y.prettylog)
+	plot.call$xscale.components <- quote(lattice.x.prettylog)
+	plot.call$yscale.components <- quote(lattice.y.prettylog)
 	
 	# hydrosanity caption
 	addToLog("## Make hydrosanity caption")
 	tmpObjs <- c(tmpObjs, 'tmp.n', 'tmp.caption')
-	guiDo(isExpression=T, bquote({
+	guiDo(call=bquote({
 		tmp.n <- sum(!is.na(tmp.data[[2]]) & !is.na(tmp.data[[3]]))
 		tmp.caption <- hydrosanity.caption(
 			range(tmp.data$Time), # TODO: should add timestep to this
 			by=.(attr(tmp.data, "timestep")), n=tmp.n, series=1)
 	}))
-	plot.cmd$sub <- quote(tmp.caption)
+	plot.call$sub <- quote(tmp.caption)
 	
-	setPlotDevice("rainfall-runoff")
-	setCairoWindowButtons("rainfall-runoff", identify=T, zoomin=T, centre=T, log=F)
-	
-	result <- guiDo(plot.cmd, isExpression=T)
-	# plot trellis object
-	guiDo(print(result), doLog=F)
-	
-	.hydrosanity$call[["rainfall-runoff"]] <<- evalCallArgs(plot.cmd, pattern="^tmp")
-	
-	# construct call to panel.identify() for later use
-	id.cmd <- call('panel.identify')
-	id.cmd$labels <- format(tmp.data$Time, 
+	idLabels <- format(tmp.data$Time, 
 		timestepTimeFormat(attr(tmp.data, "timestep")))
-	.hydrosanity$id.call[["rainfall-runoff"]] <<- id.cmd
+	
+	addToLog(paste(deparse(plot.call), collapse="\n"))
+	guiDo(plotAndPlay(plot.call=plot.call, name="rainfall-runoff", 
+		extra.buttons=plotAndPlayButtons[c('zero', 'logscale')],
+		trans.scales=c("x","y"),
+		labels=idLabels, eval.args="^tmp"), doLog=F)
 	
 	if (length(tmpObjs) > 0) {
-		addToLog(paste('rm(', paste(tmpObjs, collapse=', '), ')', sep=''))
-		rm(list=tmpObjs, envir=.GlobalEnv)
+		guiDo(call=bquote(rm(list=.(tmpObjs))))
 	}
+	
 	setStatusBar("Generated rainfall-runoff relationship plot")
 }
 

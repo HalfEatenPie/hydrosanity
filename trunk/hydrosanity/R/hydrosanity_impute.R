@@ -8,13 +8,13 @@ updateImputePage <- function() {
 	
 	.hs_on_impute_iconview_selection_changed()
 	
-	.hydrosanity$update$impute <<- F
-	theWidget(APPWIN)$present()
+	StateEnv$update$impute <- F
+	StateEnv$win$present()
 }
 
 .hs_on_impute_view_error_scatter_button_clicked <- function(button) {
-	theWidget(APPWIN)$setSensitive(F)
-	on.exit(theWidget(APPWIN)$setSensitive(T))
+	StateEnv$win$setSensitive(F)
+	on.exit(StateEnv$win$setSensitive(T))
 	setStatusBar("")
 	
 	selNames <- iconViewGetSelectedNames(theWidget("impute_iconview"))
@@ -49,39 +49,39 @@ updateImputePage <- function() {
 		return()
 	}
 	
-	tmpObjs <- c("tmp.predictors")
+	tmpObjs <- c("tmp.vars", "tmp.predictors")
 	sameRole <- (roles == roles[selNames[1]])
-	guiDo(isExpression=T, bquote({
+	guiDo(call=bquote({
 		tmp.vars <- .(selNames)
 		tmp.predictors <- .(names(hsp$data)[sameRole])
 	}))
 	
-	impute.cmd <- call('impute.timeblobs')
-	impute.cmd[[2]] <- quote(hsp$data[tmp.predictors])
-	impute.cmd$which.impute <- quote(tmp.vars)
-	impute.cmd$timelim <- if (!is.null(hsp$timePeriod)) { quote(hsp$timePeriod) }
-	impute.cmd$extend <- T
-	impute.cmd$method <- imputeMethod
-	impute.cmd$constant <- if (doByConstant) { constType }
-	impute.cmd$trim <- if (doTrim) { 0.01 }
+	impute.call <- call('impute.timeblobs')
+	impute.call[[2]] <- quote(hsp$data[tmp.predictors])
+	impute.call$which.impute <- quote(tmp.vars)
+	impute.call$timelim <- if (!is.null(hsp$timePeriod)) { quote(hsp$timePeriod) }
+	impute.call$extend <- T
+	impute.call$method <- imputeMethod
+	impute.call$constant <- if (doByConstant) { constType }
+	impute.call$trim <- if (doTrim) { 0.01 }
 	
-	impute.assign.cmd <- quote(tmp.data <- foo)
-	impute.assign.cmd[[3]] <- impute.cmd
+	impute.assign.call <- quote(tmp.data <- foo)
+	impute.assign.call[[3]] <- impute.call
 	
-	guiDo(impute.assign.cmd, isExpression=T)
+	guiDo(call=impute.assign.call)
 	
 	# compute and store aggregated series
 	if (doAggr1 || doAggr2) {
 		aggrBy <- if (doAggr1) { aggr1By } else { aggr2By }
-		aggr.cmd <- bquote(
+		aggr.call <- bquote(
 			tmp.data <- lapply(tmp.data, aggregate.timeblob, by=.(aggrBy))
 		)
 		if (any(grep(" month", aggrBy)) || any(grep("year", aggrBy))) {
 			if (startMonth != 1) {
-				aggr.cmd[[3]]$start.month <- startMonth
+				aggr.call[[3]]$start.month <- startMonth
 			}
 		}
-		guiDo(aggr.cmd, isExpression=T)
+		guiDo(call=aggr.call)
 	}
 	
 	# prepare data for plot
@@ -89,7 +89,7 @@ updateImputePage <- function() {
 		lapply(tmp.data, function(x) x$Data )))
 	guiDo(tmp.groups$imputed <- unlist(lapply(tmp.data, function(x) x$Imputed )))
 
-	plot.cmd <- quote(xyplot(data ~ imputed | which, tmp.groups, aspect="iso",
+	plot.call <- quote(xyplot(data ~ imputed | which, tmp.groups, aspect="iso",
 		panel=function(...) {
 			panel.abline(a=0, b=1,
 				col.line=trellis.par.get("superpose.line")$col[2],
@@ -98,33 +98,26 @@ updateImputePage <- function() {
 		}
 	))
 	
-	setPlotDevice("imputed-vs-actual")
-	setCairoWindowButtons("imputed-vs-actual", identify=T, zoomin=T, centre=T, log=F)
+	idLabels <- unlist(lapply(tmp.data, function(x) {
+		format(x$Time, timestepTimeFormat(attr(x, "timestep")))
+	}))
 	
-	result <- guiDo(plot.cmd, isExpression=T)
-	# plot trellis object
-	guiDo(print(result), doLog=F)
-	
-	.hydrosanity$call[["imputed-vs-actual"]] <<- evalCallArgs(plot.cmd, pattern="^tmp")
-	
-	# construct call to panel.identify() for later use
-	id.cmd <- call('panel.identify')
-	id.cmd$labels <- unlist(lapply(tmp.data, function(x) {
-			format(x$Time, timestepTimeFormat(attr(x, "timestep")))
-		}))
-	.hydrosanity$id.call[["imputed-vs-actual"]] <<- id.cmd
+	addToLog(paste(deparse(plot.call), collapse="\n"))
+	guiDo(plotAndPlay(plot.call=plot.call, name="imputed vs actual", 
+		extra.buttons=plotAndPlayButtons[c('zero','logscale')],
+		trans.scales=c("x","y"),
+		labels=idLabels, eval.args="^tmp"), doLog=F)
 	
 	if (length(tmpObjs) > 0) {
-		addToLog(paste('rm(', paste(tmpObjs, collapse=', '), ')', sep=''))
-		rm(list=tmpObjs, envir=.GlobalEnv)
+		guiDo(call=bquote(rm(list=.(tmpObjs))))
 	}
-	setStatusBar("Generated imputed vs actual values scatterplot")
 	
+	setStatusBar("Generated imputed vs actual values scatterplot")
 }
 
 .hs_on_impute_missing_button_clicked <- function(button, justDisaccumulate=F) {
-	theWidget(APPWIN)$setSensitive(F)
-	on.exit(theWidget(APPWIN)$setSensitive(T))
+	StateEnv$win$setSensitive(F)
+	on.exit(StateEnv$win$setSensitive(T))
 	setStatusBar("")
 	
 	selNames <- iconViewGetSelectedNames(theWidget("impute_iconview"))
@@ -155,29 +148,31 @@ updateImputePage <- function() {
 		return()
 	}
 	
-	tmpObjs <- c("tmp.predictors")
+	tmpObjs <- c("tmp.vars", "tmp.predictors")
 	sameRole <- (roles == roles[selNames[1]])
-	guiDo(isExpression=T, bquote({
+	guiDo(call=bquote({
 		tmp.vars <- .(selNames)
 		tmp.predictors <- .(names(hsp$data)[sameRole])
 	}))
 	
-	impute.cmd <- call('imputeGaps.timeblobs')
-	impute.cmd[[2]] <- quote(hsp$data[tmp.predictors])
-	impute.cmd$which.impute <- quote(tmp.vars)
-	impute.cmd$timelim <- if (!is.null(hsp$timePeriod)) { quote(hsp$timePeriod) }
-	impute.cmd$extend <- if (!doInternalGapsOnly) { T }
-	impute.cmd$type <- if (justDisaccumulate) { "disaccumulate" }
-	impute.cmd$method <- imputeMethod
-	impute.cmd$constant <- if (doByConstant) { constType }
-	impute.cmd$trim <- if (doTrim) { 0.01 }
+	impute.call <- call('imputeGaps.timeblobs')
+	impute.call[[2]] <- quote(hsp$data[tmp.predictors])
+	impute.call$which.impute <- quote(tmp.vars)
+	impute.call$timelim <- if (!is.null(hsp$timePeriod)) { quote(hsp$timePeriod) }
+	impute.call$extend <- if (!doInternalGapsOnly) { T }
+	impute.call$type <- if (justDisaccumulate) { "disaccumulate" }
+	impute.call$method <- imputeMethod
+	impute.call$constant <- if (doByConstant) { constType }
+	impute.call$trim <- if (doTrim) { 0.01 }
 	
-	impute.assign.cmd <- quote(hsp$data[tmp.vars] <- foo)
-	impute.assign.cmd[[3]] <- impute.cmd
+	impute.assign.call <- quote(hsp$data[tmp.vars] <- foo)
+	impute.assign.call[[3]] <- impute.call
 	
-	guiDo(impute.assign.cmd, isExpression=T)
+	guiDo(call=impute.assign.call)
 	
-	guiDo(rm(tmp.vars, tmp.predictors))
+	if (length(tmpObjs) > 0) {
+		guiDo(call=bquote(rm(list=.(tmpObjs))))
+	}
 	
 	datasetModificationUpdate()
 }
@@ -187,8 +182,8 @@ updateImputePage <- function() {
 }
 
 .hs_on_impute_undo_imputed_button_clicked <- function(button) {
-	theWidget(APPWIN)$setSensitive(F)
-	on.exit(theWidget(APPWIN)$setSensitive(T))
+	StateEnv$win$setSensitive(F)
+	on.exit(StateEnv$win$setSensitive(T))
 	setStatusBar("")
 	
 	selNames <- iconViewGetSelectedNames(theWidget("impute_iconview"))
@@ -199,7 +194,7 @@ updateImputePage <- function() {
 	
 	addLogComment("Revert imputed values")
 	
-	guiDo(isExpression=T, bquote({
+	guiDo(call=bquote({
 		tmp.vars <- .(selNames)
 		hsp$data[tmp.vars] <- unimputeGaps.timeblobs(hsp$data[tmp.vars], 
 			timelim=hsp$timePeriod, type="imputed")
@@ -210,8 +205,8 @@ updateImputePage <- function() {
 }
 
 .hs_on_impute_undo_accumulated_button_clicked <- function(button) {
-	theWidget(APPWIN)$setSensitive(F)
-	on.exit(theWidget(APPWIN)$setSensitive(T))
+	StateEnv$win$setSensitive(F)
+	on.exit(StateEnv$win$setSensitive(T))
 	setStatusBar("")
 	
 	selNames <- iconViewGetSelectedNames(theWidget("impute_iconview"))
@@ -222,7 +217,7 @@ updateImputePage <- function() {
 	
 	addLogComment("Revert disaccumulated values")
 	
-	guiDo(isExpression=T, bquote({
+	guiDo(call=bquote({
 		tmp.vars <- .(selNames)
 		hsp$data[tmp.vars] <- unimputeGaps.timeblobs(hsp$data[tmp.vars], 
 			timelim=hsp$timePeriod, type="disaccumulated")

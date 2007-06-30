@@ -13,36 +13,43 @@ NAMESPACE=$(PACKAGE)/NAMESPACE
 DESCRIPTION=$(PACKAGE)/DESCRIPTION
 DESCRIPTIN=DESCRIPTION.in
 
-# Canonical version information from hydrosanity.R
-MAJOR=$(shell egrep '^MAJOR' $(SRC)/hydrosanity.R | cut -d\" -f 2)
-MINOR=$(shell egrep '^MINOR' $(SRC)/hydrosanity.R | cut -d\" -f 2)
-REVISION=$(shell svn info | egrep 'Revision:' |  cut -d" " -f 2)
+# Canonical version information from source file
+MAJOR=$(shell egrep '^MAJOR' $(SRC)/$(PACKAGE).R | cut -d\" -f 2)
+MINOR=$(shell egrep '^MINOR' $(SRC)/$(PACKAGE).R | cut -d\" -f 2)
+REVISION=$(shell C:/"Program Files"/TortoiseSVN/bin/SubWCRev.exe . | grep committed | cut -d" " -f 5)
+#$(shell svn info | egrep 'Revision:' |  cut -d" " -f 2)
 VERSION=$(MAJOR).$(MINOR).$(REVISION)
 
-DATE=$(shell date +%F)
+DATE=$(shell c:/Rtools/bin/date +%F)
 
-default: local
+default: build
 
 revision:
-	perl -pi -e "s|Revision: \d*|Revision: $(REVISION)|" $(SRC)/hydrosanity.R
+	perl -pi~ -e "s|Revision: \d*|Revision: $(REVISION)|" $(SRC)/$(PACKAGE).R
 
 check: build
-	R CMD check $(PACKAGE)
+	R CMD check --no-install $(PACKAGE)
 
-build: hydrosanity_$(VERSION).tar.gz
+build: $(PACKAGE)_$(VERSION).tar.gz
 
-hydrosanity_$(VERSION).tar.gz: revision $(SRC)
+$(PACKAGE)_$(VERSION).tar.gz: revision $(SRC)
 	perl -p -e "s|^Version: .*$$|Version: $(VERSION)|" < $(DESCRIPTIN) |\
 	perl -p -e "s|^Date: .*$$|Date: $(DATE)|" > $(DESCRIPTION)
 	R CMD build $(PACKAGE)
 
-zip: local
-	(cd /usr/local/lib/R/site-library; zip -r9 - hydrosanity) >| \
-	hydrosanity_$(VERSION).zip
+zip: $(PACKAGE)_$(VERSION).zip
 
-local: hydrosanity_$(VERSION).tar.gz
+$(PACKAGE)_$(VERSION).zip: build
+	R CMD build --binary --docs="normal" $(PACKAGE)
+
+zipunix: local
+	(cd /usr/local/lib/R/site-library; zip -r9 - $(PACKAGE)) >| \
+	$(PACKAGE)_$(VERSION).zip
+
+local: $(PACKAGE)_$(VERSION).tar.gz
 	R CMD INSTALL $^
 
 clean:
-	rm -f hydrosanity_*.tar.gz hydrosanity_*.zip
+	rm -f $(PACKAGE)_*.tar.gz $(PACKAGE)_*.zip
 	rm -f $(DESCRIPTION)
+
