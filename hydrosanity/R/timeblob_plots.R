@@ -29,8 +29,10 @@ grid.timeline.plot <- function(blob.list, xscale=NULL, colMap=NULL, barThickness
 			rectangles=list(col=unlist(colMap, use.names=F)[usedIdx],
 			size=4), columns=length(usedIdx), between.columns=2,
 			between=1)
-		theKey <- draw.key(keyList)
-		keyHeight <- grobHeight(theKey)
+		if (length(usedIdx) > 0) {
+			theKey <- draw.key(keyList)
+			keyHeight <- grobHeight(theKey)
+		}
 	}
 	mainHeight <- unit(0, "npc")
 	subHeight <- unit(0, "npc")
@@ -247,8 +249,10 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 		keyCols <- "black"
 		if ((length(usedLevels) > 0) && !identical(colMap, NA)) {
 			usedIdx <- sort(match(usedLevels, names(colMap)))
-			keyLabels <- names(colMap)[usedIdx]
-			keyCols <- unlist(colMap, use.names=F)[usedIdx]
+			if (length(usedIdx) > 0) {
+				keyLabels <- names(colMap)[usedIdx]
+				keyCols <- unlist(colMap, use.names=F)[usedIdx]
+			}
 		}
 		if (any(unlist(lapply.timeblob.data(blob.list, is.na)))) {
 			keyLabels <- c(keyLabels, "missing")
@@ -757,109 +761,84 @@ grid.xaxis.POSIXt <- function(lim=as.numeric(convertX(unit(c(0,1), "npc"), "nati
 	tmp
 }
 
-panel.identify.qqmath <- function(panel.args = trellis.panelArgs(), ...) {
-	x <- panel.args$x
-	y <- x
-	groups <- panel.args$groups
-	callArgs <- list(...)
-	subscripts <- callArgs$subscripts
-	if (is.null(subscripts)) { subscripts <- seq_along(x) }
-	labels <- callArgs$labels
-	if (is.null(labels)) { labels <- subscripts }
-	distribution <- panel.args$distribution
-	distribution <- if (is.null(distribution)) { qnorm } else
-		if (is.function(distribution)) { distribution } else
-		if (is.character(distribution)) { get(distribution) } else
-		{ eval(distribution) }
-	if (!is.null(panel.args$f.value)) {
-		warning("'f.value' not supported; ignoring") }
-	# compute x locations
-	getxx <- function(x, nobs=sum(!is.na(x))) {
-		distribution(ppoints(nobs))
+panel.interp <- function(x, y, z, subscripts=T, contour=T, region=F, xo.length=64, yo.length=xo.length, linear=T, extrap=F, ...) {
+	if (!require(akima)) {
+		warning("package 'akima' is required by 'panel.interp'")
+		return()
 	}
-	if (is.null(groups)) {
-		x <- getxx(x)
-		ii <- order(y, na.last=NA)
-		y <- y[ii]
-		labels <- labels[ii]
-		subscripts <- subscripts[ii]
-	} else {
-		subg <- groups[subscripts]
-		ok <- !is.na(subg)
-		xnew <- ynew <- lnew <- snew <- c()
-		for (g in levels(factor(groups))) {
-			id <- ok & (subg == g) & !is.na(x)
-			xnew <- c(xnew, getxx(x[id]))
-			ii <- order(y[id])
-			ynew <- c(ynew, y[id][ii])
-			lnew <- c(lnew, labels[id][ii])
-			snew <- c(snew, subscripts[id][ii])
-		}
-		x <- xnew
-		y <- ynew
-		labels <- lnew
-		subscripts <- snew
+	xlim <- convertX(unit(0:1,"npc"), "native", valueOnly=T)
+	ylim <- convertY(unit(0:1,"npc"), "native", valueOnly=T)
+	x <- x[subscripts]
+	y <- y[subscripts]
+	z <- z[subscripts]
+	# only interpolate with sites in twice visible range
+	xlim.use <- xlim + diff(xlim) * c(-0.5, 0.5)
+	ylim.use <- ylim + diff(ylim) * c(-0.5, 0.5)
+	use <- ((min(xlim.use) < x) & (x < max(xlim.use)) &
+		(min(ylim.use) < y) & (y < max(ylim.use)))
+	x <- x[use]
+	y <- y[use]
+	z <- z[use]
+	# construct marginal dimensions of grid
+	xo <- seq(min(xlim), max(xlim), length=xo.length)
+	yo <- seq(min(ylim), max(ylim), length=yo.length)
+	tmp.grid <- expand.grid(x=xo, y=yo)
+	# compute the spatial field (interpolation)
+	ok <- complete.cases(x, y, z)
+	if (sum(ok) < 4) {
+		warning("at least 4 locations are required by 'panel.interp'")
+		return()
 	}
-	callArgs$x <- x
-	callArgs$y <- y
-	callArgs$labels <- labels
-	callArgs$subscripts <- subscripts
-	callArgs$panel.args <- NULL
-	do.call(panel.identify, callArgs)
+	tmp.grid$z <- as.vector(interp(x=x[ok], y=y[ok], z=z[ok], 
+		xo=xo, yo=yo, linear=linear, extrap=extrap, duplicate="mean")$z)
+	with(tmp.grid, panel.levelplot(x, y, z, subscripts=T, 
+		contour=contour, region=region, ...))
 }
 
+panel.maplines <- function(..., gp=NULL) {
+	xlim <- convertX(unit(0:1,"npc"), "native", valueOnly=T)
+	ylim <- convertY(unit(0:1,"npc"), "native", valueOnly=T)
+	if ((113 <= max(xlim)) && (min(xlim) <= 154) && 
+		(-44 <= max(ylim)) && (min(ylim) <= -10)) {
+		# Australia
+		if (!require(oz)) { return() }
+		for (i in ozRegion(xlim=xlim, ylim=ylim)$lines) {
+			grid.lines(i$x, i$y, default.units="native", gp=gp)
+		}
+	}
+	# TODO: other regions!
+}
 
+panel.pointmap <- function(x, y, z, subscripts=T, points.labels, contour=F, region=T, cuts=if (contour) 10 else 30, col.regions=grey(seq(0.95,0.65,length=100)), col.contours=grey(0.5), ...) {
+	if (!missing(z)) {
+		panel.interp(x, y, z, subscripts=subscripts,
+			contour=contour, region=region, cuts=cuts, 
+			col.regions=col.regions, col=col.contours, 
+			labels=list(col=col.contours))
+	}
+	panel.maplines()
+	panel.xyplot(x, y, subscripts=subscripts, ...)
+	if (!missing(points.labels)) {
+		panel.text(x[subscripts], y[subscripts], 
+			labels=points.labels[subscripts], pos=1, cex=0.7)
+	}
+}
 
-# prepanel.default.qqmath fails to take range(x, finite=T)
-prepanel.qqmath.fix <- function(x, ...) {
-	tmp <- prepanel.default.qqmath(x, ...)
-	tmp$ylim <- range(x, finite=T)
+prepanel.extend.10 <- function(...) {
+	tmp <- lattice:::prepanel.default.xyplot(...)
+	if (is.numeric(tmp$xlim)) {
+		tmp$xlim <- extendrange(r=tmp$xlim, f=0.1)
+	}
+	if (is.numeric(tmp$ylim)) {
+		tmp$ylim <- extendrange(r=tmp$ylim, f=0.1)
+	}
 	tmp
 }
 
-# copied from lattice package because it is not exported
-prepanel.default.qqmath <- function (x, f.value = NULL, distribution = qnorm, qtype = 7, 
-    groups = NULL, subscripts, ...) 
-{
-    if (!is.numeric(x)) 
-        x <- as.numeric(x)
-    distribution <- if (is.function(distribution)) 
-        distribution
-    else if (is.character(distribution)) 
-        get(distribution)
-    else eval(distribution)
-    nobs <- sum(!is.na(x))
-    getxx <- function(x, f.value = NULL, nobs = sum(!is.na(x))) {
-        if (is.null(f.value)) 
-            distribution(ppoints(nobs))
-        else if (is.numeric(f.value)) 
-            distribution(f.value)
-        else distribution(f.value(nobs))
-    }
-    getyy <- function(x, f.value = NULL, nobs = sum(!is.na(x))) {
-        if (is.null(f.value)) 
-            sort(x)
-        else if (is.numeric(f.value)) 
-            fast.quantile(x, f.value, names = FALSE, type = qtype, 
-                na.rm = TRUE)
-        else fast.quantile(x, f.value(nobs), names = FALSE, type = qtype, 
-            na.rm = TRUE)
-    }
-    if (!nobs) 
-        list(xlim = c(NA, NA), ylim = c(NA, NA), dx = NA, dy = NA)
-    else if (!is.null(groups)) {
-        sx <- split(x, groups[subscripts])
-        xxlist <- lapply(sx, getxx, f.value = f.value)
-        yylist <- lapply(sx, getyy, f.value = f.value)
-        list(xlim = range(unlist(xxlist), na.rm = TRUE), ylim = range(unlist(yylist), 
-            na.rm = TRUE), dx = unlist(lapply(xxlist, diff)), 
-            dy = unlist(lapply(yylist, diff)))
-    }
-    else {
-        xx <- getxx(x, f.value, nobs)
-        yy <- getyy(x, f.value, nobs)
-        list(xlim = range(xx), ylim = range(yy), dx = diff(xx), 
-            dy = diff(yy))
-    }
+# prepanel.default.qqmath fails to take range(x, finite=T)
+prepanel.qqmath.fix <- function(x, ...) {
+	tmp <- lattice:::prepanel.default.qqmath(x, ...)
+	tmp$ylim <- range(x, finite=T)
+	tmp
 }
 

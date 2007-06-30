@@ -3,7 +3,7 @@
 ## Copyright (c) 2007 Felix Andrews <felix@nfrac.org>, GPL
 
 
-timeblob <- function(Time, Data, Qual=NULL, extras=NULL, timestep=NULL, dataname=NULL) {
+timeblob <- function(Time, Data, Qual=NULL, extras=NULL, timestep=NULL, sitename=NULL, dataname="Data") {
 	# check types
 	Time <- as.POSIXct(Time)
 	if (any(is.na(Time))) { stop("'Time' must be a vector of valid times (POSIXt)") }
@@ -37,8 +37,10 @@ timeblob <- function(Time, Data, Qual=NULL, extras=NULL, timestep=NULL, dataname
 		}
 	}
 	attr(blob, "timestep") <- timestep
+	# set sitename
+	if (is.null(sitename)) { sitename <- deparse(substitute(Data)) }
+	attr(blob, "sitename") <- sitename
 	# set dataname
-	if (is.null(dataname)) { dataname <- deparse(substitute(Data)) }
 	attr(blob, "dataname") <- dataname
 	# check that it is.timeblob()!
 	if (!is.timeblob(blob)) { stop("oops, timeblob() function made an invalid timeblob") }
@@ -53,6 +55,7 @@ is.timeblob <- function(x) {
 		inherits(x$Time, "POSIXct") &&
 		inherits(x$Data, "numeric") &&
 		!is.null(attr(x, "timestep")) &&
+		!is.null(attr(x, "sitename")) &&
 		!is.null(attr(x, "dataname")))
 }
 
@@ -72,8 +75,15 @@ sapply.timeblob.data <- function(blob.list, FUN, ...) {
 	sapply(lapply(blob.list, function(x) { x$Data }), FUN, ...)
 }
 
-read.timeblob <- function(file, skip=1, sep=",", dataname="Data", dataCol=2, qualCol=3, extraCols=c(), extraNames=paste("Extra",extraCols), readTimesFromFile=T, timeCol=1, timeFormat="%d %b %Y", startTime=NA, timeSeqBy="DSTday", ...) {
+read.timeblob <- function(file, skip=1, sep=",", sitename=NULL, dataname="Data", dataCol=2, qualCol=3, extraCols=c(), extraNames=paste("Extra",extraCols), readTimesFromFile=T, timeCol=1, timeFormat="%d %b %Y", startTime=NA, timeSeqBy="DSTday", ...) {
 	# check types
+	if (is.null(sitename)) {
+		if (inherits(file, "connection")) {
+			sitename <- make.names(deparse(substitute(file)))
+		} else {
+			sitename <- basename(file)
+		}
+	}
 	if (!is.numeric(dataCol)) { stop("'dataCol' must be numeric (column number)") }
 	if (readTimesFromFile) {
 		if (!is.numeric(timeCol)) { stop("'timeCol' must be numeric (column number)") }
@@ -83,12 +93,21 @@ read.timeblob <- function(file, skip=1, sep=",", dataname="Data", dataCol=2, qua
 			if (is.na(startTime)) { stop("could not convert 'startTime' to a time") }
 		}
 	}
+	# unz seems to have problems, so just read in the whole file
+	if (inherits(file, "unz")) { 
+		fileText <- readLines(file)
+		close(file)
+		file <- textConnection(fileText)
+	}
 	# make sure extra column names correspond to given columns
 	length(extraNames) <- length(extraCols)
 	extraNames[is.na(extraNames)] <- paste("Extra", which(is.na(extraNames)))
 	# number of columns in file
-	firstLine <- read.table(file, header=F, skip=skip, sep=sep, strip.white=T, nrows=1, ...)
-	fileCols <- ncol(firstLine)
+	fileCols <- 200 # assumed maximum
+	if (!inherits(file, "unz")) { #isSeekable(file)) {
+		firstLine <- read.table(file, header=F, skip=skip, sep=sep, strip.white=T, nrows=1, ...)
+		fileCols <- ncol(firstLine)
+	}
 	if (dataCol > fileCols) {
 		stop("Column ", dataCol, " ('dataCol') not found on line ", skip+1, 
 		"; maybe 'sep'=\"", sep, "\" or 'skip'=", skip, " is wrong?")
@@ -100,9 +119,9 @@ read.timeblob <- function(file, skip=1, sep=",", dataname="Data", dataCol=2, qua
 	# define which columns to import and which to ignore
 	fileColClasses <- rep("NULL", fileCols)
 	if (readTimesFromFile) { fileColClasses[timeCol] <- "character" }
-	fileColClasses[dataCol] <- "numeric" #, but then "" in file gives error
-	fileColClasses[qualCol] <- NA # qualCol may be NULL
-	fileColClasses[extraCols] <- NA # extraCols may be NULL
+	fileColClasses[dataCol] <- "numeric"
+	fileColClasses[qualCol] <- NA # note qualCol may be NULL
+	fileColClasses[extraCols] <- NA # note extraCols may be NULL
 	# read file
 	rawData <- read.table(file, header=F, skip=skip, sep=sep, colClasses=fileColClasses, strip.white=T, ...)
 	# work out which column of rawData has the data (from dataCol)
@@ -149,7 +168,7 @@ read.timeblob <- function(file, skip=1, sep=",", dataname="Data", dataCol=2, qua
 	extras <- rawData[-c(timeIndex, dataIndex, qualIndex)]
 	names(extras) <- extraNames
 	blob <- timeblob(Time=myTime, Data=rawData[[dataIndex]], Qual=myQual, 
-		extras=extras, dataname=dataname)
+		extras=extras, sitename=sitename, dataname=dataname)
 	return(blob)
 }
 
@@ -948,7 +967,7 @@ unimputeGaps.timeblobs <- function(blob.list, timelim=NULL, type=c("imputed", "d
 	return(blob.list)
 }
 
-spatialElevation <- function(blob.list, linear=T, extrap=F, xo.length=40, yo.length=xo.length) {
+spatialElevation <- function(blob.list, linear=T, extrap=F, xo.length=64, yo.length=xo.length) {
 	# check types
 	if (!require(akima, quietly=TRUE)) { stop("Require package 'akima'") }
 	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
@@ -980,7 +999,7 @@ spatialElevation <- function(blob.list, linear=T, extrap=F, xo.length=40, yo.len
 	return(tmp.grid)
 }
 
-spatialField <- function(blob.list, timelim=NULL, type=c("overall","annual","quarters","months"), start.month=1, linear=T, extrap=F, xo.length=40, yo.length=xo.length, countSurface=F) {
+spatialField <- function(blob.list, timelim=NULL, type=c("overall","annual","quarters","months"), start.month=1, linear=T, extrap=F, xo.length=64, yo.length=xo.length, countSurface=F) {
 	# check types
 	if (!require(akima, quietly=TRUE)) { stop("Require package 'akima'") }
 	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
@@ -1211,17 +1230,25 @@ rises_old <- function(x) {
 
 
 lastTime <- function(x) {
+	# returns the most recent TRUE index throughout vector x
+	# this could use rle()
 	x[is.na(x)] <- F
 	theTimes <- which(x == TRUE)
-	preInter <- theTimes[1] - 1
-	finalInter <- length(x) - theTimes[length(theTimes)] + 1
-	interTimes <- c(diff(theTimes), finalInter)
-	lastTime <- c(rep(NA, preInter), rep(theTimes, times=interTimes))
+	preGap <- theTimes[1] - 1
+	finalGap <- length(x) - theTimes[length(theTimes)] + 1
+	interTimes <- c(diff(theTimes), finalGap)
+	lastTime <- c(rep(NA, preGap), rep(theTimes, times=interTimes))
 	lastTime
 }
 
 
 ## other useful functions not specific to timeblobs
+
+timestepTimeFormat <- function(timestep) {
+	if (any(grep("month", timestep))) { return("%Y-%b") }
+	if (any(grep("year", timestep))) { return("%Y") }
+	return("")
+}
 
 as.byString <- function(x, digits=getOption("digits"), explicit=F) {
 	if (!identical(class(x), "difftime")) {

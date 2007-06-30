@@ -1,7 +1,9 @@
+import(grid)
+
+export(hydrosanity)
+
+## timeblob_plots.R
 export(
-	hydrosanity,
-	
-	## timeblob_plots.R
 	grid.timeline.plot,
 	grid.timeline.bar,
 	timelineColMapDefault,
@@ -14,26 +16,31 @@ export(
 	lattice.y.prettylog,
 	lattice.x.prettylog,
 	grid.xaxis.POSIXt,
-	panel.identify.qqmath,
-	prepanel.qqmath.fix,
-	
-	## timeblob.R
+	panel.interp,
+	panel.maplines,
+	panel.pointmap,
+	prepanel.extend.10,
+	prepanel.qqmath.fix
+)
+
+## timeblob.R
+S3method(start, timeblob)
+S3method(end, timeblob)
+S3method(window, timeblob)
+S3method(aggregate, timeblob)
+export(
 	timeblob,
 	is.timeblob,
 	lapply.timeblob.data,
 	sapply.timeblob.data,
 	read.timeblob,
-	start.timeblob,
-	end.timeblob,
 	start.timeblobs,
 	end.timeblobs,
-	window.timeblob,
 	matchtimes.timeblob,
 	sync.timeblobs,
 	syncTo.timeblobs,
 	common.timestep.timeblobs,
 	summary.missing.timeblobs,
-	aggregate.timeblob,
 	quick.disaccumulate.timeblob,
 	impute.timeblobs,
 	imputeGaps.timeblobs,

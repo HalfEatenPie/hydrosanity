@@ -18,8 +18,8 @@ updateMultivarPage <- function() {
 	setupIconView(theWidget("multivar_iconview"), 
 		itemNames=names(hsp$data)[role=="RAIN"], selection="all")
 	
-	.hydrosanity$update$multivar <<- F
-	theWidget(APPWIN)$present()
+	StateEnv$update$multivar <- F
+	StateEnv$win$present()
 }
 
 

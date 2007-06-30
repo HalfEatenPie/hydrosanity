@@ -5,14 +5,15 @@
 updateImportPage <- function() {
 	# generate summary table
 	
-	dfName <- dfData <- dfStart <- dfEnd <- dfLength <- dfFreq <- 
+	dfID <- dfName <- dfData <- dfStart <- dfEnd <- dfLength <- dfFreq <- 
 		dfLoc <- dfQual <- dfExtra <- dfRole <- character(length(hsp$data))
 	
 	for (i in seq(along=hsp$data)) {
 		myLength <- end(hsp$data[[i]]) - start(hsp$data[[i]])
 		myAvgFreq <- myLength / nrow(hsp$data[[i]])
 		
-		dfName[i] <- names(hsp$data)[i]
+		dfID[i] <- names(hsp$data)[i]
+		dfName[i] <- attr(hsp$data[[i]], "sitename")
 		dfData[i] <- attr(hsp$data[[i]], "dataname")
 		dfStart[i] <- format(start(hsp$data[[i]]))
 		dfEnd[i] <- format(end(hsp$data[[i]]))
@@ -62,8 +63,8 @@ updateImportPage <- function() {
 	}
 	
 	dfModel <- rGtkDataFrame(data.frame(
+		ID=dfID,
 		Name=dfName,
-		Data=dfData,
 		Start=dfStart,
 		End=dfEnd,
 		Length=dfLength,
@@ -72,32 +73,33 @@ updateImportPage <- function() {
 		Qual=dfQual,
 		Extra_data=dfExtra,
 		Role=dfRole,
+		Data=dfData,
 		stringsAsFactors=F)
 		)
 	myTreeView <- theWidget("import_summary_treeview")
 	myTreeView$setModel(dfModel)
 	myTreeView$columnsAutosize()
 	
-	.hydrosanity$update$import <<- F
-	theWidget(APPWIN)$present()
+	StateEnv$update$import <- F
+	StateEnv$win$present()
 }
 
 ## ACTIONS
 
 .hs_on_import_displayfile_button_clicked <- function(button) {
-	theWidget(APPWIN)$setSensitive(F)
-	on.exit(theWidget(APPWIN)$setSensitive(T))
+	StateEnv$win$setSensitive(F)
+	on.exit(StateEnv$win$setSensitive(T))
 	setStatusBar("")
 	
 	filenames <- choose.files(multi=T)
-	theWidget(APPWIN)$present()
+	StateEnv$win$present()
 	if (length(filenames)==0) { return() }
 	file.show(filenames)
 }
 
 .hs_on_import_viewtable_button_clicked <- function(button) {
-	theWidget(APPWIN)$setSensitive(F)
-	on.exit(theWidget(APPWIN)$setSensitive(T))
+	StateEnv$win$setSensitive(F)
+	on.exit(StateEnv$win$setSensitive(T))
 	setStatusBar("")
 	
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
@@ -114,22 +116,22 @@ updateImportPage <- function() {
 	tmp <- hsp$data[[thisIndex]][,-1]
 	row.names(tmp) <- make.unique(format(hsp$data[[thisIndex]]$Time))
 	tmp2 <- edit(tmp, title=blobName)
-	attributes(tmp2) <- attributes(tmp)
+	mostattributes(tmp2) <- attributes(tmp)
 	if (!identical(tmp, tmp2)) {
-		addLogComment("Edited data object ", blobName, " interactively.")
+		addLogComment("Edited data object ", dQuote(blobName), " interactively.")
 		hsp$data[[thisIndex]][,-1] <<- tmp2
-		setStatusBar(sprintf('Edited data object "%s"', blobName))
+		setStatusBar("Edited data object ", dQuote(blobName))
 		datasetModificationUpdate()
 	}
 }
 
 .hs_on_import_file_button_clicked <- function(button) {
-	theWidget(APPWIN)$setSensitive(F)
-	on.exit(theWidget(APPWIN)$setSensitive(T))
+	StateEnv$win$setSensitive(F)
+	on.exit(StateEnv$win$setSensitive(T))
 	setStatusBar("")
 	
 	filenames <- choose.files()
-	theWidget(APPWIN)$present()
+	StateEnv$win$present()
 	if (length(filenames)==0) { return() }
 	
 	addLogComment("Import data from file")
@@ -152,7 +154,7 @@ updateImportPage <- function() {
 	
 	if (theWidget("import_known_format_radio")$getActive()) {
 		kfIndex <- theWidget("import_known_format_combobox")$getActive()+1
-		importSpec <- .KNOWN_FORMATS[[kfIndex]]
+		importSpec <- TIMESERIES_FORMATS[[kfIndex]]
 		importFn <- importSpec[1]
 		# user may have changed options in GUI, so use myOptionString
 		for (i in seq(along=filenames)) {
@@ -181,9 +183,9 @@ updateImportPage <- function() {
 	}
 	
 	for (i in seq(along=filenames)) {
-		result <- guiDo(import.cmd.str[i], isParseString=T)
-		setStatusBar(sprintf('Imported file "%s" to hsp$data[["%s"]]', 
-			basename(filenames[i]), dataName[i]))
+		result <- guiDo(string=import.cmd.str[i])
+		setStatusBar("Imported file ", dQuote(basename(filenames[i])),
+			" to hsp$data[[", dQuote(dataName[i]), "]]")
 		# mark as rain/flow/etc
 		setDataRole(dataName[i], doLogComment=F)
 		# update table etc: inefficient, but gives user more feedback
@@ -196,40 +198,52 @@ updateImportPage <- function() {
 		addToLog('str(hsp$data)')
 	}
 	
-	theWidget("import_import_expander")$setExpanded(FALSE)
-	theWidget("import_edit_expander")$setExpanded(TRUE)
-	theWidget("import_transform_expander")$setExpanded(FALSE)
-	theWidget("import_export_expander")$setExpanded(FALSE)
+	setIsImportMode(FALSE)
 	
 	datasetModificationUpdate()
 }
 
-.hs_on_import_summary_treeview_name_edited <- function(cell, path.string, new.text, user.data) {
+.hs_on_import_summary_treeview_id_edited <- function(cell, path.string, new.text, user.data) {
 	blobIndex <- as.numeric(path.string)+1
-	blobName <- names(hsp$data)[blobIndex]
-	if (new.text == blobName) { return() }
+	blobID <- names(hsp$data)[blobIndex]
+	if (new.text == blobID) { return() }
 	if (new.text == "") { return() }
-	addLogComment(paste("Rename data object", blobName))
-	guiDo(isExpression=T, bquote(
+	addLogComment("Set ID for object ", dQuote(blobID))
+	guiDo(call=bquote(
 		names(hsp$data)[.(blobIndex)] <- .(new.text)
 	))
 	
-	setStatusBar(sprintf('Renamed data object "%s" to "%s"', blobName, new.text))
+	setStatusBar("Set ID for object ", dQuote(blobID), " to ", dQuote(new.text))
+	datasetModificationUpdate()
+}
+
+.hs_on_import_summary_treeview_sitename_edited <- function(cell, path.string, new.text, user.data) {
+	blobIndex <- as.numeric(path.string)+1
+	blobID <- names(hsp$data)[blobIndex]
+	blobName <- attr(hsp$data[[blobIndex]], "sitename")
+	if (new.text == blobName) { return() }
+	if (new.text == "") { return() }
+	addLogComment("Set sitename for object ", dQuote(blobID))
+	guiDo(call=bquote(
+		attr(hsp$data[[.(blobID)]], "sitename") <- .(new.text)
+	))
+	
+	setStatusBar("Set sitename for object ", dQuote(blobID), " to ", dQuote(new.text))
 	datasetModificationUpdate()
 }
 
 .hs_on_import_summary_treeview_dataname_edited <- function(cell, path.string, new.text, user.data) {
 	blobIndex <- as.numeric(path.string)+1
-	blobName <- names(hsp$data)[blobIndex]
+	blobID <- names(hsp$data)[blobIndex]
 	blobDataName <- attr(hsp$data[[blobIndex]], "dataname")
 	if (new.text == blobDataName) { return() }
 	if (new.text == "") { return() }
-	addLogComment(paste("Set data name for object", blobName))
-	guiDo(isExpression=T, bquote(
-		attr(hsp$data[[.(blobName)]], "dataname") <- .(new.text)
+	addLogComment("Set dataname for object ", dQuote(blobID))
+	guiDo(call=bquote(
+		attr(hsp$data[[.(blobID)]], "dataname") <- .(new.text)
 	))
 	
-	setStatusBar(sprintf('Set data name for object "%s" to "%s"', blobName, new.text))
+	setStatusBar("Set dataname for object ", dQuote(blobID), " to ", dQuote(new.text))
 	datasetModificationUpdate()
 }
 
@@ -242,8 +256,8 @@ updateImportPage <- function() {
 }
 
 .hs_on_import_edit_metadata_button_clicked <- function(button) {
-	theWidget(APPWIN)$setSensitive(F)
-	on.exit(theWidget(APPWIN)$setSensitive(T))
+	StateEnv$win$setSensitive(F)
+	on.exit(StateEnv$win$setSensitive(T))
 	setStatusBar("")
 	
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
@@ -252,13 +266,14 @@ updateImportPage <- function() {
 		return()
 	}
 	
-	dfName <- dfData <- dfRole <- character(length(blobIndices))
+	dfID <- dfName <- dfData <- dfRole <- character(length(blobIndices))
 	dfLocX <- dfLocY <- dfElev <- numeric(length(blobIndices))
 	
 	for (k in seq(along=blobIndices)) {
 		# 'i' indexes hsp$data; 'k' indexes metadata (subset)
 		i <- blobIndices[k]
-		dfName[k] <- names(hsp$data)[i]
+		dfID[k] <- names(hsp$data)[i]
+		dfName[k] <- attr(hsp$data[[i]], "sitename")
 		dfData[k] <- attr(hsp$data[[i]], "dataname")
 		dfRole[k] <- attr(hsp$data[[i]], "role")
 		if (is.null(dfRole[k])) { dfRole[k] <- "" }
@@ -270,10 +285,11 @@ updateImportPage <- function() {
 		if (is.null(myElev)) { myElev <- NA }
 		dfElev[k] <- myElev
 	}
-	dfRole <- factor(dfRole, levels=c("RAIN", "FLOW", "OTHER"))
+	#dfRole <- factor(dfRole, levels=c("RAIN", "FLOW", "OTHER"))
 	
 	metadata <- data.frame(
-		ItemName=dfName,
+		SiteID=dfID,
+		SiteName=dfName,
 		DataName=dfData,
 		Role=dfRole,
 		X_Long=dfLocX,
@@ -290,34 +306,31 @@ updateImportPage <- function() {
 	
 	# TODO: check that number of rows is the same...
 	
-	addLogComment(paste("Edited metadata for", length(blobIndices), "objects"))
+	maybeUpdate <- function(assign.expr, envir=parent.frame()) {
+		expr <- substitute(assign.expr)
+		oldval <- eval(expr[[2]], envir=envir)
+		newval <- eval(expr[[3]], envir=envir)
+		if (is.null(newval)) { return() }
+		if (any(is.na(newval))) { return() }
+		if (any(newval == "")) { return() }
+		if (identical(oldval, newval)) { return() }
+		# assign as literal value
+		expr[[3]] <- newval
+		guiDo(call=expr)
+		return(TRUE)
+	}
+	
+	addLogComment(paste("Edit metadata for", length(blobIndices), "objects"))
 	for (k in seq(along=blobIndices)) {
 		# 'i' indexes hsp$data; 'k' indexes metadata (subset)
 		i <- blobIndices[k]
-		if (!is.null(newMeta$ItemName)
-		&& !is.na(newMeta$ItemName[k])
-		&& (newMeta$ItemName[k] != "")) {
-			names(hsp$data)[i] <<- newMeta$ItemName[k]
-		}
-		if (!is.null(newMeta$DataName)
-		&& !is.na(newMeta$DataName[k])) {
-			attr(hsp$data[[i]], "dataname") <<- newMeta$DataName[k]
-		}
-		if (!is.null(newMeta$Role)
-		&& !is.na(newMeta$Role[k])) {
-			attr(hsp$data[[i]], "role") <<- as.character(newMeta$Role[k])
-		}
-		if (!is.null(newMeta$X_Long)
-		&& !is.null(newMeta$Y_Lat)) {
-			myLoc <- c(newMeta$X_Long[k], newMeta$Y_Lat[k])
-			attr(hsp$data[[i]], "location.xy") <<- 
-				if (any(is.na(myLoc))) { NULL } else { myLoc }
-		}
-		if (!is.null(newMeta$Z_Elev)) {
-			myElev <- newMeta$Z_Elev[k]
-			if (is.na(myElev)) { myElev <- NULL }
-			attr(hsp$data[[i]], "elevation") <<- myElev
-		}
+		maybeUpdate(names(hsp$data)[i] <- newMeta$ItemName[k])
+		maybeUpdate(attr(hsp$data[[i]], "sitename") <- newMeta$SiteName[k])
+		maybeUpdate(attr(hsp$data[[i]], "dataname") <- newMeta$DataName[k])
+		maybeUpdate(attr(hsp$data[[i]], "role") <- newMeta$Role[k])
+		maybeUpdate(attr(hsp$data[[i]], "location.xy") <- 
+			c(newMeta$X_Long[k], newMeta$Y_Lat[k]))
+		maybeUpdate(attr(hsp$data[[i]], "elevation") <- newMeta$Z_Elev[k])
 	}
 	
 	setStatusBar(paste("Edited metadata for", length(blobIndices), "objects"))
@@ -325,8 +338,8 @@ updateImportPage <- function() {
 }
 
 .hs_on_import_remove_blob_button_clicked <- function(button) {
-	theWidget(APPWIN)$setSensitive(F)
-	on.exit(theWidget(APPWIN)$setSensitive(T))
+	StateEnv$win$setSensitive(F)
+	on.exit(StateEnv$win$setSensitive(T))
 	setStatusBar("")
 	
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
@@ -341,17 +354,15 @@ updateImportPage <- function() {
 		return()
 	}
 	addLogComment("Remove data object(s)")
-	guiDo(isExpression=T, bquote(
-		hsp$data[.(blobNames)] <- NULL
-	))
+	guiDo(call=bquote(hsp$data[.(blobNames)] <- NULL))
 	
-	setStatusBar(sprintf('Removed data object(s) %s', paste(blobNames,collapse=', ')))
+	setStatusBar('Removed data object(s) ', paste(dQuote(blobNames),collapse=', '))
 	datasetModificationUpdate()
 }
 
 .hs_on_import_extract_extra_button_clicked <- function(button) {
-	theWidget(APPWIN)$setSensitive(F)
-	on.exit(theWidget(APPWIN)$setSensitive(T))
+	StateEnv$win$setSensitive(F)
+	on.exit(StateEnv$win$setSensitive(T))
 	setStatusBar("")
 	
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
@@ -367,7 +378,7 @@ updateImportPage <- function() {
 		myExtras <- names(hsp$data[[x]])[-(1:3)]
 		for (extraName in myExtras) {
 			newBlobName <- make.names(paste(x,extraName,sep='.'))
-			guiDo(isExpression=T, bquote({
+			guiDo(call=bquote({
 				hsp$data[[.(newBlobName)]] <- with(hsp$data[[.(x)]],
 					timeblob(Time, Data=.(as.symbol(extraName)),
 						Qual=Qual))
@@ -375,14 +386,14 @@ updateImportPage <- function() {
 				hsp$data[[.(x)]][[.(extraName)]] <- NULL
 			}))
 		}
-		setStatusBar(sprintf('Extracted extra columns of item %s', x))
+		setStatusBar('Extracted extra columns of item ', dQuote(x))
 	}
 	datasetModificationUpdate()
 }
 
 .hs_on_import_makefactor_button_clicked <- function(button) {
-	theWidget(APPWIN)$setSensitive(F)
-	on.exit(theWidget(APPWIN)$setSensitive(T))
+	StateEnv$win$setSensitive(F)
+	on.exit(StateEnv$win$setSensitive(T))
 	setStatusBar("")
 	
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
@@ -398,22 +409,22 @@ updateImportPage <- function() {
 			'x2 <- {', factorCmdRaw, '}',
 			'factor(x2, ordered=T, exclude=NULL)',
 		'}')
-	guiDo(factor_fn.cmd.str, isParseString=T)
+	guiDo(string=factor_fn.cmd.str)
 	
 	for (i in blobIndices) {
 		blobName <- names(hsp$data)[i]
-		guiDo(isExpression=T, bquote(
+		guiDo(call=bquote(
 			hsp$data[[.(blobName)]]$Qual <- tmp.factor(hsp$data[[.(blobName)]]$Qual)
 		))
-		setStatusBar(sprintf('Converted quality codes of object "%s"', blobName))
+		setStatusBar("Converted quality codes of object ", dQuote(blobName))
 	}
 	guiDo(rm(tmp.factor))
 	datasetModificationUpdate()
 }
 
 .hs_on_import_set_accums_button_clicked <- function(button) {
-	theWidget(APPWIN)$setSensitive(F)
-	on.exit(theWidget(APPWIN)$setSensitive(T))
+	StateEnv$win$setSensitive(F)
+	on.exit(StateEnv$win$setSensitive(T))
 	setStatusBar("")
 	
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
@@ -432,12 +443,12 @@ updateImportPage <- function() {
 		maxGapStepsAccum <- round(
 			as.numeric.byString(maxGapLengthAccum)
 			/ as.numeric.byString(attr(hsp$data[[x]], "timestep")))
-		guiDo(isExpression=T, bquote(
+		guiDo(call=bquote(
 			tmp.gapInfo <- gaps(hsp$data[[.(x)]]$Data, internal.only=T, 
 				max.length=.(maxGapStepsAccum))
 		))
 		if (nrow(tmp.gapInfo) > 0) {
-			guiDo(isExpression=T, bquote({
+			guiDo(call=bquote({
 				hsp$data[[.(x)]]$AccumSteps <- as.integer(1)
 				with(tmp.gapInfo, 
 					hsp$data[[.(x)]]$AccumSteps[start + length] <-
@@ -453,8 +464,8 @@ updateImportPage <- function() {
 }
 
 .hs_on_export_button_clicked <- function(button) {
-	theWidget(APPWIN)$setSensitive(F)
-	on.exit(theWidget(APPWIN)$setSensitive(T))
+	StateEnv$win$setSensitive(F)
+	on.exit(StateEnv$win$setSensitive(T))
 	setStatusBar("")
 	
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
@@ -496,7 +507,7 @@ updateImportPage <- function() {
 	defaultName <- paste(defaultName, ext, sep='.')
 	filename <- choose.file.save(defaultName, caption="Export data", 
 		filters=Filters[c("txt","All"),])
-	theWidget(APPWIN)$present()
+	StateEnv$win$present()
 	if (is.na(filename)) { return() }
 	
 	## Fix filename for MS - otherwise eval/parse strip the \\.
@@ -509,7 +520,7 @@ updateImportPage <- function() {
 	addLogComment("Export data to file")
 	
 	if (oneFile) {
-		guiDo(isExpression=T, bquote({
+		guiDo(call=bquote({
 			tmp.data <- sync.timeblobs(hsp$data[.(blobNames)], 
 				timelim=.(if (justTimePeriod) { quote(hsp$timePeriod) }))
 			tmp.data$Time <- format(tmp.data$Time, format=.(timeFormat))
@@ -517,8 +528,8 @@ updateImportPage <- function() {
 		export.cmd.str <- sprintf(
 			'%s(tmp.data, %s%s)', 
 			importFn, dQuote(filename), myOptionString)
-		guiDo(export.cmd.str, isParseString=T)
-		setStatusBar('Exported data to', filename)
+		guiDo(string=export.cmd.str)
+		setStatusBar("Exported data to ", dQuote(filename))
 			
 	} else {
 		for (i in seq(along=blobNames)) {
@@ -535,23 +546,22 @@ updateImportPage <- function() {
 				}
 			}
 			if (justTimePeriod) {
-				guiDo(isExpression=T, bquote(
+				guiDo(call=bquote(
 					tmp.data <- window(hsp$data[[.(x)]],
 						hsp$timePeriod[1], hsp$timePeriod[2])
 				))
 			} else {
-				guiDo(isExpression=T, bquote(
-					tmp.data <- hsp$data[[.(x)]]
-				))
+				guiDo(call=bquote(tmp.data <- hsp$data[[.(x)]]))
 			}
-			guiDo(isExpression=T, bquote(
+			guiDo(call=bquote(
 				tmp.data$Time <- format(tmp.data$Time, format=.(timeFormat))
 			))
 			export.cmd.str <- sprintf(
 				'%s(tmp.data, %s%s)', 
 				importFn, dQuote(myFilename), myOptionString)
-			guiDo(export.cmd.str, isParseString=T)
-			setStatusBar('Exported data item', x, 'to', myFilename)
+			guiDo(string=export.cmd.str)
+			setStatusBar("Exported data item ", dQuote(x), " to ", 
+				dQuote(myFilename))
 		}
 	}
 	
@@ -559,8 +569,8 @@ updateImportPage <- function() {
 }
 
 .hs_on_import_transform_button_clicked <- function(button) {
-	theWidget(APPWIN)$setSensitive(F)
-	on.exit(theWidget(APPWIN)$setSensitive(T))
+	StateEnv$win$setSensitive(F)
+	on.exit(StateEnv$win$setSensitive(T))
 	setStatusBar("")
 	
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
@@ -599,8 +609,8 @@ updateImportPage <- function() {
 				aggr.cmd[[3]]$start.month <- startMonth
 			}
 		}
-		guiDo(aggr.cmd, isExpression=T)
-		setStatusBar(sprintf('Resampled object "%s"', x))
+		guiDo(call=aggr.cmd)
+		setStatusBar("Resampled object ", dQuote(x))
 	}
 	
 	datasetModificationUpdate()
@@ -620,10 +630,11 @@ setDataRole <- function(blobName, role=NULL, doLogComment=T) {
 	
 	if (doLogComment) { addLogComment("Set data role") }
 	
-	guiDo(isExpression=T, bquote(
+	guiDo(call=bquote(
 		attr(hsp$data[[.(blobName)]], "role") <- .(role)
 	))
-	setStatusBar(sprintf('Set data role for object "%s" to "%s"', blobName, role))
+	setStatusBar("Set data role for object ", dQuote(blobName), " to ",
+		dQuote(role))
 }
 
 .hs_on_import_file_radio_options_toggled <- function(button) {
@@ -664,7 +675,7 @@ setDataRole <- function(blobName, role=NULL, doLogComment=T) {
 
 .hs_on_import_known_format_combobox_changed <- function(widget) {
 	kfIndex <- widget$getActive()+1
-	theWidget("import_options_entry")$setText(.KNOWN_FORMATS[[kfIndex]][2])
+	theWidget("import_options_entry")$setText(TIMESERIES_FORMATS[[kfIndex]][2])
 }
 
 

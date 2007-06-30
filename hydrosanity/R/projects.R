@@ -8,20 +8,20 @@
 .hs_on_menu_saveas_activate <- function(action, window) {saveProject(saveAs=T)}
 
 openProject <- function() {
-	theWidget(APPWIN)$setSensitive(F)
-	on.exit(theWidget(APPWIN)$setSensitive(T))
+	StateEnv$win$setSensitive(F)
+	on.exit(StateEnv$win$setSensitive(T))
 	setStatusBar("")
 	
 	ff <- c("Hydrosanity projects (.hydrosanity)", "*.hydrosanity")
 	filename <- choose.files(caption="Open project", filters=ff, multi=F)
-	theWidget(APPWIN)$present()
+	StateEnv$win$present()
 	if (filename=="") { return() }
 	
 	hydrosanity()
-	theWidget(APPWIN)$setSensitive(F)
+	StateEnv$win$setSensitive(F)
 	load(filename, .GlobalEnv)
 	hsp$projectFile <<- filename
-	.hydrosanity$modified <<- F
+	hsp$modified <<- F
 	
 	setTextview(theWidget("log_textview"), hsp$log)
 	addLogSeparator()
@@ -40,23 +40,28 @@ openProject <- function() {
 			levels(hsp$data[[i]]$Qual) <<- oldLevels
 		}
 	}
+	if (package_version(hsp$version) < package_version("0.8")) {
+		# add "sitename" attribute
+		for (i in seq(along=hsp$data)) {
+			if (is.null(attr(hsp$data[[i]], "sitename"))) {
+				attr(hsp$data[[i]], "sitename") <<- names(hsp$data)[i]
+			}
+		}
+	}
 	hsp$version <<- NULL
 	
 	# switch to first page and trigger update
 	theWidget("notebook")$setCurrentPage(1)
 	datasetModificationUpdate()
 	
-	theWidget("import_import_expander")$setExpanded(FALSE)
-	theWidget("import_edit_expander")$setExpanded(TRUE)
-	theWidget("import_transform_expander")$setExpanded(FALSE)
-	theWidget("import_export_expander")$setExpanded(FALSE)
+	setIsImportMode(FALSE)
 	
-	setStatusBar("Loaded project from", filename)
+	setStatusBar("Loaded project from ", dQuote(filename))
 }
 
 saveProject <- function(saveAs=F) {
-	theWidget(APPWIN)$setSensitive(F)
-	on.exit(theWidget(APPWIN)$setSensitive(T))
+	StateEnv$win$setSensitive(F)
+	on.exit(StateEnv$win$setSensitive(T))
 	setStatusBar("")
 	
 	ff <- c("Hydrosanity projects (.hydrosanity)", "*.hydrosanity")
@@ -65,7 +70,7 @@ saveProject <- function(saveAs=F) {
 	if (saveAs==T || filename=="") {
 		filename <- choose.file.save(filename, caption="Save project",
 			filters=ff)
-		theWidget(APPWIN)$present()
+		StateEnv$win$present()
 		if (is.na(filename)) { return() }
 	}
 	
@@ -78,11 +83,10 @@ saveProject <- function(saveAs=F) {
 	save(hsp, file=filename, compress=TRUE)
 	hsp$log <<- NULL
 	hsp$version <<- NULL
-	
 	hsp$projectFile <<- filename
-	.hydrosanity$modified <<- F
+	hsp$modified <<- F
 	
-	setStatusBar("Project saved to", filename)
+	setStatusBar("Project saved to ", dQuote(filename))
 }
 
 

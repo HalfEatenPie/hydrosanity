@@ -9,82 +9,13 @@ updateRainPage <- function() {
 	setupIconView(theWidget("rain_iconview"), 
 		itemNames=names(hsp$data)[role=="RAIN"], selection="all")
 	
-	.hydrosanity$update$rain <<- F
-	theWidget(APPWIN)$present()
-}
-
-.hs_on_rain_view_locations_button_clicked <- function(button) {
-	theWidget(APPWIN)$setSensitive(F)
-	on.exit(theWidget(APPWIN)$setSensitive(T))
-	setStatusBar("")
-	
-	selNames <- iconViewGetSelectedNames(theWidget("rain_iconview"))
-	if (length(selNames) == 0) {
-		errorDialog("No items selected.")
-		return()
-	}
-	nBlobs <- length(selNames)
-	
-	doElevContours <- theWidget("rain_elevation_contours_checkbutton")$getActive()
-	
-	loc <- lapply(hsp$data[selNames], attr, "location.xy")
-	ok <- (sapply(loc, length) == 2)
-	
-	if (any(!ok)) {
-		errorDialog(paste("Some selected items do not have a valid 'location.xy' attribute:",
-			paste(selNames[!ok], collapse=", "),
-			". Try 'edit metadata' in the 'Dataset' tab."))
-		return()
-	}
-	
-	addLogComment("Generate locations map")
-	
-	guiDo(isExpression=T, bquote({
-		tmp.locs <- sapply(hsp$data[.(selNames)], attr, "location.xy")
-		tmp.locs <- data.frame(x=tmp.locs[1,], y=tmp.locs[2,])
-	}))
-	
-	plot.cmd <- quote(
-		xyplot(y ~ x, tmp.locs, aspect="iso", labels=rownames(tmp.locs))
-	)
-	plot.cmd$panel <- function(..., labels) {
-		panel.points(...)
-		panel.text(..., labels=labels, pos=1, cex=0.7)
-	}
-	if (doElevContours) {
-		guiDo(isExpression=T, bquote(
-			tmp.elev <- spatialElevation(hsp$data[.(selNames)])
-		))
-		plot.cmd$elev.grid <- quote(tmp.elev)
-		plot.cmd$panel <- function(..., labels, elev.grid) {
-			with(elev.grid, panel.contourplot(x, y, z, subscripts=T, 
-				contour=T, col.regions=grey(0.9), col=grey(0.5), col.text=grey(0.5)))
-			panel.points(...)
-			panel.text(..., labels=labels, pos=1, cex=0.7)
-		}
-	}
-	plot.cmd$prepanel <- function(x, y, ...) {
-		list(xlim=extendrange(x, f=0.1),
-			ylim=extendrange(y, f=0.1))
-	}
-	
-	setPlotDevice("locations")
-	setCairoWindowButtons("locations", zoomin=T, centre=T)
-	
-	result <- guiDo(plot.cmd, isExpression=T)
-	# plot trellis object
-	guiDo(print(result), doLog=F)
-	
-	.hydrosanity$call[["locations"]] <<- evalCallArgs(plot.cmd, pattern="^tmp")
-	
-	guiDo(rm(tmp.locs))
-	
-	setStatusBar("Generated locations map")
+	StateEnv$update$rain <- F
+	StateEnv$win$present()
 }
 
 .hs_on_rain_view_surface_button_clicked <- function(button) {
-	theWidget(APPWIN)$setSensitive(F)
-	on.exit(theWidget(APPWIN)$setSensitive(T))
+	StateEnv$win$setSensitive(F)
+	on.exit(StateEnv$win$setSensitive(T))
 	setStatusBar("")
 	
 	selNames <- iconViewGetSelectedNames(theWidget("rain_iconview"))
@@ -127,30 +58,34 @@ updateRainPage <- function() {
 	
 	addLogComment("Generate rainfall map")
 	
-	guiDo(isExpression=T, bquote({
+	tmpObjs <- c('tmp.names')
+	
+	guiDo(call=bquote({
 		tmp.names <- .(selNames)
 	}))
 	
+	tmpObjs <- c(tmpObjs, 'tmp.locs')
 	guiDo({
 		tmp.locs <- sapply(hsp$data[tmp.names], attr, "location.xy")
 		tmp.locs <- data.frame(x=tmp.locs[1,], y=tmp.locs[2,])
 	})
 	
-	spatial.cmd <- call('spatialField')
-	spatial.cmd[[2]] <- quote(hsp$data[tmp.names])
-	spatial.cmd$timelim <- if (!is.null(hsp$timePeriod)) { quote(hsp$timePeriod) }
-	spatial.cmd$type <- myType
-	spatial.cmd$start.month <- if (startMonth != 1) { startMonth }
-	spatial.cmd$linear <- !doSplines
-	spatial.cmd$extrap <- if (doExtrap) { T }
-	spatial.cmd$xo.length <- gridSideCells
-	spatial.cmd$countSurface <- if (showCounts) { T }
+	grid.call <- call('spatialField')
+	grid.call[[2]] <- quote(hsp$data[tmp.names])
+	grid.call$timelim <- if (!is.null(hsp$timePeriod)) { quote(hsp$timePeriod) }
+	grid.call$type <- myType
+	grid.call$start.month <- if (startMonth != 1) { startMonth }
+	grid.call$linear <- !doSplines
+	grid.call$extrap <- if (doExtrap) { T }
+	grid.call$xo.length <- gridSideCells
+	grid.call$countSurface <- if (showCounts) { T }
 	
-	grid.cmd <- quote(tmp.grid <- foo)
-	grid.cmd[[3]] <- spatial.cmd
-	guiDo(grid.cmd, isExpression=T)
+	tmpObjs <- c(tmpObjs, 'tmp.grid')
+	grid.assign.call <- quote(tmp.grid <- foo)
+	grid.assign.call[[3]] <- grid.call
+	guiDo(call=grid.assign.call)
 	
-	plot.cmd <- switch(myType,
+	plot.call <- switch(myType,
 		overall=quote(
 			levelplot(z ~ x * y, tmp.grid, aspect="iso")
 		),
@@ -167,11 +102,16 @@ updateRainPage <- function() {
 				as.table=T)
 		)
 	)
+	plot.call$panel <- function(...) {
+		panel.levelplot(...)
+		panel.maplines()
+	}
 	
 	if (showPoints) {
-		plot.cmd$locations <- quote(tmp.locs)
-		plot.cmd$panel <- function(..., locations) {
+		plot.call$locations <- quote(tmp.locs)
+		plot.call$panel <- function(..., locations) {
 			panel.levelplot(...)
+			panel.maplines()
 			panel.points(locations)
 		}
 	}
@@ -179,22 +119,18 @@ updateRainPage <- function() {
 	# hydrosanity caption
 	# TODO
 	
-	setPlotDevice("rainfall")
-	setCairoWindowButtons("rainfall", identify=T, zoomin=T, centre=T)
+	id.call <- call('panel.identify')
+	id.call$x <- tmp.locs
+	id.call$labels <- rownames(tmp.locs)
 	
-	result <- guiDo(plot.cmd, isExpression=T)
-	# plot trellis object
-	guiDo(print(result), doLog=F)
+	addToLog(paste(deparse(plot.call), collapse="\n"))
+	guiDo(plotAndPlay(plot.call=plot.call, name="rainfall map", 
+		extra.buttons=NULL, identify.call=id.call,
+		eval.args="^tmp"), doLog=F)
 	
-	.hydrosanity$call[["rainfall"]] <<- evalCallArgs(plot.cmd, pattern="^tmp")
-	
-	# construct call to panel.identify() for later use
-	id.cmd <- call('panel.identify')
-	id.cmd$x <- tmp.locs
-	id.cmd$labels <- rownames(tmp.locs)
-	.hydrosanity$id.call[["rainfall"]] <<- id.cmd
-	
-	guiDo(rm(tmp.names, tmp.locs, tmp.grid))
+	if (length(tmpObjs) > 0) {
+		guiDo(call=bquote(rm(list=.(tmpObjs))))
+	}
 	
 	setStatusBar("Generated rainfall map")
 }
