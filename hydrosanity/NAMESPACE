@@ -1,6 +1,10 @@
 import(grid)
 
-export(hydrosanity)
+## hydrosanity.R
+export(
+	hydrosanity,
+	select.sites.BOM.AU
+)
 
 ## timeblob_plots.R
 export(
@@ -16,9 +20,9 @@ export(
 	lattice.y.prettylog,
 	lattice.x.prettylog,
 	grid.xaxis.POSIXt,
+	panel.geo,
 	panel.interp,
-	panel.maplines,
-	panel.pointmap,
+	panel.map,
 	prepanel.extend.10,
 	prepanel.qqmath.fix
 )
@@ -36,11 +40,13 @@ export(
 	read.timeblob,
 	start.timeblobs,
 	end.timeblobs,
+	timelim.timeblobs,
 	matchtimes.timeblob,
 	sync.timeblobs,
 	syncTo.timeblobs,
 	common.timestep.timeblobs,
 	summary.missing.timeblobs,
+	smooth.timeblob,
 	quick.disaccumulate.timeblob,
 	impute.timeblobs,
 	imputeGaps.timeblobs,

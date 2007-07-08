@@ -126,7 +126,9 @@ updateCorrPage <- function() {
 	seasonIntervals <- theWidget("corr_relationplot_season_spinbutton")$getValue()
 	doAnteFlow <- theWidget("corr_relationplot_anteflow_checkbutton")$getActive()
 	anteFlowIntervals <- theWidget("corr_relationplot_anteflow_spinbutton")$getValue()
-	doConditioning <- (doSeasons || doAnteFlow)
+	doTime <- theWidget("corr_relationplot_time_checkbutton")$getActive()
+	timeIntervals <- theWidget("corr_relationplot_time_spinbutton")$getValue()
+	doConditioning <- (doSeasons || doAnteFlow || doTime)
 	doSmooth <- theWidget("corr_smooth_checkbutton")$getActive()
 	smoothSpan <- theWidget("corr_smooth_span_spinbutton")$getValue()
 	
@@ -158,6 +160,13 @@ updateCorrPage <- function() {
 		guiDo(call=bquote(
 			tmp.data$Season <- equal.count(as.POSIXlt(tmp.data$Time)$yday, 
 				number=.(seasonIntervals), overlap=0)
+		))
+	}
+	
+	if (doTime) {
+		guiDo(call=bquote(
+			tmp.data$Year <- equal.count(as.numeric(tmp.data$Time), 
+				number=.(timeIntervals), overlap=0)
 		))
 	}
 	
@@ -208,7 +217,8 @@ updateCorrPage <- function() {
 	
 	plot.call <- call('xyplot')
 	conditionVars <- paste(c(if(doSeasons){'Season'},
-				if(doAnteFlow){'AnteFlow'}), collapse=' * ')
+				if(doAnteFlow){'AnteFlow'},
+				if(doTime){'Year'}), collapse=' * ')
 	plot.call[[2]] <- as.formula(paste(
 		names(tmp.data)[2], '~', names(tmp.data)[3], 
 		if (doConditioning) { paste('|', conditionVars) }))
@@ -276,7 +286,7 @@ updateCorrPage <- function() {
 			"in the specified time period.")
 	} else {
 		setTextview(TXV, "WARNING: the selected pair has missing values. ",
-		"The longest contiguous sequence will be taken, which is ",
+		"To compute cross-correlation, the longest contiguous sequence will be taken, which is ",
 		contigLength, " time steps (", round(contigFrac*100, digits=1),
 		"%).")
 	}

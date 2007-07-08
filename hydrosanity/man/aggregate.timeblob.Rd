@@ -12,7 +12,7 @@
   \item{by}{ ~~Describe \code{by} here~~ }
   \item{FUN}{ ~~Describe \code{FUN} here~~ }
   \item{fun.qual}{ ~~Describe \code{fun.qual} here~~ }
-  \item{start.month} ~~Describe \code{start.month} here~~ }
+  \item{start.month}{ ~~Describe \code{start.month} here~~ }
   \item{max.na.proportion}{ ~~Describe \code{max.na.proportion} here~~ }
   \item{\dots}{ ~~Describe \code{\dots} here~~ }
 }

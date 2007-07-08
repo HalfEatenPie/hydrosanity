@@ -8,7 +8,7 @@ grid.timeline.plot <- function(blob.list, xscale=NULL, colMap=NULL, barThickness
 	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
 	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
 	if (is.null(xscale)) {
-		xscale <- c(start.timeblobs(blob.list), end.timeblobs(blob.list))
+		xscale <- timelim.timeblobs(blob.list)
 	} else {
 		xscale <- as.POSIXct(xscale)
 		if (any(is.na(xscale))) { stop("'xscale' must be a pair of valid times (POSIXt)") }
@@ -45,7 +45,7 @@ grid.timeline.plot <- function(blob.list, xscale=NULL, colMap=NULL, barThickness
 			mySync <- sync.timeblobs(blob.list)
 			dataPoints <- sum(is.na(unlist(mySync[-1]))==F)
 			sub <- hydrosanity.caption(
-				c(start.timeblobs(blob.list), end.timeblobs(blob.list)),
+				timelim.timeblobs(blob.list),
 				by=attr(mySync, "timestep"), n=dataPoints, series=nBlobs)
 		}
 		if (is.character(sub)) { sub <- textGrob(sub) }
@@ -165,8 +165,8 @@ grid.timeseries.plot.superpose <- function(superpose.blob.list, allSameScales=F,
 		}
 	}
 	if (is.null(xscale)) {
-		xscale <- c(min(lapply(superpose.blob.list, start.timeblobs)),
-			max(lapply(superpose.blob.list, end.timeblobs)))
+		xscale <- min(lapply(superpose.blob.list, start.timeblobs))
+		xscale[2] <- max(lapply(superpose.blob.list, end.timeblobs))
 	} else {
 		xscale <- as.POSIXct(xscale)
 		if (any(is.na(xscale))) { stop("'xscale' must be a pair of valid times (POSIXt)") }
@@ -224,7 +224,7 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
 	if (is.null(xscale)) {
 		if (superPos == 1) {
-			xscale <- c(start.timeblobs(blob.list), end.timeblobs(blob.list))
+			xscale <- timelim.timeblobs(blob.list)
 		} else {
 			depth <- downViewport("time.vp")
 			xscale <- as.POSIXct.numeric(convertX(unit(c(0,1), "npc"), "native"))
@@ -275,7 +275,7 @@ grid.timeseries.plot <- function(blob.list, xscale=NULL, yscale=NULL, sameScales
 		if (identical(sub, T)) {
 			mySync <- sync.timeblobs(blob.list)
 			dataPoints <- sum(is.na(unlist(mySync[-1]))==F)
-			sub <- hydrosanity.caption(c(start.timeblobs(blob.list), end.timeblobs(blob.list)),
+			sub <- hydrosanity.caption(timelim.timeblobs(blob.list),
 				by=attr(mySync, "timestep"), n=dataPoints, series=nBlobs)
 		}
 		if (is.character(sub)) { sub <- textGrob(sub) }
@@ -624,11 +624,11 @@ lattice.x.prettylog <- function(lim, ...) {
 }
 
 # lim should be POSIXct or numeric (see as.numeric.POSIXct)
-timeAxisComponents <- function(lim, label=T) {
+timeAxisComponents <- function(lim, label=T, tz="GMT") {
 	if (length(lim) != 2) { stop("'lim' must be of length 2") }
 	if (is.numeric(lim)) {
 		class(lim) <- c("POSIXt", "POSIXct")
-		attr(lim, "tzone") <- ""
+		attr(lim, "tzone") <- tz
 	}
 	timelim <- as.POSIXct(lim)
 	lim <- as.numeric(timelim)
@@ -761,69 +761,172 @@ grid.xaxis.POSIXt <- function(lim=as.numeric(convertX(unit(c(0,1), "npc"), "nati
 	tmp
 }
 
-panel.interp <- function(x, y, z, subscripts=T, contour=T, region=F, xo.length=64, yo.length=xo.length, linear=T, extrap=F, ...) {
-	if (!require(akima)) {
-		warning("package 'akima' is required by 'panel.interp'")
-		return()
-	}
-	xlim <- convertX(unit(0:1,"npc"), "native", valueOnly=T)
-	ylim <- convertY(unit(0:1,"npc"), "native", valueOnly=T)
-	x <- x[subscripts]
-	y <- y[subscripts]
-	z <- z[subscripts]
-	# only interpolate with sites in twice visible range
-	xlim.use <- xlim + diff(xlim) * c(-0.5, 0.5)
-	ylim.use <- ylim + diff(ylim) * c(-0.5, 0.5)
-	use <- ((min(xlim.use) < x) & (x < max(xlim.use)) &
-		(min(ylim.use) < y) & (y < max(ylim.use)))
-	x <- x[use]
-	y <- y[use]
-	z <- z[use]
-	# construct marginal dimensions of grid
-	xo <- seq(min(xlim), max(xlim), length=xo.length)
-	yo <- seq(min(ylim), max(ylim), length=yo.length)
-	tmp.grid <- expand.grid(x=xo, y=yo)
-	# compute the spatial field (interpolation)
-	ok <- complete.cases(x, y, z)
-	if (sum(ok) < 4) {
-		warning("at least 4 locations are required by 'panel.interp'")
-		return()
-	}
-	tmp.grid$z <- as.vector(interp(x=x[ok], y=y[ok], z=z[ok], 
-		xo=xo, yo=yo, linear=linear, extrap=extrap, duplicate="mean")$z)
-	with(tmp.grid, panel.levelplot(x, y, z, subscripts=T, 
-		contour=contour, region=region, ...))
-}
 
-panel.maplines <- function(..., gp=NULL) {
+# this panel function may be used in either xyplot or levelplot
+panel.geo <- function(x, y, z, z.interp, subscripts, 
+	layers=c("labels", "points", "surface", "catchment", "cities", "rivers", "countries"), 
+	points.xy=NULL, points.labels, catchment.poly, contour=F, region=T, at, col.contours=grey(0.5), 
+	gp.labels=gpar(cex=0.7), gp.catchment=gpar(col="black"), gp.countries=gpar(col="black"), gp.cities=gpar(col="black", cex=0.7), pch.cities=15,
+	gp.rivers=gpar(col="blue", lty="longdash"), 
+	xo.length=64, yo.length=xo.length, linear=T, extrap=F, ...) {
+	
 	xlim <- convertX(unit(0:1,"npc"), "native", valueOnly=T)
 	ylim <- convertY(unit(0:1,"npc"), "native", valueOnly=T)
-	if ((113 <= max(xlim)) && (min(xlim) <= 154) && 
-		(-44 <= max(ylim)) && (min(ylim) <= -10)) {
-		# Australia
-		if (!require(oz)) { return() }
-		for (i in ozRegion(xlim=xlim, ylim=ylim)$lines) {
-			grid.lines(i$x, i$y, default.units="native", gp=gp)
+	
+	# draw interpolated surface
+	if ("surface" %in% layers) {
+		if (!missing(z.interp) && require(akima)) {
+			z <- z.interp
+			# x y z.interp need to be interpolated
+			# (this is probably xyplot, not levelplot)
+			# only interpolate with sites in twice visible range
+			xlim.use <- xlim + diff(xlim) * c(-0.5, 0.5)
+			ylim.use <- ylim + diff(ylim) * c(-0.5, 0.5)
+			# find subset of points to use
+			ok <- ((min(xlim.use) < x) & (x < max(xlim.use)) &
+				(min(ylim.use) < y) & (y < max(ylim.use)))
+			ok <- ok & (subscripts %in% seq_along(x))
+			ok <- ok & complete.cases(x, y, z)
+			if (sum(ok) < 4) {
+				warning("at least 4 locations are required for interpolation")
+				z <- NULL
+			} else {
+				# construct marginal dimensions of grid
+				xo <- seq(min(xlim), max(xlim), length=xo.length)
+				yo <- seq(min(ylim), max(ylim), length=yo.length)
+				tmp.grid <- expand.grid(x=xo, y=yo)
+				# compute the spatial field (interpolation)
+				tmp.grid$z <- as.vector(
+					interp(x=x[ok], y=y[ok], z=z[ok], 
+					xo=xo, yo=yo, linear=linear, 
+					extrap=extrap, duplicate="mean")$z)
+				# restrict surface within observed limits (for spline silliness)
+				if (!linear) {
+					tmp.grid$z <- pmax(min(z[ok]), pmin(max(z[ok]), tmp.grid$z))
+				}
+				if (missing(points.xy)) {
+					points.xy <- list(x=x, y=y)
+				}
+				x <- tmp.grid$x
+				y <- tmp.grid$y
+				z <- tmp.grid$z
+			}
+		}
+		if (!is.null(z)) {
+			# x y z on a grid (levelplot)
+			
+			myAt <- if (contour) pretty(z) else
+				seq(min(z, na.rm=T), max(z, na.rm=T), length=100)
+			if (!missing(at)) { myAt <- at }
+			mySubscripts <- if (missing(z.interp)) subscripts else T
+			panel.levelplot(x, y, z, subscripts=mySubscripts, contour=contour,
+				region=region, at=myAt,
+				col=col.contours, labels=list(col=col.contours), ...)
 		}
 	}
-	# TODO: other regions!
+	# draw map lines for national boundaries
+	if ("countries" %in% layers) {
+		if (require(mapdata, quietly=T)) {
+			try({
+				mapdb <- map("worldHires", plot=F, xlim=xlim, ylim=ylim)
+				grid.lines(mapdb$x, mapdb$y, gp=gp.countries, 
+					default.units="native")
+			}, silent=T)
+		} else
+		# Australia: 'oz' package has better resolution than 'maps'
+		if ((113 <= max(xlim)) && (min(xlim) <= 154) && 
+			(-44 <= max(ylim)) && (min(ylim) <= -10) &&
+			require(oz, quietly=T)) {
+			for (i in ozRegion(xlim=xlim, ylim=ylim)$lines) {
+				grid.lines(i$x, i$y, gp=gp.countries, 
+					default.units="native")
+			}
+		} else
+		if (require(maps)) {
+			try({
+				mapdb <- map("world", plot=F, xlim=xlim, ylim=ylim)
+				grid.lines(mapdb$x, mapdb$y, gp=gp.countries, 
+					default.units="native")
+			}, silent=T)
+		}
+	}
+	# draw rivers
+	if ("rivers" %in% layers) {
+		if (require(maps, quietly=T)) {
+			try({
+				mapdb <- map("rivers", plot=F, xlim=xlim, ylim=ylim)
+				grid.lines(mapdb$x, mapdb$y, gp=gp.rivers,
+					default.units="native")
+			}, silent=T)
+		}
+	}
+	# draw cities
+	if (("cities" %in% layers) && require(maps)) {
+		with(world.cities, {
+			ok <- ((min(xlim) < long) & (long < max(xlim)) &
+				(min(ylim) < lat) & (lat < max(ylim)))
+			if (any(ok)) {
+				ux <- unit(long[ok], "native")
+				uy <- unit(lat[ok], "native")
+				grid.points(ux, uy, gp=gp.cities, pch=pch.cities)
+				grid.text(ux, uy - unit(0.5, "char"), just="top",
+					label=name[ok], check.overlap=T, gp=gp.cities)
+			}
+		})
+	}
+	# draw catchment
+	if (("catchment" %in% layers) && !missing(catchment.poly)) {
+		grid.polygon(catchment.poly[,1], catchment.poly[,2], 
+			gp=gp.catchment, default.units="native")
+	}
+	# draw data points
+	if (any(c("points", "labels") %in% layers)) {
+		if (("surface" %in% layers) && missing(z.interp) && missing(points.xy)) {
+			# x and y are a grid of points (for levelplot)
+			# and points.xy not given; so don't have points
+			return()
+		}
+		if (!is.null(points.xy)) {
+			myX <- points.xy$x
+			myY <- points.xy$y
+		} else {
+			myX <- x
+			myY <- y
+		}
+		if (length(myX) > length(subscripts)) {
+			myX <- myX[subscripts]
+			myY <- myY[subscripts]
+		}
+		ux <- unit(myX, "native")
+		uy <- unit(myY, "native")
+		if ("points" %in% layers) {
+			#panel.xyplot(myX, myY, ...)
+			panel.points(myX, myY)
+		}
+		if (("labels" %in% layers) && !missing(points.labels)) {
+			if (length(points.labels) > length(subscripts)) {
+				points.labels <- points.labels[subscripts]
+			}
+			myJust <- "centre"
+			if ("points" %in% layers) {
+				uy <- uy - unit(0.5, "char")
+				myJust <- "top"
+			}
+			grid.text(ux, uy, label=points.labels, just=myJust, 
+				gp=gp.labels)
+		}
+	}
 }
 
-panel.pointmap <- function(x, y, z, subscripts=T, points.labels, contour=F, region=T, cuts=if (contour) 10 else 30, col.regions=grey(seq(0.95,0.65,length=100)), col.contours=grey(0.5), ...) {
-	if (!missing(z)) {
-		panel.interp(x, y, z, subscripts=subscripts,
-			contour=contour, region=region, cuts=cuts, 
-			col.regions=col.regions, col=col.contours, 
-			labels=list(col=col.contours))
-	}
-	panel.maplines()
-	panel.xyplot(x, y, subscripts=subscripts, ...)
-	if (!missing(points.labels)) {
-		panel.text(x[subscripts], y[subscripts], 
-			labels=points.labels[subscripts], pos=1, cex=0.7)
-	}
+panel.interp <- function(x, y, z, ...) {
+	panel.geo(x, y, z.interp, ..., layers=c("surface"))
 }
 
+panel.map <- function(...) {
+	panel.geo(..., layers=c("countries", "cities", "rivers"))
+}
+
+# extend default limits by 10% on each side
 prepanel.extend.10 <- function(...) {
 	tmp <- lattice:::prepanel.default.xyplot(...)
 	if (is.numeric(tmp$xlim)) {
@@ -840,5 +943,35 @@ prepanel.qqmath.fix <- function(x, ...) {
 	tmp <- lattice:::prepanel.default.qqmath(x, ...)
 	tmp$ylim <- range(x, finite=T)
 	tmp
+}
+
+## this function by Deepayan Sarkar, posted on R-help mailing list
+
+myYlabGrob <-
+   function(..., main.ylab = "") ## ...is lab1, lab2, etc
+{
+   ## you can add arguments to textGrob for more control
+   ## in the next line
+   labs <- lapply(list(...), textGrob, rot=90)
+   main.ylab <- textGrob(main.ylab, rot = 90)
+   nlabs <- length(labs)
+   lab.heights <-
+       lapply(labs,
+              function(lab) unit(1, "grobheight",
+                                 data=list(lab)))
+   unit1 <- unit(1.2, "grobheight", data = list(main.ylab))
+   unit2 <- do.call(max, lab.heights)
+   lab.layout <-
+       grid.layout(ncol = 2, nrow = nlabs,
+                   heights = unit(1, "null"),
+                   widths = unit.c(unit1, unit2),
+                   respect = TRUE)
+   lab.gf <- frameGrob(layout=lab.layout)
+   for (i in seq_len(nlabs))
+   {
+       lab.gf <- placeGrob(lab.gf, labs[[i]], row = i, col = 2)
+   }
+   lab.gf <- placeGrob(lab.gf, main.ylab, col = 1)
+   lab.gf
 }
 

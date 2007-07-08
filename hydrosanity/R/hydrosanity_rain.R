@@ -102,18 +102,19 @@ updateRainPage <- function() {
 				as.table=T)
 		)
 	)
-	plot.call$panel <- function(...) {
-		panel.levelplot(...)
-		panel.maplines()
+	plot.call$panel <- quote(panel.geo)
+	if (showPoints) {
+		plot.call$points.xy <- quote(tmp.locs)
 	}
 	
-	if (showPoints) {
-		plot.call$locations <- quote(tmp.locs)
-		plot.call$panel <- function(..., locations) {
-			panel.levelplot(...)
-			panel.maplines()
-			panel.points(locations)
-		}
+	if (!is.null(hsp$catchment)) {
+		plot.call$catchment.poly <- quote(hsp$catchment)
+	}
+	
+	plot.call$prepanel <- quote(prepanel.extend.10)
+	if (!is.null(hsp$region)) {
+		plot.call$xlim <- quote(hsp$region$xlim)
+		plot.call$ylim <- quote(hsp$region$ylim)
 	}
 	
 	# hydrosanity caption
@@ -125,8 +126,9 @@ updateRainPage <- function() {
 	
 	addToLog(paste(deparse(plot.call), collapse="\n"))
 	guiDo(plotAndPlay(plot.call=plot.call, name="rainfall map", 
-		extra.buttons=NULL, identify.call=id.call,
-		eval.args="^tmp"), doLog=F)
+		extra.buttons=hydrosanityButtons[c('setregion')], 
+		identify.call=id.call, eval.args="^tmp",
+		restore.on.close=StateEnv$win), doLog=F)
 	
 	if (length(tmpObjs) > 0) {
 		guiDo(call=bquote(rm(list=.(tmpObjs))))

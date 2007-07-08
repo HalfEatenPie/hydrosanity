@@ -4,6 +4,7 @@
 \alias{end.timeblob}
 \alias{start.timeblobs}
 \alias{end.timeblobs}
+\alias{timelim.timeblobs}
 \title{Time Windows of Time Series (Timeblobs)}
 \description{
   ~~ A concise (1-5 lines) description of what the function does. ~~
@@ -16,6 +17,7 @@
 
 start.timeblobs(blob.list)
 end.timeblobs(blob.list)
+timelim.timeblobs(blob.list)
 }
 \arguments{
   \item{blob}{ ~~Describe \code{blob} here~~ }

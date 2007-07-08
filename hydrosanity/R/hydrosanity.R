@@ -1,14 +1,15 @@
 ## Hydrosanity: an interface for exploring hydrological time series in R
 ##
-## Copyright (c) 2007 Felix Andrews <felix@nfrac.org>, GPL
-## based on Rattle, (c) 2006 Graham.Williams@togaware.com
+## Copyright (c) 2007 Felix Andrews <felix@nfrac.org>
+## based on Rattle (c) 2006 Graham.Williams@togaware.com
 ##
 
 MAJOR <- "0"
 MINOR <- "8"
 REVISION <- unlist(strsplit("$Revision: 0 $", split=" "))[2]
 VERSION <- paste(MAJOR, MINOR, REVISION, sep=".")
-COPYRIGHT <- "(c) 2007 Felix Andrews <felix@nfrac.org>, GPL\n based on Rattle, (c) 2006 Graham.Williams@togaware.com"
+COPYRIGHT <- paste("(c) 2007 Felix Andrews <felix@nfrac.org>\n",
+	" based on Rattle (c) 2006 Graham.Williams@togaware.com")
 WEBSITE <- "http://code.google.com/p/hydrosanity/"
 
 ## LICENSE
@@ -30,7 +31,7 @@ WEBSITE <- "http://code.google.com/p/hydrosanity/"
 TIMESERIES_FORMATS <- list(
 	".au BoM daily rainfall"=
 		c('read.timeblob',
-		  'skip=1, sep=",", dataname="Rain (mm/day)", dataCol=6, qualCol=7, extraCols=c(9), extraNames=c("AccumSteps"), readTimesFromFile=F, startTime=list(year=3,month=4,day=5), timeSeqBy="DSTday"'),
+		  'skip=1, sep=",", dataname="Rain (mm/day)", dataCol=6, qualCol=7, extraCols=c(9), extraNames=c("AccumSteps"), readTimesFromFile=F, startTime=list(year=3,month=4,day=5), timeSeqBy="DSTdays"'),
 	".au NSW Pinneena v8 streamflow (ML/day, default time format)"=
 		c('read.timeblob',
 		  'skip=3, sep=",", dataname="Flow (ML/day)", timeFormat="%H:%M_%d/%m/%Y", na.strings=c(\'""\')')
@@ -38,6 +39,10 @@ TIMESERIES_FORMATS <- list(
 
 SITELIST_FORMATS <- list(
 	".au BoM daily rainfall"='select.sites.BOM.AU'
+)
+
+CATCHMENT_FORMATS <- list(
+	"ESRI shapefile"='read.catchment.esri_shapefile'
 )
 
 # this stores application (non-project) state information
@@ -87,15 +92,16 @@ hydrosanity <- function() {
 	# set up initial GUI state
 	theWidget("notebook")$setCurrentPage(0)
 	theWidget("import_file_radio_options_notebook")$setShowTabs(FALSE)
-	setIsImportMode(TRUE)
 	theWidget("import_options_expander")$setExpanded(FALSE)
+	theWidget("import_edit_expander")$setExpanded(FALSE)
+	setIsImportMode(TRUE)
 	
 	known_format_combo <- theWidget("import_known_format_combobox")
 	known_format_combo$getModel()$clear()
 	for (x in names(TIMESERIES_FORMATS)) {
 		known_format_combo$appendText(x)
 	}
-	theWidget("import_known_format_combobox")$setActive(0)
+	known_format_combo$setActive(0)
 	theWidget("import_time_format_comboboxentry")$setActive(0)
 	theWidget("import_time_format_codes_combobox")$setActive(0)
 	theWidget("import_time_step_comboboxentry")$setActive(4)
@@ -105,6 +111,7 @@ hydrosanity <- function() {
 	theWidget("import_transform_yearstart_combobox")$setActive(0)
 	theWidget("import_transform_aggrfun_combobox")$setActive(0)
 	theWidget("import_transform_qualfun_combobox")$setActive(0)
+	theWidget("import_transform_ratio_timestep_comboboxentry")$setActive(3)
 	theWidget("export_time_format_comboboxentry")$setActive(0)
 	theWidget("export_time_format_codes_combobox")$setActive(0)
 	
@@ -113,8 +120,16 @@ hydrosanity <- function() {
 	for (x in names(SITELIST_FORMATS)) {
 		sitelist_format_combo$appendText(x)
 	}
-	theWidget("scope_sitelist_format_combobox")$setActive(0)
+	sitelist_format_combo$setActive(0)
 	theWidget("scope_sitearchive_type_combobox")$setActive(0)
+	
+	catchment_format_combo <- theWidget("scope_catchment_format_combobox")
+	catchment_format_combo$getModel()$clear()
+	for (x in names(CATCHMENT_FORMATS)) {
+		catchment_format_combo$appendText(x)
+	}
+	catchment_format_combo$setActive(0)
+	
 	theWidget("explore_cdf_aggr1_radiobutton")$setActive(T)
 	theWidget("explore_timeseries_aggr1_comboboxentry")$setActive(2)
 	theWidget("explore_timeseries_aggr2_comboboxentry")$setActive(4)
@@ -171,10 +186,11 @@ library(hydrosanity)
 
 setIsImportMode <- function(isImportMode) {
 	theWidget("timeperiod_scope_expander")$setExpanded(isImportMode)
-	theWidget("import_import_expander")$setExpanded(isImportMode)
-	theWidget("import_edit_expander")$setExpanded(!isImportMode)
-	theWidget("import_transform_expander")$setExpanded(FALSE)
-	theWidget("import_export_expander")$setExpanded(FALSE)
+	if (isImportMode) {
+		theWidget("import_import_expander")$setExpanded(TRUE)
+	} else {
+		theWidget("import_edit_expander")$setExpanded(TRUE)
+	}
 }
 
 updateNow <- function(page.num=theWidget("notebook")$getCurrentPage()) {
@@ -212,6 +228,13 @@ datasetModificationUpdate <- function() {
 		hsp$data <<- hsp$data[order(names(hsp$data))]
 	}
 	
+	ratio_item_combo <- theWidget("import_transform_ratio_item_combobox")
+	ratio_item_combo$getModel()$clear()
+	for (x in names(hsp$data)) {
+		ratio_item_combo$appendText(x)
+	}
+	ratio_item_combo$setActive(0)
+	
 	updateNow()
 }
 
@@ -227,8 +250,6 @@ timeperiodModificationUpdate <- function() {
 
 regionModificationUpdate <- function() {
 	hsp$modified <<- T
-	
-	StateEnv$update$timeperiod <- T
 	
 	updateNow()
 }
@@ -403,13 +424,13 @@ select.sites.BOM.AU <- function(siteListFile, archivePath, return.data=FALSE, xl
 		if (tolower(get.extension(archivePath)) == "zip") {
 			fileConn <- unz(archivePath, filename, open="")
 		} else {
-			fileConn <- paste(archivePath, filename, sep='/')
+			fileConn <- file.path(archivePath, filename)
 		}
 		dataset[[x]] <- read.timeblob(fileConn, skip=1, sep=",", 
 			sitename=siteinfo$name[i], dataname="Rain (mm/day)", 
 			dataCol=6, qualCol=7, extraCols=c(9), 
 			extraNames=c("AccumSteps"), readTimesFromFile=F, 
-			startTime=list(year=3, month=4, day=5), timeSeqBy="DSTday")
+			startTime=list(year=3, month=4, day=5), timeSeqBy="DSTdays")
 		attr(dataset[[x]], "role") <- "RAIN"
 		myLoc <- c(siteinfo$x[i], siteinfo$y[i])
 		if (!any(is.na(myLoc))) {
@@ -421,29 +442,13 @@ select.sites.BOM.AU <- function(siteListFile, archivePath, return.data=FALSE, xl
 	}
 	
 	return(dataset)
-	
-	##### below is old
-	
-	# select only sites with enough data (data.threshold) in time period
-	if (!is.null(timelim)) {
-		dataset.sub <- lapply(dataset, window, min(timelim), max(timelim))
-	} else {
-		dataset.sub <- dataset
-	}
-	datapoints <- sapply.timeblob.data(dataset.sub, 
-		function(x) { sum(!is.na(x)) })
-	periodlim <- c(start.timeblobs(dataset.sub), end.timeblobs(dataset.sub))
-	rm(dataset.sub)
-	periodpoints <- length(seq(min(periodlim), max(periodlim), by="DSTdays"))-1
-	ok <- (datapoints / periodpoints) >= data.threshold
-	
-	if (return.data) {
-		dataset <- dataset[ok]
-		return(dataset)
-	} else {
-		siteinfo <- siteinfo[ok,]
-		return(siteinfo)
-	}
+}
+
+read.catchment.esri_shapefile <- function(file) {
+	stopifnot(require(maptools))
+	theShape <- read.shape(file)
+	# assuming: Shapefile type: Polygon, (5), # of Shapes: 1
+	return(theShape$Shapes[[1]]$verts)
 }
 
 
