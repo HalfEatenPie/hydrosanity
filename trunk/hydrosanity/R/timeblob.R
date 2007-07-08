@@ -3,7 +3,7 @@
 ## Copyright (c) 2007 Felix Andrews <felix@nfrac.org>, GPL
 
 
-timeblob <- function(Time, Data, Qual=NULL, extras=NULL, timestep=NULL, sitename=NULL, dataname="Data") {
+timeblob <- function(Time, Data, Qual=NULL, extras=NULL, timestep=NULL, sitename="Unknown", dataname="Data") {
 	# check types
 	Time <- as.POSIXct(Time)
 	if (any(is.na(Time))) { stop("'Time' must be a vector of valid times (POSIXt)") }
@@ -11,7 +11,7 @@ timeblob <- function(Time, Data, Qual=NULL, extras=NULL, timestep=NULL, sitename
 		extras <- Data[-1]
 		Data <- Data[[1]]
 	}
-	if (!inherits(Data, "numeric")) { stop("'Data' must be numeric") }
+	if (!is.numeric(Data)) { stop("'Data' must be numeric") }
 	# construct timeblob
 	blob <- data.frame(
 		Time=Time,
@@ -38,7 +38,6 @@ timeblob <- function(Time, Data, Qual=NULL, extras=NULL, timestep=NULL, sitename
 	}
 	attr(blob, "timestep") <- timestep
 	# set sitename
-	if (is.null(sitename)) { sitename <- deparse(substitute(Data)) }
 	attr(blob, "sitename") <- sitename
 	# set dataname
 	attr(blob, "dataname") <- dataname
@@ -53,7 +52,7 @@ is.timeblob <- function(x) {
 		is.data.frame(x) &&
 		(ncol(x) >= 2) &&
 		inherits(x$Time, "POSIXct") &&
-		inherits(x$Data, "numeric") &&
+		is.numeric(x$Data) &&
 		!is.null(attr(x, "timestep")) &&
 		!is.null(attr(x, "sitename")) &&
 		!is.null(attr(x, "dataname")))
@@ -75,13 +74,13 @@ sapply.timeblob.data <- function(blob.list, FUN, ...) {
 	sapply(lapply(blob.list, function(x) { x$Data }), FUN, ...)
 }
 
-read.timeblob <- function(file, skip=1, sep=",", sitename=NULL, dataname="Data", dataCol=2, qualCol=3, extraCols=c(), extraNames=paste("Extra",extraCols), readTimesFromFile=T, timeCol=1, timeFormat="%d %b %Y", startTime=NA, timeSeqBy="DSTday", ...) {
+read.timeblob <- function(file, skip=1, sep=",", sitename=NULL, dataname="Data", dataCol=2, qualCol=3, extraCols=c(), extraNames=paste("Extra",extraCols), readTimesFromFile=T, timeCol=1, timeFormat="%d %b %Y", startTime=NA, tz="GMT", timeSeqBy="DSTdays", ...) {
 	# check types
 	if (is.null(sitename)) {
 		if (inherits(file, "connection")) {
 			sitename <- make.names(deparse(substitute(file)))
 		} else {
-			sitename <- basename(file)
+			sitename <- get.stem(file)
 		}
 	}
 	if (!is.numeric(dataCol)) { stop("'dataCol' must be numeric (column number)") }
@@ -89,7 +88,7 @@ read.timeblob <- function(file, skip=1, sep=",", sitename=NULL, dataname="Data",
 		if (!is.numeric(timeCol)) { stop("'timeCol' must be numeric (column number)") }
 	} else {
 		if (!is.list(startTime)) {
-			startTime <- as.POSIXct(startTime)
+			startTime <- as.POSIXct(startTime, tz=tz)
 			if (is.na(startTime)) { stop("could not convert 'startTime' to a time") }
 		}
 	}
@@ -143,7 +142,7 @@ read.timeblob <- function(file, skip=1, sep=",", sitename=NULL, dataname="Data",
 	myTime <- NA
 	if (readTimesFromFile) {
 		timeIndex <- timeCol - sum(fileColClasses[1:timeCol]=="NULL", na.rm=T)
-		myTime <- strptime(rawData[[timeIndex]], format=timeFormat)
+		myTime <- strptime(rawData[[timeIndex]], format=timeFormat, tz=tz)
 		if (any(is.na(myTime))) {
 			firstNA <- which(is.na(myTime))[1]
 			stop('could not convert "', rawData[firstNA,timeIndex],
@@ -157,6 +156,7 @@ read.timeblob <- function(file, skip=1, sep=",", sitename=NULL, dataname="Data",
 			if (is.null(timeBits$hour)) { timeBits$hour <- 0 }
 			if (is.null(timeBits$min)) { timeBits$min <- 0 }
 			if (is.null(timeBits$sec)) { timeBits$sec <- 0 }
+			timeBits$tz <- tz
 			startTime <- do.call(ISOdatetime, timeBits)
 			if (is.na(startTime)) {
 				myBits <- paste(paste(names(unlist(timeBits)), '=', unlist(timeBits)), collapse=', ')
@@ -194,7 +194,6 @@ end.timeblob <- function(blob) {
 start.timeblobs <- function(blob.list) {
 	# check types
 	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
-	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
 	globalStart <- as.POSIXct(min(unlist(lapply(blob.list, start.timeblob))))
 	return(globalStart)
 }
@@ -202,9 +201,15 @@ start.timeblobs <- function(blob.list) {
 end.timeblobs <- function(blob.list) {
 	# check types
 	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
-	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
 	globalEnd <- as.POSIXct(max(unlist(lapply(blob.list, end.timeblob))))
 	return(globalEnd)
+}
+
+timelim.timeblobs <- function(blob.list) {
+	# NOTE: can't use c() because it strips the "tzone" attribute
+	tmp <- start.timeblobs(blob.list)
+	tmp[2] <- end.timeblobs(blob.list)
+	tmp
 }
 
 
@@ -307,7 +312,7 @@ sync.timeblobs <- function(blob.list, timestep=NULL, timelim=NULL, extractColumn
 	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
 	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
 	if (is.null(timelim)) {
-		timelim <- c(start.timeblobs(blob.list), end.timeblobs(blob.list))
+		timelim <- timelim.timeblobs(blob.list)
 	} else {
 		timelim <- as.POSIXct(timelim)
 		if (any(is.na(timelim))) { stop("'timelim' must be a pair of valid times (POSIXt)") }
@@ -317,8 +322,7 @@ sync.timeblobs <- function(blob.list, timestep=NULL, timelim=NULL, extractColumn
 	if (is.null(timestep)) {
 		timestep <- common.timestep.timeblobs(blob.list)
 	}
-	times <- seq.POSIXt(min(timelim), max(timelim), 
-		by=timestep)
+	times <- seq.POSIXt(min(timelim), max(timelim), by=timestep)
 	# omit last time since the 'timelim' extends to *end* of last period
 	times <- times[-length(times)]
 	# construct data frame
@@ -395,7 +399,7 @@ summary.missing.timeblobs <- function(blob.list, timelim=NULL, timestep=NULL) {
 	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
 	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
 	if (is.null(timelim)) {
-		timelim <- c(start.timeblobs(blob.list), end.timeblobs(blob.list))
+		timelim <- timelim.timeblobs(blob.list)
 	} else {
 		timelim <- as.POSIXct(timelim)
 		if (any(is.na(timelim))) { stop("'timelim' must be a pair of valid times (POSIXt)") }
@@ -487,7 +491,7 @@ aggregate.timeblob <- function(blob, by="1 year", FUN=mean, fun.qual=c("worst","
 	freqN <- floor(newDelta / oldDelta)
 	# construct groups
 	dateGroups <- cut.POSIXt(blob$Time, breaks=by)
-	newDates <- as.POSIXct(levels(dateGroups))
+	newDates <- as.POSIXct(levels(dateGroups), tz=attr(blob$Time, "tzone"))
 	# aggregate
 	aggrVars <- c("Data")
 	hasExtraVars <- (length(names(blob)) > 3)
@@ -551,9 +555,26 @@ aggregate.timeblob <- function(blob, by="1 year", FUN=mean, fun.qual=c("worst","
 	}
 	# construct new blob
 	newBlob <- timeblob(Time=newDates, Data=allNewVals, Qual=newQual,
-		timestep=by, dataname=attr(blob, "dataname"))
+		timestep=by)
 	attr(newBlob, "role") <- attr(blob, "role")
+	attr(newBlob, "dataname") <- attr(blob, "dataname")
+	attr(newBlob, "sitename") <- attr(blob, "sitename")
+	attr(newBlob, "location.xy") <- attr(blob, "location.xy")
+	attr(newBlob, "elevation") <- attr(blob, "elevation")
 	return(newBlob)
+}
+
+smooth.timeblob <- function(blob, by="1 year") {
+	triangularFilter <- function(n) {
+		tmp <- c(1:floor(n/2), ceiling(n/2):1)
+		tmp / sum(tmp)
+	}
+	delta <- as.numeric.byString(attr(blob, "timestep"))
+	smoothDelta <- as.numeric.byString(by)
+	winSize <- round(smoothDelta / delta)
+	tmp.filter <- triangularFilter(winSize)
+	blob$Data <- filter(blob$Data, tmp.filter)
+	blob
 }
 
 quick.disaccumulate.timeblob <- function(blob) {
@@ -601,8 +622,7 @@ impute.timeblobs <- function(blob.list, which.impute=names(blob.list), timelim=N
 	if (extend) {
 		myTimelim <- timelim
 		if (is.null(timelim)) {
-			myTimelim <- c(start.timeblobs(blob.list),
-				end.timeblobs(blob.list))
+			myTimelim <- timelim.timeblobs(blob.list)
 		}
 		for (x in which.impute) {
 			if (start(blob.list[[x]]) > min(myTimelim)) {
@@ -830,7 +850,7 @@ imputeGaps.timeblobs <- function(blob.list, which.impute=names(blob.list), type=
 	# then, fill in the imputed values in gaps
 	for (x in which.impute) {
 		impBlob <- imputed.blobs[[x]]
-		imputedPeriod <- c(start(impBlob), end(impBlob))
+		imputedPeriod <- timelim.timeblobs(impBlob)
 		lim <- window(blob.list[[x]], start(impBlob), end(impBlob), 
 			return.indices=T)
 		#lim <- findInterval(imputedPeriod, blob.list[[x]]$Time)
@@ -1006,7 +1026,7 @@ spatialField <- function(blob.list, timelim=NULL, type=c("overall","annual","qua
 	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
 	if (length(blob.list) < 4) { stop("Need at least 4 items") }
 	if (is.null(timelim)) {
-		timelim <- c(start.timeblobs(blob.list), end.timeblobs(blob.list))
+		timelim <- timelim.timeblobs(blob.list)
 	} else {
 		timelim <- as.POSIXct(timelim)
 		if (any(is.na(timelim))) { stop("'timelim' must be a pair of valid times (POSIXt)") }
@@ -1081,6 +1101,11 @@ spatialField <- function(blob.list, timelim=NULL, type=c("overall","annual","qua
 		# compute the spatial field (interpolation)
 		monthSurf <- interp(x=loc$x[ok], y=loc$y[ok], z=dataPoints, 
 			xo=xo, yo=yo, linear=linear, extrap=extrap)$z
+		# restrict surface within observed limits (for spline silliness)
+		if (!linear) {
+			monthSurf <- pmax(min(dataPoints), pmin(max(dataPoints),
+				monthSurf))
+		}
 		gridOK <- !is.na(monthSurf)
 		# store accumulated surface for this month
 		# increment 'count' for each cell that has data for this month
@@ -1274,10 +1299,8 @@ as.numeric.byString <- function(x) {
 	return(as.numeric(timeseq[2]) - as.numeric(timeseq[1]))
 }
 
-as.POSIXct.numeric <- function(secs_since_1970, tz="") {
-	if (!is.numeric(secs_since_1970)) {
-		stop("'secs_since_1970' must be numeric")
-	}
+as.POSIXct.numeric <- function(secs_since_1970, tz="GMT") {
+	stopifnot(is.numeric(secs_since_1970))
 	secs_since_1970 <- as.numeric(secs_since_1970)
 	class(secs_since_1970) <- c("POSIXt", "POSIXct")
 	attr(secs_since_1970, "tzone") <- tz

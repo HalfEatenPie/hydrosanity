@@ -138,7 +138,7 @@ updateImportPage <- function() {
 	
 	wasEmpty <- (length(hsp$data) == 0)
 	
-	import.cmd.str <- rep("", length(filenames))
+	import.string <- rep("", length(filenames))
 	dataName <- rep("", length(filenames))
 	
 	## Fix filename for MS - otherwise eval/parse strip the \\.
@@ -158,7 +158,7 @@ updateImportPage <- function() {
 		importFn <- importSpec[1]
 		# user may have changed options in GUI, so use myOptionString
 		for (i in seq(along=filenames)) {
-			import.cmd.str[i] <- sprintf(
+			import.string[i] <- sprintf(
 				'hsp$data[["%s"]] <- %s("%s"%s)', 
 				dataName[i], importFn, filenames[i], myOptionString)
 		}
@@ -167,7 +167,7 @@ updateImportPage <- function() {
 		myTimeCol <- theWidget("import_time_column_spinbutton")$getValue()
 		myTimeFormat <- theWidget("import_time_format_comboboxentry")$getActiveText()
 		for (i in seq(along=filenames)) {
-			import.cmd.str[i] <- sprintf(
+			import.string[i] <- sprintf(
 				'hsp$data[["%s"]] <- read.timeblob("%s", timeCol=%i, timeFormat="%s"%s)',
 				dataName[i], filenames[i], myTimeCol, myTimeFormat, myOptionString)
 		}
@@ -176,14 +176,14 @@ updateImportPage <- function() {
 		myStartTime <- theWidget("import_time_start_entry")$getText()
 		myTimeSeqBy <- theWidget("import_time_step_comboboxentry")$getActiveText()
 		for (i in seq(along=filenames)) {
-			import.cmd.str[i] <- sprintf(
+			import.string[i] <- sprintf(
 				'hsp$data[["%s"]] <- read.timeblob("%s", startTime="%i", timeSeqBy="%s"%s)',
 				dataName[i], filenames[i], myStartTime, myTimeSeqBy, myOptionString)
 		}
 	}
 	
 	for (i in seq(along=filenames)) {
-		result <- guiDo(string=import.cmd.str[i])
+		result <- guiDo(string=import.string[i])
 		setStatusBar("Imported file ", dQuote(basename(filenames[i])),
 			" to hsp$data[[", dQuote(dataName[i]), "]]")
 		# mark as rain/flow/etc
@@ -298,7 +298,7 @@ updateImportPage <- function() {
 		check.names=F,
 		stringsAsFactors=F
 	)
-	
+	tmp.meta <<- metadata
 	newMeta <- guiDo(editAsText(metadata), doLog=F)
 	if (identical(metadata, newMeta)) {
 		return()
@@ -375,14 +375,15 @@ updateImportPage <- function() {
 	
 	for (x in blobNames) {
 		addLogComment("Extract extra columns into new item(s)")
+		myCols <- ncol(hsp$data[[x]])
 		myExtras <- names(hsp$data[[x]])[-(1:3)]
 		for (extraName in myExtras) {
-			newBlobName <- make.names(paste(x,extraName,sep='.'))
+			if (!is.numeric(hsp$data[[x]][[extraName]])) { next }
+			newBlobName <- paste(x,make.names(extraName),sep='_')
 			guiDo(call=bquote({
-				hsp$data[[.(newBlobName)]] <- with(hsp$data[[.(x)]],
-					timeblob(Time, Data=.(as.symbol(extraName)),
-						Qual=Qual))
-				attr(hsp$data[[.(newBlobName)]], "role") <- .(attr(hsp$data[[x]], "role"))
+				hsp$data[[.(newBlobName)]] <- hsp$data[[.(x)]]
+				hsp$data[[.(newBlobName)]][4:.(myCols)] <- NULL
+				hsp$data[[.(newBlobName)]]$Data <- hsp$data[[.(x)]][[.(extraName)]]
 				hsp$data[[.(x)]][[.(extraName)]] <- NULL
 			}))
 		}
@@ -404,12 +405,12 @@ updateImportPage <- function() {
 	factorCmdRaw <- theWidget("import_makefactor_comboboxentry")$getActiveText()
 	
 	addLogComment("Convert quality codes")
-	factor_fn.cmd.str <- paste(sep="\n",
+	factor_fn.string <- paste(sep="\n",
 		'tmp.factor <- function(x) {',
 			'x2 <- {', factorCmdRaw, '}',
 			'factor(x2, ordered=T, exclude=NULL)',
 		'}')
-	guiDo(string=factor_fn.cmd.str)
+	guiDo(string=factor_fn.string)
 	
 	for (i in blobIndices) {
 		blobName <- names(hsp$data)[i]
@@ -493,7 +494,7 @@ updateImportPage <- function() {
 		myOptionString <- paste(', sep="\t"', myOptionString, sep='')
 	}
 	
-	importFn <- if (csvFile) { "write.csv" } else { "write.table" }
+	exportFn <- if (csvFile) { "write.csv" } else { "write.table" }
 	ext <- if (csvFile) { "csv" } else { "txt" }
 	
 	defaultName <- blobNames[1]
@@ -525,10 +526,10 @@ updateImportPage <- function() {
 				timelim=.(if (justTimePeriod) { quote(hsp$timePeriod) }))
 			tmp.data$Time <- format(tmp.data$Time, format=.(timeFormat))
 		}))
-		export.cmd.str <- sprintf(
+		export.string <- sprintf(
 			'%s(tmp.data, %s%s)', 
-			importFn, dQuote(filename), myOptionString)
-		guiDo(string=export.cmd.str)
+			exportFn, dQuote(filename), myOptionString)
+		guiDo(string=export.string)
 		setStatusBar("Exported data to ", dQuote(filename))
 			
 	} else {
@@ -556,10 +557,10 @@ updateImportPage <- function() {
 			guiDo(call=bquote(
 				tmp.data$Time <- format(tmp.data$Time, format=.(timeFormat))
 			))
-			export.cmd.str <- sprintf(
+			export.string <- sprintf(
 				'%s(tmp.data, %s%s)', 
-				importFn, dQuote(myFilename), myOptionString)
-			guiDo(string=export.cmd.str)
+				exportFn, dQuote(myFilename), myOptionString)
+			guiDo(string=export.string)
 			setStatusBar("Exported data item ", dQuote(x), " to ", 
 				dQuote(myFilename))
 		}
@@ -595,23 +596,71 @@ updateImportPage <- function() {
 	for (x in blobNames) {
 		newName <- x
 		if (!doReplace) {
-			newName <- paste(x, "_", timestepString, sep='')
-			newName <- make.names(newName)
+			newName <- paste(x, sub(' ','',timestepString), sep='_')
 		}
-		aggr.cmd <- bquote(
+		aggr.call <- bquote(
 			hsp$data[[.(newName)]] <- aggregate.timeblob(
 				hsp$data[[.(x)]], by=.(timestepString))
 		)
-		if (aggrFunIdx > 1) { aggr.cmd[[3]]$FUN <- aggrFun }
-		if (qualFunIdx > 1) { aggr.cmd[[3]]$fun.qual <- qualFunName }
+		if (aggrFunIdx > 1) { aggr.call[[3]]$FUN <- aggrFun }
+		if (qualFunIdx > 1) { aggr.call[[3]]$fun.qual <- qualFunName }
 		if (any(grep(" month", timestepString)) || any(grep("year", timestepString))) {
 			if (startMonth != 1) {
-				aggr.cmd[[3]]$start.month <- startMonth
+				aggr.call[[3]]$start.month <- startMonth
 			}
 		}
-		guiDo(call=aggr.cmd)
+		guiDo(call=aggr.call)
 		setStatusBar("Resampled object ", dQuote(x))
 	}
+	
+	datasetModificationUpdate()
+}
+
+.hs_on_import_transform_ratio_button_clicked <- function(button) {
+	StateEnv$win$setSensitive(F)
+	on.exit(StateEnv$win$setSensitive(T))
+	setStatusBar("")
+	
+	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
+	if (length(blobIndices)==0) {
+		errorDialog("No items selected.")
+		return()
+	}
+	nBlobs <- length(blobIndices)
+	blobNames <- names(hsp$data)[blobIndices]
+	
+	timestepString <- theWidget("import_transform_ratio_timestep_comboboxentry")$getActiveText()
+	denomIndex <- theWidget("import_transform_ratio_item_combobox")$getActive() + 1
+	denomName <- names(hsp$data)[denomIndex]
+	
+	addLogComment("Take ratio of time series over ", timestepString)
+	
+	delta <- as.numeric.byString(attr(hsp$data[[denomName]], "timestep"))
+	smoothDelta <- as.numeric.byString(timestepString)
+	winSize <- round(smoothDelta / delta)
+	guiDo(call=bquote(tmp.filter <- rep(1/.(winSize), .(winSize))))
+		
+	guiDo(call=bquote({
+		tmp.denom <- hsp$data[[.(denomName)]]
+		tmp.denom$Data <- filter(tmp.denom$Data, tmp.filter)
+		tmp.data <- syncTo.timeblobs(hsp$data[.(blobNames)], 
+			blob=tmp.denom)
+		tmp.data[-1] <- lapply(tmp.data[-1], filter, tmp.filter)
+	}))
+	
+	for (i in seq(along=blobNames)) {
+		x <- blobNames[i]
+		newName <- paste('ratio', x, denomName, sep='_')
+		newDataName <- paste(attr(hsp$data[[x]], "dataname"),
+			attr(hsp$data[[denomName]], "dataname"), sep=" / ")
+		guiDo(call=bquote(
+			hsp$data[[.(newName)]] <- timeblob(tmp.data$Time, 
+				Data=(tmp.data[[.(i+1)]] / tmp.denom$Data), 
+				dataname=.(newDataName))
+		))
+	}
+	
+	setStatusBar("Generated ratio of ", nBlobs, " item(s) to ", dQuote(denomName))
 	
 	datasetModificationUpdate()
 }
@@ -676,6 +725,17 @@ setDataRole <- function(blobName, role=NULL, doLogComment=T) {
 .hs_on_import_known_format_combobox_changed <- function(widget) {
 	kfIndex <- widget$getActive()+1
 	theWidget("import_options_entry")$setText(TIMESERIES_FORMATS[[kfIndex]][2])
+}
+
+.hs_on_dataset_expanders_activate <- function(widget) {
+	for (x in c("import_import_expander", "import_edit_expander",
+	"import_transform_expander", "import_export_expander")) {
+		if (theWidget(x) == widget) {
+			# skip, will be expanded
+		} else {
+			theWidget(x)$setExpanded(FALSE)
+		}
+	}
 }
 
 

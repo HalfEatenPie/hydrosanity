@@ -39,6 +39,7 @@ openProject <- function() {
 			oldLevels[oldLevels == "maybe"] <- "suspect"
 			levels(hsp$data[[i]]$Qual) <<- oldLevels
 		}
+		addLogComment("NOTE: converted project for hydrosanity >= 0.6")
 	}
 	if (package_version(hsp$version) < package_version("0.8")) {
 		# add "sitename" attribute
@@ -47,6 +48,18 @@ openProject <- function() {
 				attr(hsp$data[[i]], "sitename") <<- names(hsp$data)[i]
 			}
 		}
+		# convert times to "GMT" timezone
+		for (i in seq(along=hsp$data)) {
+			tmp <- as.POSIXlt(hsp$data[[i]]$Time)
+			attr(tmp, "tzone") <- "GMT"
+			hsp$data[[i]]$Time <<- as.POSIXct(tmp)
+		}
+		if (!is.null(hsp$timePeriod)) {
+			tmp <- as.POSIXlt(hsp$timePeriod)
+			attr(tmp, "tzone") <- "GMT"
+			hsp$timePeriod <<- as.POSIXct(tmp)
+		}
+		addLogComment("NOTE: converted project for hydrosanity >= 0.8")
 	}
 	hsp$version <<- NULL
 	

@@ -6,36 +6,23 @@
 Hydrosanity: graphical interface for exploring hydrological time series
 }
 \description{
-More about what it does (maybe more than one line)
-~~ A concise (1-5 lines) description of the package ~~
+See \code{help(package=hydrosanity)}.
 }
 \details{
 \tabular{ll}{
 Package: \tab hydrosanity\cr
 Type: \tab Package\cr
-Version: \tab 1.0\cr
+Version: \tab \code{hydrosanity:::VERSION}\cr
 Date: \tab 2007-03-24\cr
-License: \tab What license is it under?\cr
+License: \tab GPL version 2 or newer\cr
 }
-~~ An overview of how to use the package, including the most important ~~
-~~ functions ~~
 }
-\author{
-Who wrote it
-
-Maintainer: Who to complain to <yourfault@somewhere.net>
-~~ The author and/or maintainer of the package ~~
-}
+\author{ Felix Andrews \email{felix@nfrac.org} }
 \references{
-~~ Literature or other references for background information ~~
+coming soon...
 }
-~~ Optionally other standard keywords, one per line, from file KEYWORDS in ~~
-~~ the R documentation directory ~~
 \keyword{ package }
 \seealso{
-~~ Optional links to other man pages, e.g. ~~
-~~ \code{\link[<pkg>:<pkg>-package]{<pkg>}} ~~
+\code{\link{hydrosanity}}
 }
-\examples{
-~~ simple examples of the most important functions ~~
 }

@@ -29,6 +29,7 @@ updateExplorePage <- function() {
 	doAggr2 <- theWidget("explore_timeseries_aggr2_checkbutton")$getActive()
 	aggr1By <- theWidget("explore_timeseries_aggr1_comboboxentry")$getActiveText()
 	aggr2By <- theWidget("explore_timeseries_aggr2_comboboxentry")$getActiveText()
+	doSmooth <- theWidget("explore_timeseries_smooth_checkbutton")$getActive()
 	startMonth <- theWidget("explore_yearstart_combobox")$getActive() + 1
 	nTrans <- (doRawData + doAggr1 + doAggr2)
 	if (nTrans == 0) { return() }
@@ -58,6 +59,11 @@ updateExplorePage <- function() {
 				aggr.call[[3]]$start.month <- startMonth
 			}
 		}
+		if (doSmooth) {
+			aggr.call <- bquote(
+				tmp.aggr1 <- lapply(.(rawdata.call), 
+					smooth.timeblob, by=.(aggr1By)))
+		}
 		guiDo(call=aggr.call)
 	}
 	if (doAggr2) {
@@ -69,6 +75,11 @@ updateExplorePage <- function() {
 			if (startMonth != 1) {
 				aggr.call[[3]]$start.month <- startMonth
 			}
+		}
+		if (doSmooth) {
+			aggr.call <- bquote(
+				tmp.aggr2 <- lapply(.(rawdata.call), 
+					smooth.timeblob, by=.(aggr2By)))
 		}
 		guiDo(call=aggr.call)
 	}
@@ -152,7 +163,7 @@ updateExplorePage <- function() {
 	# plot scales and annotation specifications
 	plot.call$xscale <- quote(hsp$timePeriod)
 	plot.call$sameScales <- if (doCommonScale) { T } else { F }
-	plot.call$allSameScales <- if (doCommonScale && doSuperpose
+	plot.call$allSameScales <- if (doCommonScale && doSuperpose && !doSmooth
 		&& (length(list.call[-1]) > 1)) { T }
 	plot.call$qualTimeline <- if (doQual) {
 		if (doSuperpose && (nBlobs > 1)) { F } else { T }
@@ -285,7 +296,7 @@ updateExplorePage <- function() {
 	guiDo(call=bquote({
 		tmp.n <- sum(!unlist(lapply.timeblob.data(tmp.data, is.na)))
 		tmp.caption <- hydrosanity.caption(
-			c(start.timeblobs(tmp.data), end.timeblobs(tmp.data)), 
+			timelim.timeblobs(tmp.data), 
 			by=.(attr(tmp.data[[1]], "timestep")), n=tmp.n, 
 			series=.(nBlobs))
 	}))

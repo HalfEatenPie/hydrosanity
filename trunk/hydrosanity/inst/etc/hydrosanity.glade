@@ -506,6 +506,7 @@ The GNU General Public License is available at http://www.gnu.org/copyleft/gpl.h
 		      <property name="can_focus">True</property>
 		      <property name="expanded">True</property>
 		      <property name="spacing">0</property>
+		      <signal name="activate" handler=".hs_on_dataset_expanders_activate" last_modification_time="Thu, 05 Jul 2007 07:35:19 GMT"/>
 
 		      <child>
 			<widget class="GtkVBox" id="vbox3">
@@ -569,7 +570,7 @@ The GNU General Public License is available at http://www.gnu.org/copyleft/gpl.h
 				<widget class="GtkRadioButton" id="import_file_with_time_radio">
 				  <property name="visible">True</property>
 				  <property name="can_focus">True</property>
-				  <property name="label" translatable="yes">Import data and times from a file</property>
+				  <property name="label" translatable="yes">Import with times from file</property>
 				  <property name="use_underline">True</property>
 				  <property name="relief">GTK_RELIEF_NORMAL</property>
 				  <property name="focus_on_click">True</property>
@@ -590,7 +591,7 @@ The GNU General Public License is available at http://www.gnu.org/copyleft/gpl.h
 				<widget class="GtkRadioButton" id="import_file_seq_radio">
 				  <property name="visible">True</property>
 				  <property name="can_focus">True</property>
-				  <property name="label" translatable="yes">Import data from a file (specify times)</property>
+				  <property name="label" translatable="yes">Import from file (specify times)</property>
 				  <property name="use_underline">True</property>
 				  <property name="relief">GTK_RELIEF_NORMAL</property>
 				  <property name="focus_on_click">True</property>
@@ -678,7 +679,7 @@ The GNU General Public License is available at http://www.gnu.org/copyleft/gpl.h
 				  <child>
 				    <widget class="GtkComboBox" id="import_known_format_combobox">
 				      <property name="visible">True</property>
-				      <property name="items" translatable="yes">No known formats (set hsKnownFormats)</property>
+				      <property name="items" translatable="yes">No known formats (TIMESERIES_FORMATS)</property>
 				      <property name="add_tearoffs">False</property>
 				      <property name="focus_on_click">True</property>
 				      <signal name="changed" handler=".hs_on_import_known_format_combobox_changed" last_modification_time="Fri, 16 Feb 2007 06:47:41 GMT"/>
@@ -728,7 +729,7 @@ The GNU General Public License is available at http://www.gnu.org/copyleft/gpl.h
 				  <child>
 				    <widget class="GtkLabel" id="label66">
 				      <property name="visible">True</property>
-				      <property name="label" translatable="yes">Import from a file, read times from column</property>
+				      <property name="label" translatable="yes">Import from file, times in column</property>
 				      <property name="use_underline">False</property>
 				      <property name="use_markup">False</property>
 				      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -841,12 +842,13 @@ The GNU General Public License is available at http://www.gnu.org/copyleft/gpl.h
 
 				  <child>
 				    <widget class="GtkComboBox" id="import_time_format_codes_combobox">
+				      <property name="width_request">160</property>
 				      <property name="visible">True</property>
-				      <property name="items" translatable="yes">(click for a list of format codes)
-%j = julian (day of year 1-366)
+				      <property name="items" translatable="yes">(click to see format codes)
+%j = julian (day of year)
 %Y = year
-%m = month number (1-12)
-%b = month name / abbrv
+%m = month number
+%b = month name
 %d = day of month
 %H = hour (0-23)
 %M = minute
@@ -899,7 +901,7 @@ The GNU General Public License is available at http://www.gnu.org/copyleft/gpl.h
 				  <child>
 				    <widget class="GtkLabel" id="label67">
 				      <property name="visible">True</property>
-				      <property name="label" translatable="yes">Import from a file, time starts at</property>
+				      <property name="label" translatable="yes">Import from file, time starts at</property>
 				      <property name="use_underline">False</property>
 				      <property name="use_markup">False</property>
 				      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -944,7 +946,7 @@ The GNU General Public License is available at http://www.gnu.org/copyleft/gpl.h
 				  <child>
 				    <widget class="GtkLabel" id="label20">
 				      <property name="visible">True</property>
-				      <property name="label" translatable="yes">&lt;tt&gt;(YYYY-MM-DD)&lt;/tt&gt;, going by steps of</property>
+				      <property name="label" translatable="yes">&lt;tt&gt;(YYYY-MM-DD)&lt;/tt&gt;, with steps of</property>
 				      <property name="use_underline">False</property>
 				      <property name="use_markup">True</property>
 				      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -1130,7 +1132,7 @@ The GNU General Public License is available at http://www.gnu.org/copyleft/gpl.h
 
 				      <child>
 					<widget class="GtkLabel" id="label23">
-					  <property name="width_request">640</property>
+					  <property name="width_request">500</property>
 					  <property name="visible">True</property>
 					  <property name="label" translatable="yes">...where sep is the column delimiter (&lt;tt&gt;&quot;\t&quot;&lt;/tt&gt; for Tab), skip is number of lines before data, timeCol, dataCol, qualCol, and extraCols specify which columns to import (note: first column is number 1). Give the codes used for missing values as e.g. na=&quot;n/a&quot;.</property>
 					  <property name="use_underline">False</property>
@@ -1342,8 +1344,9 @@ The GNU General Public License is available at http://www.gnu.org/copyleft/gpl.h
 		    <widget class="GtkExpander" id="import_edit_expander">
 		      <property name="visible">True</property>
 		      <property name="can_focus">True</property>
-		      <property name="expanded">True</property>
+		      <property name="expanded">False</property>
 		      <property name="spacing">0</property>
+		      <signal name="activate" handler=".hs_on_dataset_expanders_activate" last_modification_time="Thu, 05 Jul 2007 07:35:33 GMT"/>
 
 		      <child>
 			<widget class="GtkVBox" id="vbox38">
@@ -1543,7 +1546,7 @@ The GNU General Public License is available at http://www.gnu.org/copyleft/gpl.h
 
 			      <child>
 				<widget class="GtkComboBoxEntry" id="import_makefactor_comboboxentry">
-				  <property name="width_request">430</property>
+				  <property name="width_request">400</property>
 				  <property name="visible">True</property>
 				  <property name="items" translatable="yes"># (pop open for suggestions)
 
@@ -1789,6 +1792,7 @@ cut(x, breaks=c(0,30,60,255), labels=c(&quot;good&quot;,&quot;suspect&quot;,&quo
 		      <property name="can_focus">True</property>
 		      <property name="expanded">False</property>
 		      <property name="spacing">0</property>
+		      <signal name="activate" handler=".hs_on_dataset_expanders_activate" last_modification_time="Thu, 05 Jul 2007 07:35:41 GMT"/>
 
 		      <child>
 			<widget class="GtkVBox" id="vbox39">
@@ -2051,6 +2055,132 @@ omit</property>
 			      <property name="fill">True</property>
 			    </packing>
 			  </child>
+
+			  <child>
+			    <widget class="GtkHSeparator" id="hseparator32">
+			      <property name="visible">True</property>
+			    </widget>
+			    <packing>
+			      <property name="padding">2</property>
+			      <property name="expand">True</property>
+			      <property name="fill">True</property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkHBox" id="hbox148">
+			      <property name="visible">True</property>
+			      <property name="homogeneous">False</property>
+			      <property name="spacing">2</property>
+
+			      <child>
+				<widget class="GtkLabel" id="label230">
+				  <property name="visible">True</property>
+				  <property name="label" translatable="yes">Take selected item(s) divided by</property>
+				  <property name="use_underline">False</property>
+				  <property name="use_markup">False</property>
+				  <property name="justify">GTK_JUSTIFY_LEFT</property>
+				  <property name="wrap">False</property>
+				  <property name="selectable">False</property>
+				  <property name="xalign">0.5</property>
+				  <property name="yalign">0.5</property>
+				  <property name="xpad">0</property>
+				  <property name="ypad">0</property>
+				  <property name="ellipsize">PANGO_ELLIPSIZE_NONE</property>
+				  <property name="width_chars">-1</property>
+				  <property name="single_line_mode">False</property>
+				  <property name="angle">0</property>
+				</widget>
+				<packing>
+				  <property name="padding">0</property>
+				  <property name="expand">False</property>
+				  <property name="fill">False</property>
+				</packing>
+			      </child>
+
+			      <child>
+				<widget class="GtkComboBox" id="import_transform_ratio_item_combobox">
+				  <property name="visible">True</property>
+				  <property name="items" translatable="yes">(list of items)</property>
+				  <property name="add_tearoffs">False</property>
+				  <property name="focus_on_click">True</property>
+				</widget>
+				<packing>
+				  <property name="padding">0</property>
+				  <property name="expand">False</property>
+				  <property name="fill">True</property>
+				</packing>
+			      </child>
+
+			      <child>
+				<widget class="GtkLabel" id="label231">
+				  <property name="visible">True</property>
+				  <property name="label" translatable="yes">over</property>
+				  <property name="use_underline">False</property>
+				  <property name="use_markup">False</property>
+				  <property name="justify">GTK_JUSTIFY_LEFT</property>
+				  <property name="wrap">False</property>
+				  <property name="selectable">False</property>
+				  <property name="xalign">0.5</property>
+				  <property name="yalign">0.5</property>
+				  <property name="xpad">0</property>
+				  <property name="ypad">0</property>
+				  <property name="ellipsize">PANGO_ELLIPSIZE_NONE</property>
+				  <property name="width_chars">-1</property>
+				  <property name="single_line_mode">False</property>
+				  <property name="angle">0</property>
+				</widget>
+				<packing>
+				  <property name="padding">0</property>
+				  <property name="expand">False</property>
+				  <property name="fill">False</property>
+				</packing>
+			      </child>
+
+			      <child>
+				<widget class="GtkComboBoxEntry" id="import_transform_ratio_timestep_comboboxentry">
+				  <property name="width_request">120</property>
+				  <property name="visible">True</property>
+				  <property name="items" translatable="yes">7 days
+15 days
+1 month
+3 months
+6 months
+1 year</property>
+				  <property name="add_tearoffs">False</property>
+				  <property name="has_frame">True</property>
+				  <property name="focus_on_click">True</property>
+				</widget>
+				<packing>
+				  <property name="padding">0</property>
+				  <property name="expand">False</property>
+				  <property name="fill">True</property>
+				</packing>
+			      </child>
+
+			      <child>
+				<widget class="GtkButton" id="import_transform_ratio_button">
+				  <property name="visible">True</property>
+				  <property name="can_focus">True</property>
+				  <property name="label" translatable="yes">Take ratio</property>
+				  <property name="use_underline">True</property>
+				  <property name="relief">GTK_RELIEF_NORMAL</property>
+				  <property name="focus_on_click">True</property>
+				  <signal name="clicked" handler=".hs_on_import_transform_ratio_button_clicked" last_modification_time="Sun, 08 Jul 2007 09:43:43 GMT"/>
+				</widget>
+				<packing>
+				  <property name="padding">0</property>
+				  <property name="expand">False</property>
+				  <property name="fill">False</property>
+				</packing>
+			      </child>
+			    </widget>
+			    <packing>
+			      <property name="padding">0</property>
+			      <property name="expand">True</property>
+			      <property name="fill">True</property>
+			    </packing>
+			  </child>
 			</widget>
 		      </child>
 
@@ -2101,6 +2231,7 @@ omit</property>
 		      <property name="can_focus">True</property>
 		      <property name="expanded">False</property>
 		      <property name="spacing">0</property>
+		      <signal name="activate" handler=".hs_on_dataset_expanders_activate" last_modification_time="Thu, 05 Jul 2007 07:35:47 GMT"/>
 
 		      <child>
 			<widget class="GtkVBox" id="vbox40">
@@ -2587,10 +2718,180 @@ omit</property>
 	      </child>
 
 	      <child>
-		<widget class="GtkExpander" id="timeperiod_scope_expander">
+		<widget class="GtkExpander" id="expander5">
 		  <property name="visible">True</property>
 		  <property name="can_focus">True</property>
 		  <property name="expanded">True</property>
+		  <property name="spacing">0</property>
+
+		  <child>
+		    <widget class="GtkVBox" id="vbox61">
+		      <property name="border_width">4</property>
+		      <property name="visible">True</property>
+		      <property name="homogeneous">False</property>
+		      <property name="spacing">0</property>
+
+		      <child>
+			<widget class="GtkHBox" id="hbox140">
+			  <property name="visible">True</property>
+			  <property name="homogeneous">False</property>
+			  <property name="spacing">0</property>
+
+			  <child>
+			    <widget class="GtkLabel" id="label216">
+			      <property name="visible">True</property>
+			      <property name="label" translatable="yes">Spatial polygon from file: </property>
+			      <property name="use_underline">False</property>
+			      <property name="use_markup">False</property>
+			      <property name="justify">GTK_JUSTIFY_LEFT</property>
+			      <property name="wrap">False</property>
+			      <property name="selectable">False</property>
+			      <property name="xalign">0.5</property>
+			      <property name="yalign">0.5</property>
+			      <property name="xpad">0</property>
+			      <property name="ypad">0</property>
+			      <property name="ellipsize">PANGO_ELLIPSIZE_NONE</property>
+			      <property name="width_chars">-1</property>
+			      <property name="single_line_mode">False</property>
+			      <property name="angle">0</property>
+			    </widget>
+			    <packing>
+			      <property name="padding">0</property>
+			      <property name="expand">False</property>
+			      <property name="fill">False</property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkFileChooserButton" id="scope_catchment_filechooserbutton">
+			      <property name="visible">True</property>
+			      <property name="title" translatable="yes">Select A File</property>
+			      <property name="action">GTK_FILE_CHOOSER_ACTION_OPEN</property>
+			      <property name="local_only">True</property>
+			      <property name="show_hidden">False</property>
+			      <property name="do_overwrite_confirmation">False</property>
+			      <property name="width_chars">24</property>
+			    </widget>
+			    <packing>
+			      <property name="padding">0</property>
+			      <property name="expand">False</property>
+			      <property name="fill">True</property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkLabel" id="label217">
+			      <property name="visible">True</property>
+			      <property name="label" translatable="yes"> as </property>
+			      <property name="use_underline">False</property>
+			      <property name="use_markup">False</property>
+			      <property name="justify">GTK_JUSTIFY_LEFT</property>
+			      <property name="wrap">False</property>
+			      <property name="selectable">False</property>
+			      <property name="xalign">0.5</property>
+			      <property name="yalign">0.5</property>
+			      <property name="xpad">0</property>
+			      <property name="ypad">0</property>
+			      <property name="ellipsize">PANGO_ELLIPSIZE_NONE</property>
+			      <property name="width_chars">-1</property>
+			      <property name="single_line_mode">False</property>
+			      <property name="angle">0</property>
+			    </widget>
+			    <packing>
+			      <property name="padding">0</property>
+			      <property name="expand">False</property>
+			      <property name="fill">False</property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkComboBox" id="scope_catchment_format_combobox">
+			      <property name="visible">True</property>
+			      <property name="items" translatable="yes">(no known formats)</property>
+			      <property name="add_tearoffs">False</property>
+			      <property name="focus_on_click">True</property>
+			    </widget>
+			    <packing>
+			      <property name="padding">0</property>
+			      <property name="expand">False</property>
+			      <property name="fill">True</property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkButton" id="scope_import_catchment_button">
+			      <property name="visible">True</property>
+			      <property name="can_default">True</property>
+			      <property name="has_default">True</property>
+			      <property name="can_focus">True</property>
+			      <property name="label" translatable="yes">OK, import</property>
+			      <property name="use_underline">True</property>
+			      <property name="relief">GTK_RELIEF_NORMAL</property>
+			      <property name="focus_on_click">True</property>
+			      <signal name="clicked" handler=".hs_on_scope_import_catchment_button_clicked" last_modification_time="Thu, 05 Jul 2007 07:49:06 GMT"/>
+			    </widget>
+			    <packing>
+			      <property name="padding">5</property>
+			      <property name="expand">False</property>
+			      <property name="fill">False</property>
+			    </packing>
+			  </child>
+			</widget>
+			<packing>
+			  <property name="padding">0</property>
+			  <property name="expand">True</property>
+			  <property name="fill">True</property>
+			</packing>
+		      </child>
+		    </widget>
+		  </child>
+
+		  <child>
+		    <widget class="GtkLabel" id="label227">
+		      <property name="visible">True</property>
+		      <property name="label" translatable="yes">&lt;b&gt;Drainage basin (catchment) boundaries&lt;/b&gt;</property>
+		      <property name="use_underline">False</property>
+		      <property name="use_markup">True</property>
+		      <property name="justify">GTK_JUSTIFY_LEFT</property>
+		      <property name="wrap">False</property>
+		      <property name="selectable">False</property>
+		      <property name="xalign">0.5</property>
+		      <property name="yalign">0.5</property>
+		      <property name="xpad">0</property>
+		      <property name="ypad">0</property>
+		      <property name="ellipsize">PANGO_ELLIPSIZE_NONE</property>
+		      <property name="width_chars">-1</property>
+		      <property name="single_line_mode">False</property>
+		      <property name="angle">0</property>
+		    </widget>
+		    <packing>
+		      <property name="type">label_item</property>
+		    </packing>
+		  </child>
+		</widget>
+		<packing>
+		  <property name="padding">0</property>
+		  <property name="expand">False</property>
+		  <property name="fill">True</property>
+		</packing>
+	      </child>
+
+	      <child>
+		<widget class="GtkHSeparator" id="hseparator28">
+		  <property name="visible">True</property>
+		</widget>
+		<packing>
+		  <property name="padding">0</property>
+		  <property name="expand">False</property>
+		  <property name="fill">True</property>
+		</packing>
+	      </child>
+
+	      <child>
+		<widget class="GtkExpander" id="timeperiod_scope_expander">
+		  <property name="visible">True</property>
+		  <property name="can_focus">True</property>
+		  <property name="expanded">False</property>
 		  <property name="spacing">0</property>
 
 		  <child>
@@ -2843,7 +3144,7 @@ omit</property>
 				      <child>
 					<widget class="GtkLabel" id="label191">
 					  <property name="visible">True</property>
-					  <property name="label" translatable="yes">&lt;b&gt;View database site map&lt;/b&gt;</property>
+					  <property name="label" translatable="yes">&lt;b&gt;Database site map&lt;/b&gt;</property>
 					  <property name="use_underline">True</property>
 					  <property name="use_markup">True</property>
 					  <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -3030,7 +3331,7 @@ omit</property>
 				      <child>
 					<widget class="GtkLabel" id="label201">
 					  <property name="visible">True</property>
-					  <property name="label" translatable="yes">&lt;b&gt;View database data timeline&lt;/b&gt;</property>
+					  <property name="label" translatable="yes">&lt;b&gt;Database data timeline&lt;/b&gt;</property>
 					  <property name="use_underline">True</property>
 					  <property name="use_markup">True</property>
 					  <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -3221,7 +3522,7 @@ omit</property>
 			  <child>
 			    <widget class="GtkLabel" id="label53">
 			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">Set bounds for analysis:</property>
+			      <property name="label" translatable="yes">Bounds for analysis:</property>
 			      <property name="use_underline">False</property>
 			      <property name="use_markup">False</property>
 			      <property name="justify">GTK_JUSTIFY_RIGHT</property>
@@ -3296,7 +3597,7 @@ omit</property>
 			  <child>
 			    <widget class="GtkLabel" id="label52">
 			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">Overall data coverage:</property>
+			      <property name="label" translatable="yes">Overall coverage:</property>
 			      <property name="use_underline">False</property>
 			      <property name="use_markup">False</property>
 			      <property name="justify">GTK_JUSTIFY_RIGHT</property>
@@ -3324,7 +3625,8 @@ omit</property>
 			  <child>
 			    <widget class="GtkLabel" id="label192">
 			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">Set bounds interactively:</property>
+			      <property name="label" translatable="yes">Set bounds 
+interactively:</property>
 			      <property name="use_underline">False</property>
 			      <property name="use_markup">False</property>
 			      <property name="justify">GTK_JUSTIFY_RIGHT</property>
@@ -3863,7 +4165,7 @@ omit</property>
 					  <child>
 					    <widget class="GtkLabel" id="label68">
 					      <property name="visible">True</property>
-					      <property name="label" translatable="yes">&lt;b&gt;View data timeline&lt;/b&gt;</property>
+					      <property name="label" translatable="yes">&lt;b&gt;Data timeline&lt;/b&gt;</property>
 					      <property name="use_underline">True</property>
 					      <property name="use_markup">True</property>
 					      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -3959,7 +4261,7 @@ omit</property>
 					  <child>
 					    <widget class="GtkLabel" id="label213">
 					      <property name="visible">True</property>
-					      <property name="label" translatable="yes">&lt;b&gt;View site map&lt;/b&gt;</property>
+					      <property name="label" translatable="yes">&lt;b&gt;Site map&lt;/b&gt;</property>
 					      <property name="use_underline">True</property>
 					      <property name="use_markup">True</property>
 					      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -4111,7 +4413,7 @@ omit</property>
 	      </child>
 
 	      <child>
-		<widget class="GtkHSeparator" id="hseparator28">
+		<widget class="GtkHSeparator" id="hseparator31">
 		  <property name="visible">True</property>
 		</widget>
 		<packing>
@@ -4508,7 +4810,7 @@ omit</property>
 					      <child>
 						<widget class="GtkLabel" id="label69">
 						  <property name="visible">True</property>
-						  <property name="label" translatable="yes">&lt;b&gt;View time series&lt;/b&gt;</property>
+						  <property name="label" translatable="yes">&lt;b&gt;Time series&lt;/b&gt;</property>
 						  <property name="use_underline">True</property>
 						  <property name="use_markup">True</property>
 						  <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -4858,6 +5160,25 @@ years</property>
 				      <property name="fill">True</property>
 				    </packing>
 				  </child>
+
+				  <child>
+				    <widget class="GtkCheckButton" id="explore_timeseries_smooth_checkbutton">
+				      <property name="visible">True</property>
+				      <property name="can_focus">True</property>
+				      <property name="label" translatable="yes">smooth aggregation</property>
+				      <property name="use_underline">True</property>
+				      <property name="relief">GTK_RELIEF_NORMAL</property>
+				      <property name="focus_on_click">True</property>
+				      <property name="active">False</property>
+				      <property name="inconsistent">False</property>
+				      <property name="draw_indicator">True</property>
+				    </widget>
+				    <packing>
+				      <property name="padding">0</property>
+				      <property name="expand">False</property>
+				      <property name="fill">False</property>
+				    </packing>
+				  </child>
 				</widget>
 				<packing>
 				  <property name="padding">0</property>
@@ -4985,7 +5306,7 @@ years</property>
 					  <child>
 					    <widget class="GtkLabel" id="label72">
 					      <property name="visible">True</property>
-					      <property name="label" translatable="yes">&lt;b&gt;View distribution&lt;/b&gt;</property>
+					      <property name="label" translatable="yes">&lt;b&gt;Distribution&lt;/b&gt;</property>
 					      <property name="use_underline">True</property>
 					      <property name="use_markup">True</property>
 					      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -5079,7 +5400,7 @@ years</property>
 				    <widget class="GtkRadioButton" id="explore_cdf_uniform_radiobutton">
 				      <property name="visible">True</property>
 				      <property name="can_focus">True</property>
-				      <property name="label" translatable="yes">Uniform probability</property>
+				      <property name="label" translatable="yes">Uniform </property>
 				      <property name="use_underline">True</property>
 				      <property name="relief">GTK_RELIEF_NORMAL</property>
 				      <property name="focus_on_click">True</property>
@@ -5118,7 +5439,7 @@ years</property>
 				    <widget class="GtkCheckButton" id="explore_cdf_line_checkbutton">
 				      <property name="visible">True</property>
 				      <property name="can_focus">True</property>
-				      <property name="label" translatable="yes">Reference line</property>
+				      <property name="label" translatable="yes">Ref. line</property>
 				      <property name="use_underline">True</property>
 				      <property name="relief">GTK_RELIEF_NORMAL</property>
 				      <property name="focus_on_click">True</property>
@@ -5492,7 +5813,7 @@ years</property>
 					  <child>
 					    <widget class="GtkLabel" id="label78">
 					      <property name="visible">True</property>
-					      <property name="label" translatable="yes">&lt;b&gt;View seasonal plot&lt;/b&gt;</property>
+					      <property name="label" translatable="yes">&lt;b&gt;Seasonal plot&lt;/b&gt;</property>
 					      <property name="use_underline">True</property>
 					      <property name="use_markup">True</property>
 					      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -6093,7 +6414,7 @@ Dec</property>
 					      <child>
 						<widget class="GtkLabel" id="label177">
 						  <property name="visible">True</property>
-						  <property name="label" translatable="yes">&lt;b&gt;View interpolated vs actual values&lt;/b&gt;</property>
+						  <property name="label" translatable="yes">&lt;b&gt;Imputed vs actual values&lt;/b&gt;</property>
 						  <property name="use_underline">True</property>
 						  <property name="use_markup">True</property>
 						  <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -6173,7 +6494,7 @@ Dec</property>
 					      <child>
 						<widget class="GtkLabel" id="label179">
 						  <property name="visible">True</property>
-						  <property name="label" translatable="yes">&lt;b&gt;View ratio of means over time&lt;/b&gt;</property>
+						  <property name="label" translatable="yes">&lt;b&gt;Ratio of means over time&lt;/b&gt;</property>
 						  <property name="use_underline">True</property>
 						  <property name="use_markup">True</property>
 						  <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -6266,7 +6587,7 @@ Dec</property>
 					      <child>
 						<widget class="GtkLabel" id="label181">
 						  <property name="visible">True</property>
-						  <property name="label" translatable="yes">&lt;b&gt;View interpolation error over time&lt;/b&gt;</property>
+						  <property name="label" translatable="yes">&lt;b&gt;Imputation error over time&lt;/b&gt;</property>
 						  <property name="use_underline">True</property>
 						  <property name="use_markup">True</property>
 						  <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -6346,7 +6667,7 @@ Dec</property>
 					      <child>
 						<widget class="GtkLabel" id="label180">
 						  <property name="visible">True</property>
-						  <property name="label" translatable="yes">&lt;b&gt;View distance vs correlation&lt;/b&gt;</property>
+						  <property name="label" translatable="yes">&lt;b&gt;Distance vs correlation&lt;/b&gt;</property>
 						  <property name="use_underline">True</property>
 						  <property name="use_markup">True</property>
 						  <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -7187,13 +7508,13 @@ extend</property>
 			    <widget class="GtkHBox" id="hbox65">
 			      <property name="visible">True</property>
 			      <property name="homogeneous">False</property>
-			      <property name="spacing">0</property>
+			      <property name="spacing">2</property>
 
 			      <child>
 				<widget class="GtkButton" id="impute_undo_imputed_button">
 				  <property name="visible">True</property>
 				  <property name="can_focus">True</property>
-				  <property name="label" translatable="yes">Clear imputed</property>
+				  <property name="label" translatable="yes">Revert imputed</property>
 				  <property name="use_underline">True</property>
 				  <property name="relief">GTK_RELIEF_NORMAL</property>
 				  <property name="focus_on_click">True</property>
@@ -7207,77 +7528,14 @@ extend</property>
 			      </child>
 
 			      <child>
-				<widget class="GtkLabel" id="label121">
-				  <property name="visible">True</property>
-				  <property name="label" translatable="yes">&lt;span foreground=&quot;#660066&quot;&gt;Values with code &quot;imputed&quot; will be set to NA.&lt;/span&gt;</property>
-				  <property name="use_underline">False</property>
-				  <property name="use_markup">True</property>
-				  <property name="justify">GTK_JUSTIFY_LEFT</property>
-				  <property name="wrap">False</property>
-				  <property name="selectable">False</property>
-				  <property name="xalign">0.5</property>
-				  <property name="yalign">0.5</property>
-				  <property name="xpad">0</property>
-				  <property name="ypad">0</property>
-				  <property name="ellipsize">PANGO_ELLIPSIZE_NONE</property>
-				  <property name="width_chars">-1</property>
-				  <property name="single_line_mode">False</property>
-				  <property name="angle">0</property>
-				</widget>
-				<packing>
-				  <property name="padding">0</property>
-				  <property name="expand">False</property>
-				  <property name="fill">False</property>
-				</packing>
-			      </child>
-			    </widget>
-			    <packing>
-			      <property name="padding">0</property>
-			      <property name="expand">True</property>
-			      <property name="fill">True</property>
-			    </packing>
-			  </child>
-
-			  <child>
-			    <widget class="GtkHBox" id="hbox66">
-			      <property name="visible">True</property>
-			      <property name="homogeneous">False</property>
-			      <property name="spacing">0</property>
-
-			      <child>
 				<widget class="GtkButton" id="impute_undo_accumulated_button">
 				  <property name="visible">True</property>
 				  <property name="can_focus">True</property>
-				  <property name="label" translatable="yes">Clear accumulated</property>
+				  <property name="label" translatable="yes">Revert disaccumulated</property>
 				  <property name="use_underline">True</property>
 				  <property name="relief">GTK_RELIEF_NORMAL</property>
 				  <property name="focus_on_click">True</property>
 				  <signal name="clicked" handler=".hs_on_impute_undo_accumulated_button_clicked" last_modification_time="Mon, 23 Apr 2007 12:18:56 GMT"/>
-				</widget>
-				<packing>
-				  <property name="padding">0</property>
-				  <property name="expand">False</property>
-				  <property name="fill">False</property>
-				</packing>
-			      </child>
-
-			      <child>
-				<widget class="GtkLabel" id="label122">
-				  <property name="visible">True</property>
-				  <property name="label" translatable="yes">&lt;span foreground=&quot;#660066&quot;&gt;Values with code &quot;disaccumulated&quot; will be set to NA and their sum placed at the end of the gap, etc.&lt;/span&gt;</property>
-				  <property name="use_underline">False</property>
-				  <property name="use_markup">True</property>
-				  <property name="justify">GTK_JUSTIFY_LEFT</property>
-				  <property name="wrap">False</property>
-				  <property name="selectable">False</property>
-				  <property name="xalign">0.5</property>
-				  <property name="yalign">0.5</property>
-				  <property name="xpad">0</property>
-				  <property name="ypad">0</property>
-				  <property name="ellipsize">PANGO_ELLIPSIZE_NONE</property>
-				  <property name="width_chars">-1</property>
-				  <property name="single_line_mode">False</property>
-				  <property name="angle">0</property>
 				</widget>
 				<packing>
 				  <property name="padding">0</property>
@@ -7513,7 +7771,7 @@ extend</property>
 					  <child>
 					    <widget class="GtkLabel" id="label150">
 					      <property name="visible">True</property>
-					      <property name="label" translatable="yes">&lt;b&gt;View rainfall map&lt;/b&gt;</property>
+					      <property name="label" translatable="yes">&lt;b&gt;Rainfall map&lt;/b&gt;</property>
 					      <property name="use_underline">True</property>
 					      <property name="use_markup">True</property>
 					      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -8261,7 +8519,7 @@ extend</property>
 					  <child>
 					    <widget class="GtkLabel" id="label166">
 					      <property name="visible">True</property>
-					      <property name="label" translatable="yes">&lt;b&gt;View lag series&lt;/b&gt;</property>
+					      <property name="label" translatable="yes">&lt;b&gt;Lag series&lt;/b&gt;</property>
 					      <property name="use_underline">True</property>
 					      <property name="use_markup">True</property>
 					      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -8340,7 +8598,7 @@ extend</property>
 					  <child>
 					    <widget class="GtkLabel" id="label167">
 					      <property name="visible">True</property>
-					      <property name="label" translatable="yes">&lt;b&gt;View correlation series&lt;/b&gt;</property>
+					      <property name="label" translatable="yes">&lt;b&gt;Correlation series&lt;/b&gt;</property>
 					      <property name="use_underline">True</property>
 					      <property name="use_markup">True</property>
 					      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -8542,7 +8800,7 @@ extend</property>
 					  <child>
 					    <widget class="GtkLabel" id="label162">
 					      <property name="visible">True</property>
-					      <property name="label" translatable="yes">&lt;b&gt;View ratio series&lt;/b&gt;</property>
+					      <property name="label" translatable="yes">&lt;b&gt;Ratio series&lt;/b&gt;</property>
 					      <property name="use_underline">True</property>
 					      <property name="use_markup">True</property>
 					      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -8840,7 +9098,7 @@ years</property>
 					  <child>
 					    <widget class="GtkLabel" id="label168">
 					      <property name="visible">True</property>
-					      <property name="label" translatable="yes">&lt;b&gt;View scatterplots&lt;/b&gt;</property>
+					      <property name="label" translatable="yes">&lt;b&gt;Scatterplots&lt;/b&gt;</property>
 					      <property name="use_underline">True</property>
 					      <property name="use_markup">True</property>
 					      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -9435,7 +9693,7 @@ years</property>
 					  <child>
 					    <widget class="GtkLabel" id="label92">
 					      <property name="visible">True</property>
-					      <property name="label" translatable="yes">&lt;b&gt;View cross-correlation&lt;/b&gt;</property>
+					      <property name="label" translatable="yes">&lt;b&gt;Cross-correlation&lt;/b&gt;</property>
 					      <property name="use_underline">True</property>
 					      <property name="use_markup">True</property>
 					      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -9735,7 +9993,7 @@ years</property>
 					  <child>
 					    <widget class="GtkLabel" id="label107">
 					      <property name="visible">True</property>
-					      <property name="label" translatable="yes">&lt;b&gt;View scatterplot&lt;/b&gt;</property>
+					      <property name="label" translatable="yes">&lt;b&gt;Scatterplot&lt;/b&gt;</property>
 					      <property name="use_underline">True</property>
 					      <property name="use_markup">True</property>
 					      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -9911,7 +10169,7 @@ years</property>
 			      <child>
 				<widget class="GtkTable" id="table2">
 				  <property name="visible">True</property>
-				  <property name="n_rows">2</property>
+				  <property name="n_rows">4</property>
 				  <property name="n_columns">3</property>
 				  <property name="homogeneous">False</property>
 				  <property name="row_spacing">0</property>
@@ -9990,34 +10248,6 @@ years</property>
 				  </child>
 
 				  <child>
-				    <widget class="GtkLabel" id="label111">
-				      <property name="visible">True</property>
-				      <property name="label" translatable="yes">intervals (&quot;Antecedent&quot; = last time without rain)</property>
-				      <property name="use_underline">False</property>
-				      <property name="use_markup">False</property>
-				      <property name="justify">GTK_JUSTIFY_LEFT</property>
-				      <property name="wrap">False</property>
-				      <property name="selectable">False</property>
-				      <property name="xalign">0.5</property>
-				      <property name="yalign">0.5</property>
-				      <property name="xpad">0</property>
-				      <property name="ypad">0</property>
-				      <property name="ellipsize">PANGO_ELLIPSIZE_NONE</property>
-				      <property name="width_chars">-1</property>
-				      <property name="single_line_mode">False</property>
-				      <property name="angle">0</property>
-				    </widget>
-				    <packing>
-				      <property name="left_attach">2</property>
-				      <property name="right_attach">3</property>
-				      <property name="top_attach">1</property>
-				      <property name="bottom_attach">2</property>
-				      <property name="x_options">fill</property>
-				      <property name="y_options"></property>
-				    </packing>
-				  </child>
-
-				  <child>
 				    <widget class="GtkSpinButton" id="corr_relationplot_season_spinbutton">
 				      <property name="visible">True</property>
 				      <property name="can_focus">True</property>
@@ -10057,6 +10287,134 @@ years</property>
 				      <property name="top_attach">1</property>
 				      <property name="bottom_attach">2</property>
 				      <property name="x_options"></property>
+				      <property name="y_options"></property>
+				    </packing>
+				  </child>
+
+				  <child>
+				    <widget class="GtkCheckButton" id="corr_relationplot_time_checkbutton">
+				      <property name="visible">True</property>
+				      <property name="can_focus">True</property>
+				      <property name="label" translatable="yes">Year:</property>
+				      <property name="use_underline">True</property>
+				      <property name="relief">GTK_RELIEF_NORMAL</property>
+				      <property name="focus_on_click">True</property>
+				      <property name="active">False</property>
+				      <property name="inconsistent">False</property>
+				      <property name="draw_indicator">True</property>
+				    </widget>
+				    <packing>
+				      <property name="left_attach">0</property>
+				      <property name="right_attach">1</property>
+				      <property name="top_attach">2</property>
+				      <property name="bottom_attach">3</property>
+				      <property name="x_options">fill</property>
+				      <property name="y_options"></property>
+				    </packing>
+				  </child>
+
+				  <child>
+				    <widget class="GtkLabel" id="label228">
+				      <property name="visible">True</property>
+				      <property name="label" translatable="yes">intervals</property>
+				      <property name="use_underline">False</property>
+				      <property name="use_markup">False</property>
+				      <property name="justify">GTK_JUSTIFY_LEFT</property>
+				      <property name="wrap">False</property>
+				      <property name="selectable">False</property>
+				      <property name="xalign">0</property>
+				      <property name="yalign">0.5</property>
+				      <property name="xpad">0</property>
+				      <property name="ypad">0</property>
+				      <property name="ellipsize">PANGO_ELLIPSIZE_NONE</property>
+				      <property name="width_chars">-1</property>
+				      <property name="single_line_mode">False</property>
+				      <property name="angle">0</property>
+				    </widget>
+				    <packing>
+				      <property name="left_attach">2</property>
+				      <property name="right_attach">3</property>
+				      <property name="top_attach">2</property>
+				      <property name="bottom_attach">3</property>
+				      <property name="x_options">fill</property>
+				      <property name="y_options"></property>
+				    </packing>
+				  </child>
+
+				  <child>
+				    <widget class="GtkLabel" id="label229">
+				      <property name="visible">True</property>
+				      <property name="label" translatable="yes">(&quot;Antecedent&quot; = last time without rain)</property>
+				      <property name="use_underline">False</property>
+				      <property name="use_markup">False</property>
+				      <property name="justify">GTK_JUSTIFY_LEFT</property>
+				      <property name="wrap">False</property>
+				      <property name="selectable">False</property>
+				      <property name="xalign">0.5</property>
+				      <property name="yalign">0.5</property>
+				      <property name="xpad">0</property>
+				      <property name="ypad">0</property>
+				      <property name="ellipsize">PANGO_ELLIPSIZE_NONE</property>
+				      <property name="width_chars">-1</property>
+				      <property name="single_line_mode">False</property>
+				      <property name="angle">0</property>
+				    </widget>
+				    <packing>
+				      <property name="left_attach">0</property>
+				      <property name="right_attach">3</property>
+				      <property name="top_attach">3</property>
+				      <property name="bottom_attach">4</property>
+				      <property name="x_options">fill</property>
+				      <property name="y_options"></property>
+				    </packing>
+				  </child>
+
+				  <child>
+				    <widget class="GtkSpinButton" id="corr_relationplot_time_spinbutton">
+				      <property name="visible">True</property>
+				      <property name="can_focus">True</property>
+				      <property name="climb_rate">1</property>
+				      <property name="digits">0</property>
+				      <property name="numeric">False</property>
+				      <property name="update_policy">GTK_UPDATE_ALWAYS</property>
+				      <property name="snap_to_ticks">False</property>
+				      <property name="wrap">False</property>
+				      <property name="adjustment">4 1 20 1 10 10</property>
+				    </widget>
+				    <packing>
+				      <property name="left_attach">1</property>
+				      <property name="right_attach">2</property>
+				      <property name="top_attach">2</property>
+				      <property name="bottom_attach">3</property>
+				      <property name="x_options"></property>
+				      <property name="y_options"></property>
+				    </packing>
+				  </child>
+
+				  <child>
+				    <widget class="GtkLabel" id="label111">
+				      <property name="visible">True</property>
+				      <property name="label" translatable="yes">intervals</property>
+				      <property name="use_underline">False</property>
+				      <property name="use_markup">False</property>
+				      <property name="justify">GTK_JUSTIFY_LEFT</property>
+				      <property name="wrap">False</property>
+				      <property name="selectable">False</property>
+				      <property name="xalign">0.5</property>
+				      <property name="yalign">0.5</property>
+				      <property name="xpad">0</property>
+				      <property name="ypad">0</property>
+				      <property name="ellipsize">PANGO_ELLIPSIZE_NONE</property>
+				      <property name="width_chars">-1</property>
+				      <property name="single_line_mode">False</property>
+				      <property name="angle">0</property>
+				    </widget>
+				    <packing>
+				      <property name="left_attach">2</property>
+				      <property name="right_attach">3</property>
+				      <property name="top_attach">1</property>
+				      <property name="bottom_attach">2</property>
+				      <property name="x_options">fill</property>
 				      <property name="y_options"></property>
 				    </packing>
 				  </child>
@@ -10126,6 +10484,155 @@ years</property>
 				<packing>
 				  <property name="padding">0</property>
 				  <property name="expand">True</property>
+				  <property name="fill">True</property>
+				</packing>
+			      </child>
+			    </widget>
+			    <packing>
+			      <property name="padding">0</property>
+			      <property name="expand">True</property>
+			      <property name="fill">True</property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkVSeparator" id="vseparator9">
+			      <property name="visible">True</property>
+			    </widget>
+			    <packing>
+			      <property name="padding">0</property>
+			      <property name="expand">True</property>
+			      <property name="fill">True</property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkVBox" id="vbox62">
+			      <property name="visible">True</property>
+			      <property name="homogeneous">False</property>
+			      <property name="spacing">0</property>
+
+			      <child>
+				<widget class="GtkRadioButton" id="radiobutton15">
+				  <property name="visible">True</property>
+				  <property name="can_focus">True</property>
+				  <property name="label" translatable="yes">raw data</property>
+				  <property name="use_underline">True</property>
+				  <property name="relief">GTK_RELIEF_NORMAL</property>
+				  <property name="focus_on_click">True</property>
+				  <property name="active">False</property>
+				  <property name="inconsistent">False</property>
+				  <property name="draw_indicator">True</property>
+				</widget>
+				<packing>
+				  <property name="padding">0</property>
+				  <property name="expand">False</property>
+				  <property name="fill">False</property>
+				</packing>
+			      </child>
+
+			      <child>
+				<widget class="GtkHBox" id="hbox146">
+				  <property name="visible">True</property>
+				  <property name="homogeneous">False</property>
+				  <property name="spacing">0</property>
+
+				  <child>
+				    <widget class="GtkRadioButton" id="radiobutton16">
+				      <property name="visible">True</property>
+				      <property name="can_focus">True</property>
+				      <property name="label" translatable="yes">aggregated:</property>
+				      <property name="use_underline">True</property>
+				      <property name="relief">GTK_RELIEF_NORMAL</property>
+				      <property name="focus_on_click">True</property>
+				      <property name="active">True</property>
+				      <property name="inconsistent">False</property>
+				      <property name="draw_indicator">True</property>
+				      <property name="group">impute_rawdata_radiobutton</property>
+				    </widget>
+				    <packing>
+				      <property name="padding">0</property>
+				      <property name="expand">False</property>
+				      <property name="fill">False</property>
+				    </packing>
+				  </child>
+
+				  <child>
+				    <widget class="GtkComboBoxEntry" id="comboboxentry12">
+				      <property name="width_request">120</property>
+				      <property name="visible">True</property>
+				      <property name="items" translatable="yes">days
+7 days
+months
+3 months
+years</property>
+				      <property name="add_tearoffs">False</property>
+				      <property name="has_frame">True</property>
+				      <property name="focus_on_click">True</property>
+				    </widget>
+				    <packing>
+				      <property name="padding">0</property>
+				      <property name="expand">False</property>
+				      <property name="fill">True</property>
+				    </packing>
+				  </child>
+				</widget>
+				<packing>
+				  <property name="padding">0</property>
+				  <property name="expand">False</property>
+				  <property name="fill">False</property>
+				</packing>
+			      </child>
+
+			      <child>
+				<widget class="GtkHBox" id="hbox147">
+				  <property name="visible">True</property>
+				  <property name="homogeneous">False</property>
+				  <property name="spacing">0</property>
+
+				  <child>
+				    <widget class="GtkRadioButton" id="radiobutton17">
+				      <property name="visible">True</property>
+				      <property name="can_focus">True</property>
+				      <property name="label" translatable="yes">aggregated:</property>
+				      <property name="use_underline">True</property>
+				      <property name="relief">GTK_RELIEF_NORMAL</property>
+				      <property name="focus_on_click">True</property>
+				      <property name="active">False</property>
+				      <property name="inconsistent">False</property>
+				      <property name="draw_indicator">True</property>
+				      <property name="group">impute_rawdata_radiobutton</property>
+				    </widget>
+				    <packing>
+				      <property name="padding">0</property>
+				      <property name="expand">False</property>
+				      <property name="fill">False</property>
+				    </packing>
+				  </child>
+
+				  <child>
+				    <widget class="GtkComboBoxEntry" id="comboboxentry13">
+				      <property name="width_request">120</property>
+				      <property name="visible">True</property>
+				      <property name="items" translatable="yes">days
+7 days
+months
+3 months
+years</property>
+				      <property name="add_tearoffs">False</property>
+				      <property name="has_frame">True</property>
+				      <property name="focus_on_click">True</property>
+				    </widget>
+				    <packing>
+				      <property name="padding">0</property>
+				      <property name="expand">False</property>
+				      <property name="fill">True</property>
+				    </packing>
+				  </child>
+				</widget>
+				<packing>
+				  <property name="padding">0</property>
+				  <property name="expand">False</property>
 				  <property name="fill">True</property>
 				</packing>
 			      </child>

@@ -32,7 +32,8 @@ hydrosanityButtons <- alist(
 	zoomin=list("Zoom in", "gtk-zoom-in", f=.hs_time_zoomin_event),
 	zoomout=list("Zoom out", "gtk-zoom-out", f=.hs_time_zoomout_event),
 	centre=list("Re-centre", "gtk-jump-to-ltr", f=.hs_time_centre_event),
-	logscale=list("Log scale", "gtk-goto-top", f=.hs_time_logscale_event, isToggle=T)
+	logscale=list("Log scale", "gtk-goto-top", f=.hs_time_logscale_event, isToggle=T),
+	layers=list("Layers...", "gtk-index", f=.hs_layers_event)
 )
 
 .hs_map_setregion_event <- function(widget, user.data) {
@@ -74,7 +75,9 @@ hydrosanityButtons <- alist(
 	} else {
 		timelim <- as.POSIXct(myXScale)
 		myTimeStrings <- format(round(timelim, "days"))
-		guiDo(call=bquote(hsp$timePeriod <- as.POSIXct(.(myTimeStrings))))
+		guiDo(call=bquote(
+			hsp$timePeriod <- as.POSIXct(.(myTimeStrings), tz="GMT")
+		))
 		infoDialog("Set time period for analysis: ",
 			paste(myTimeStrings, collapse=" to "))
 	}
@@ -206,6 +209,20 @@ hydrosanityButtons <- alist(
 	plotAndPlayUpdate(name)
 }
 
+.hs_layers_event <- function(widget, user.data) {
+	name <- user.data$name
+	# disable other plot buttons until this is over
+	plotAndPlayGetToolbar(name)$setSensitive(F)
+	on.exit(plotAndPlayGetToolbar(name)$setSensitive(T))
+	# show window with layer options
+	c("add.cities", "add.rivers", "z", "")
+	# update state
+	tmp.state <- plotAndPlayGTK:::StateEnv[[name]]
+	tmp.state$call$add.cities <- add.cities
+	assign(name, tmp.state, envir=plotAndPlayGTK:::StateEnv)
+	plotAndPlayUpdate(name)
+}
+
 
 ## TREE VIEW AND ICON VIEW HELPERS
 
@@ -242,7 +259,7 @@ setupIconView <- function(iconView, itemNames=names(hsp$data), selection=c("firs
 	otherPixbuf <- gdkPixbufNewFromFile(getpackagefile("icon_OTHER.png"))$retval
 	# (or NULL)
 	
-	list_store <- gtkListStore("character", "GdkPixbuf")
+	list_store <- gtkListStore("character", "GdkPixbuf", "character")
 	
 	for (x in itemNames) {
 		myRole <- attr(hsp$data[[x]], "role")
@@ -255,6 +272,7 @@ setupIconView <- function(iconView, itemNames=names(hsp$data), selection=c("firs
 			otherPixbuf)
 		)
 		myName <- attr(hsp$data[[x]], "sitename")
+		if (is.null(myName)) { myName <- x }
 		list_store$set(iter, 2, myName)
 	}
 	selPaths <- NULL

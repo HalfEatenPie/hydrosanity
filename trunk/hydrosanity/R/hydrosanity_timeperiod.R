@@ -36,7 +36,7 @@ updateTimePeriodPage <- function() {
 	}
 	
 	# overall time period
-	wholePeriod <- c(start.timeblobs(hsp$data), end.timeblobs(hsp$data))
+	wholePeriod <- timelim.timeblobs(hsp$data)
 	wholePeriodString <- paste(format(wholePeriod), collapse=" to ")
 	theWidget("timeperiod_overallperiod_entry")$setText(wholePeriodString)
 	
@@ -126,21 +126,29 @@ updateTimePeriodPage <- function() {
 	plot.call[[3]] <- quote(tmp.sites)
 	plot.call$pch <- quote(ifelse(tmp.sites$ok, 19, 21))
 	plot.call$aspect <- "iso"
+	
+	plot.call$panel <- quote(panel.geo)
+	
+	if (doInterpElev) {
+		plot.call$z.interp <- quote(tmp.sites$elev)
+		plot.call$col.regions=quote(grey(seq(0.95,0.65,length=100)))
+	}
+	
 	if (!is.null(hsp$region)) {
 		plot.call$xlim <- quote(hsp$region$xlim)
 		plot.call$ylim <- quote(hsp$region$ylim)
+	} else {
+		plot.call$prepanel <- quote(prepanel.extend.10)
 	}
 	
-	if (doInterpElev) {
-		plot.call$z <- quote(tmp.sites$elev)
+	if (!is.null(hsp$catchment)) {
+		plot.call$catchment.poly <- quote(hsp$catchment)
 	}
-	
-	plot.call$panel <- quote(panel.pointmap)
 	
 	addToLog(paste(deparse(plot.call), collapse="\n"))
 	guiDo(plotAndPlay(plot.call=plot.call, name="site map", 
 		extra.buttons=hydrosanityButtons[c('setregion')],
-		eval.args="^tmp"), doLog=F)
+		eval.args="^tmp", restore.on.close=StateEnv$win), doLog=F)
 	
 	guiDo(rm(tmp.sites))
 	
@@ -264,7 +272,7 @@ updateTimePeriodPage <- function() {
 	}
 	addLogComment("Set time period for analysis")
 	guiDo(call=bquote(
-		hsp$timePeriod <- as.POSIXct(.(myTimeStrings))
+		hsp$timePeriod <- as.POSIXct(.(myTimeStrings), tz="GMT")
 	))
 	setStatusBar("Set time period for analysis: ", myText)
 	
@@ -384,27 +392,66 @@ updateTimePeriodPage <- function() {
 	plot.call <- quote(
 		xyplot(y ~ x, tmp.locs, aspect="iso", points.labels=rownames(tmp.locs))
 	)
+	
+	plot.call$panel <- quote(panel.geo)
+	
 	if (doInterpElev) {
 		tmpObjs <- c(tmpObjs, 'tmp.elev')
 		guiDo({
 			tmp.elev <- lapply(hsp$data[tmp.names], attr, "elevation")
 			tmp.elev <- unlist(ifelse(sapply(tmp.elev,is.null),NA,tmp.elev))
 		})
-		plot.call$z <- quote(tmp.elev)
+		plot.call$z.interp <- quote(tmp.elev)
+		plot.call$col.regions=quote(grey(seq(0.95,0.65,length=100)))
 	}
-	plot.call$panel <- quote(panel.pointmap)
-	plot.call$prepanel <- quote(prepanel.extend.10)
+	
+	if (!is.null(hsp$region)) {
+		plot.call$xlim <- quote(hsp$region$xlim)
+		plot.call$ylim <- quote(hsp$region$ylim)
+	} else {
+		plot.call$prepanel <- quote(prepanel.extend.10)
+	}
+	
+	if (!is.null(hsp$catchment)) {
+		plot.call$catchment.poly <- quote(hsp$catchment)
+	}
 	
 	addToLog(paste(deparse(plot.call), collapse="\n"))
 	guiDo(plotAndPlay(plot.call=plot.call, name="site map", 
-		extra.buttons=NULL,
-		eval.args="^tmp"), doLog=F)
+		extra.buttons=hydrosanityButtons[c('setregion')],
+		eval.args="^tmp", restore.on.close=StateEnv$win), doLog=F)
 	
 	if (length(tmpObjs) > 0) {
 		guiDo(call=bquote(rm(list=.(tmpObjs))))
 	}
 	
 	setStatusBar("Generated site map")
+}
+
+.hs_on_scope_import_catchment_button_clicked <- function(button) {
+	StateEnv$win$setSensitive(F)
+	on.exit(StateEnv$win$setSensitive(T))
+	setStatusBar("")
+	
+	shapeFile <- theWidget("scope_catchment_filechooserbutton")$getFilename()
+	fileFormatIndex <- theWidget("scope_catchment_format_combobox")$getActive()+1
+	
+	if (is.null(shapeFile)) {
+		errorDialog("Choose the file.")
+		return()
+	}
+	
+	addLogComment("Import catchment boundaries from file")
+	
+	select.call <- call(CATCHMENT_FORMATS[[fileFormatIndex]])
+	select.call$file <- shapeFile
+	
+	select.assign.call <- quote(hsp$catchment <- foo)
+	select.assign.call[[3]] <- select.call
+	
+	guiDo(call=select.assign.call)
+	
+	setStatusBar("Imported catchment boundaries from file")
 }
 
 ## NON-ACTIONS, just interface bits and pieces
@@ -414,7 +461,7 @@ updateTimePeriodPage <- function() {
 }
 
 .hs_on_scope_region_entry_changed <- function(widget) {
-	theWidget("scope_set_period_button")$setSensitive(TRUE)
+	theWidget("scope_set_region_button")$setSensitive(TRUE)
 }
 
 .hs_on_scope_sitearchive_type_combobox_changed <- function(widget) {
