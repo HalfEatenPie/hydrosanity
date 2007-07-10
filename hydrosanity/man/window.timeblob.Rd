@@ -10,17 +10,17 @@
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-\method{window}{timeblob}(blob, start = NULL, end = NULL, inclusive = F, return.indices = F, extend = F)
+\method{window}{timeblob}(x, start = NULL, end = NULL, inclusive = F, return.indices = F, extend = F)
 
-\method{start}{timeblob}(blob)
-\method{end}{timeblob}(blob)
+\method{start}{timeblob}(x)
+\method{end}{timeblob}(x)
 
 start.timeblobs(blob.list)
 end.timeblobs(blob.list)
 timelim.timeblobs(blob.list)
 }
 \arguments{
-  \item{blob}{ ~~Describe \code{blob} here~~ }
+  \item{x}{ ~~Describe \code{x} here~~ }
   \item{start}{ ~~Describe \code{start} here~~ }
   \item{end}{ ~~Describe \code{end} here~~ }
   \item{inclusive}{ ~~Describe \code{inclusive} here~~ }
