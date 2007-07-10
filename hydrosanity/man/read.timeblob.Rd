@@ -5,7 +5,7 @@
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-read.timeblob(file, skip = 1, sep = ",", sitename = NULL, dataname = "Data", dataCol = 2, qualCol = 3, extraCols = c(), extraNames = paste("Extra", extraCols), readTimesFromFile = T, timeCol = 1, timeFormat = "\%d \%b \%Y", startTime = NA, tz = "GMT", timeSeqBy = "DSTdays", ...)
+read.timeblob(file, skip = 1, sep = ",", sitename = NULL, dataname = "Data", dataCol = 2, qualCol = 3, extraCols = c(), extraNames = paste("Extra", extraCols), readTimesFromFile = T, timeCol = 1, timeFormat = "\%d \%b \%Y", startTime = NA, tz = "GMT", timeSeqBy = "days", ...)
 }
 \arguments{
   \item{file}{ ~~Describe \code{file} here~~ }

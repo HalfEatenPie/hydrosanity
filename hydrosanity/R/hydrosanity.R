@@ -453,7 +453,7 @@ select.sites.BOM.AU <- function(siteListFile, archivePath, return.data=FALSE, xl
 			sitename=siteinfo$name[i], dataname="Rain (mm/day)", 
 			dataCol=6, qualCol=7, extraCols=c(9), 
 			extraNames=c("AccumSteps"), readTimesFromFile=F, 
-			startTime=list(year=3, month=4, day=5), timeSeqBy="DSTdays")
+			startTime=list(year=3, month=4, day=5))
 		attr(dataset[[x]], "role") <- "RAIN"
 		myLoc <- c(siteinfo$x[i], siteinfo$y[i])
 		if (!any(is.na(myLoc))) {
