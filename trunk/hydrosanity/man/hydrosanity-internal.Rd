@@ -1,4 +1,5 @@
 \name{hydrosanity-internal}
+\alias{addToLog}
 \alias{select.sites.BOM.AU}
 \alias{read.catchment.esri_shapefile}
 \alias{panel.geo}

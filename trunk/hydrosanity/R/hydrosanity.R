@@ -129,7 +129,7 @@ hydrosanity <- function() {
 	}
 	sitelist_format_combo$setActive(0)
 	theWidget("scope_sitearchive_type_combobox")$setActive(0)
-	theWidget("scope_yearstart_combobox")$setActive(0)
+	#theWidget("scope_yearstart_combobox")$setActive(0)
 	
 	theWidget("explore_timeseries_aggr1_comboboxentry")$setActive(2)
 	theWidget("explore_timeseries_aggr2_comboboxentry")$setActive(4)
