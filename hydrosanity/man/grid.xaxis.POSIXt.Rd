@@ -32,67 +32,7 @@ grid.xaxis.POSIXt(lim = as.numeric(convertX(unit(c(0,1), "npc"), "native")), lab
 }
 \seealso{ ~~objects to See Also as \code{\link{help}}, ~~~ }
 \examples{
-##---- Should be DIRECTLY executable !! ----
-##-- ==>  Define data, use random,
-##--	or do  help(data=index)  for the standard data sets.
-
-## The function is currently defined as
-function(at=NULL, label=NULL, name="timeaxis", lim=as.numeric(convertX(unit(c(0,1), "npc"), "native")), ...) {
-	timelim <- as.POSIXct.raw(lim)
-	if (is.null(at)) {
-		myBy <- "1 hour"
-		myStart <- trunc(min(timelim), units="hours")
-		myFormat <- "\%m-\%d \%H:\%M"
-		if (diff(lim) > 12 * 60*60) {
-			myBy <- "6 hours"
-			myStart <- trunc(myStart, units="days")
-		}
-		if (diff(lim) > 1.5 * 24*60*60) {
-			myBy <- "1 day"
-			myFormat <- "\%Y-\%m-\%d"
-		}
-		if (diff(lim) > 7 * 24*60*60) {
-			myBy <- "4 days"
-		}
-		if (diff(lim) > 30 * 24*60*60) {
-			myBy <- "1 month"
-			myStart <- trunc.month(myStart)
-			myFormat <- "\%Y-\%m"
-		}
-		if (diff(lim) > 6 * 30*24*60*60) {
-			myBy <- "3 months"
-			myStart <- trunc.year(myStart)
-			myFormat <- "\%b"
-		}
-		if (diff(lim) > 24 * 30*24*60*60) {
-			myBy <- "1 year"
-			myFormat <- "\%Y"
-		}
-		if (diff(lim) > 10 * 365.25*24*60*60) {
-			myBy <- "5 years"
-			myStart <- trunc.decade(myStart)
-		}
-		if (diff(lim) > 30 * 365.25*24*60*60) {
-			myBy <- "10 years"
-		}
-		at <- seq.POSIXt(myStart, max(timelim), by=myBy)
-		# only keep axis ticks within range
-		inrange <- (min(timelim) <= at) & (at <= max(timelim))
-		at <- at[inrange]
-		if (is.null(label)) {
-			label <- format(at, format=myFormat)
-			atYears <- sapply(at, function(x) {
-				# TODO: make this stand-alone
-				x == trunc.year(as.POSIXct.raw(x))
-			})
-			label[atYears] <- format(at[atYears], format="\%Y")
-		}
-	}
-	grid.xaxis(at=at, label=label, name=name, ...)
-	return(list(at=at, label=label))
-  }
+	
 }
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory.
-\keyword{ ~kwd1 }
-\keyword{ ~kwd2 }% __ONLY ONE__ keyword per line
+\keyword{ dplot }
+\keyword{ ts }

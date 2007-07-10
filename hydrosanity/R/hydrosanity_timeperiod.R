@@ -3,11 +3,10 @@
 ## Copyright (c) 2007 Felix Andrews <felix@nfrac.org>, GPL
 
 updateTimePeriodPage <- function() {
-	TXV <- theWidget("timeperiod_summary_textview")
-	TRV <- theWidget("timeperiod_summary_treeview")
 	
-	setTextview(TXV, "")
-	TRV$setModel(rGtkDataFrame())
+	if (!is.null(hsp$yearStart)) {
+		scope_yearstart_combobox$setActive(hsp$yearStart - 1)
+	}
 	
 	if (is.null(hsp$timePeriod)) {
 		theWidget("timeperiod_chosenperiod_entry")$setText("")
@@ -53,44 +52,6 @@ updateTimePeriodPage <- function() {
 		theWidget("scope_overall_x_entry")$setText(regionXString)
 		theWidget("scope_overall_y_entry")$setText(regionYString)
 	}
-	
-	# don't generate summary until period has been set explicitly
-	if (is.null(hsp$timePeriod)) { return() }
-	
-	# generate summary
-	missingSummary <- capture.output(
-		missingFrac <- guiDo(summary.missing.timeblobs(hsp$data, 
-			timelim=hsp$timePeriod), doLog=F)
-	)
-	addTextview(TXV, paste(missingSummary, collapse="\n"))
-	
-	dfName <- dfMin <- dfQ25 <- dfMedian <- dfQ75 <- dfMax <- dfMissing <- character(length(hsp$data))
-	
-	for (i in seq(along=hsp$data)) {
-		dfName[i] <- names(hsp$data)[i]
-		subBlob <- window(hsp$data[[i]], hsp$timePeriod[1], hsp$timePeriod[2])
-		myQuantiles <- round(quantile(
-			subBlob$Data, probs=c(0, 0.25, 0.5, 0.75, 1), na.rm=T), 
-			digits=1)
-		dfMin[i] <- myQuantiles[1]
-		dfQ25[i] <- myQuantiles[2]
-		dfMedian[i] <- myQuantiles[3]
-		dfQ75[i] <- myQuantiles[4]
-		dfMax[i] <- myQuantiles[5]
-		dfMissing[i] <- sprintf('%.1f%%', missingFrac[i]*100)
-	}
-	
-	dfModel <- rGtkDataFrame(data.frame(
-		Name=dfName,
-		Min=dfMin,
-		Q25=dfQ25,
-		Median=dfMedian,
-		Q75=dfQ75,
-		Max=dfMax,
-		Missing=dfMissing,
-		stringsAsFactors=F)
-		)
-	TRV$setModel(dfModel)
 }
 
 
@@ -197,7 +158,8 @@ updateTimePeriodPage <- function() {
 	addToLog(paste(deparse(plot.call), collapse="\n"))
 	guiDo(plotAndPlay(plot.call=plot.call, name="timeline", 
 		buttons=hydrosanityButtons[c('zoomin','zoomout','centre','setperiod')],
-		extra.buttons=NULL, eval.args="^tmp"), doLog=F)
+		extra.buttons=NULL, eval.args="^tmp",
+		restore.on.close=StateEnv$win), doLog=F)
 	
 	guiDo(rm(tmp.sites, tmp.coverage))
 	
@@ -332,19 +294,26 @@ updateTimePeriodPage <- function() {
 	on.exit(StateEnv$win$setSensitive(T))
 	setStatusBar("")
 	
+	selNames <- iconViewGetSelectedNames(theWidget("selection_iconview"))
+	if (length(selNames) == 0) {
+		errorDialog("No items selected.")
+		return()
+	}
+	
 	plotQualCodes <- theWidget("timeperiod_plotqualitycodes_checkbutton")$getActive()
 	
 	addLogComment("Generate timeline plot")
 	
 	plot.call <- call('grid.timeline.plot')
-	plot.call[[2]] <- quote(hsp$data)
+	plot.call[[2]] <- bquote(hsp$data[.(selNames)])
 	plot.call$xscale <- quote(hsp$timePeriod)
 	plot.call$colMap <- if (!plotQualCodes) { NA }
 	
 	addToLog(paste(deparse(plot.call), collapse="\n"))
 	guiDo(plotAndPlay(plot.call=plot.call, name="timeline", 
 		buttons=hydrosanityButtons[c('zoomin','zoomout','centre','setperiod')],
-		extra.buttons=NULL, eval.args="^tmp"), doLog=F)
+		extra.buttons=NULL, eval.args="^tmp",
+		restore.on.close=StateEnv$win), doLog=F)
 	
 	setStatusBar("Generated timeline plot")
 }
@@ -455,6 +424,11 @@ updateTimePeriodPage <- function() {
 }
 
 ## NON-ACTIONS, just interface bits and pieces
+
+.hs_on_scope_yearstart_combobox_changed <- function(widget) {
+	addToLog("\n")
+	guiDo(call=bquote(hsp$yearStart <- .(widget$getActive()+1)))
+}
 
 .hs_on_timeperiod_chosenperiod_entry_changed <- function(widget) {
 	theWidget("timeperiod_updateperiod_button")$setSensitive(TRUE)

@@ -3,9 +3,6 @@
 ## Copyright (c) 2007 Felix Andrews <felix@nfrac.org>, GPL
 
 updateExplorePage <- function() {
-	
-	setupIconView(theWidget("explore_iconview"))
-	
 	StateEnv$update$explore <- F
 	StateEnv$win$present()
 }
@@ -15,7 +12,7 @@ updateExplorePage <- function() {
 	on.exit(StateEnv$win$setSensitive(T))
 	setStatusBar("")
 	
-	selNames <- iconViewGetSelectedNames(theWidget("explore_iconview"))
+	selNames <- iconViewGetSelectedNames(theWidget("selection_iconview"))
 	if (length(selNames) == 0) {
 		errorDialog("No items selected.")
 		return()
@@ -30,7 +27,6 @@ updateExplorePage <- function() {
 	aggr1By <- theWidget("explore_timeseries_aggr1_comboboxentry")$getActiveText()
 	aggr2By <- theWidget("explore_timeseries_aggr2_comboboxentry")$getActiveText()
 	doSmooth <- theWidget("explore_timeseries_smooth_checkbutton")$getActive()
-	startMonth <- theWidget("explore_yearstart_combobox")$getActive() + 1
 	nTrans <- (doRawData + doAggr1 + doAggr2)
 	if (nTrans == 0) { return() }
 	if (nBlobs * nTrans == 1) { doSuperpose <- F }
@@ -54,10 +50,8 @@ updateExplorePage <- function() {
 		aggr.call <- bquote(
 			tmp.aggr1 <- lapply(.(rawdata.call), aggregate.timeblob,
 				by=.(aggr1By)))
-		if (any(grep(" month", aggr1By)) || any(grep("year", aggr1By))) {
-			if (startMonth != 1) {
-				aggr.call[[3]]$start.month <- startMonth
-			}
+		if (any(grep("( month|year)", aggr1By))) {
+			aggr.call[[3]]$start.month <- hsp$startMonth
 		}
 		if (doSmooth) {
 			aggr.call <- bquote(
@@ -71,10 +65,8 @@ updateExplorePage <- function() {
 		aggr.call <- bquote(
 			tmp.aggr2 <- lapply(.(rawdata.call), aggregate.timeblob,
 				by=.(aggr2By)))
-		if (any(grep(" month", aggr2By)) || any(grep("year", aggr2By))) {
-			if (startMonth != 1) {
-				aggr.call[[3]]$start.month <- startMonth
-			}
+		if (any(grep("( month|year)", aggr2By))) {
+			aggr.call[[3]]$start.month <- hsp$startMonth
 		}
 		if (doSmooth) {
 			aggr.call <- bquote(
@@ -163,7 +155,7 @@ updateExplorePage <- function() {
 	# plot scales and annotation specifications
 	plot.call$xscale <- quote(hsp$timePeriod)
 	plot.call$sameScales <- if (doCommonScale) { T } else { F }
-	plot.call$allSameScales <- if (doCommonScale && doSuperpose && !doSmooth
+	plot.call$allSameScales <- if (doCommonScale && doSuperpose #&& !doSmooth
 		&& (length(list.call[-1]) > 1)) { T }
 	plot.call$qualTimeline <- if (doQual) {
 		if (doSuperpose && (nBlobs > 1)) { F } else { T }
@@ -172,7 +164,8 @@ updateExplorePage <- function() {
 	addToLog(paste(deparse(plot.call), collapse="\n"))
 	guiDo(plotAndPlay(plot.call=plot.call, name="timeseries", 
 		buttons=hydrosanityButtons[c('zoomin','zoomout','centre','logscale','setperiod')],
-		extra.buttons=NULL, eval.args="^tmp"), doLog=F)
+		extra.buttons=NULL, eval.args="^tmp",
+		restore.on.close=StateEnv$win), doLog=F)
 	
 	if (length(tmpObjs) > 0) {
 		guiDo(call=bquote(rm(list=.(tmpObjs))))
@@ -185,7 +178,7 @@ updateExplorePage <- function() {
 	on.exit(StateEnv$win$setSensitive(T))
 	setStatusBar("")
 	
-	selNames <- iconViewGetSelectedNames(theWidget("explore_iconview"))
+	selNames <- iconViewGetSelectedNames(theWidget("selection_iconview"))
 	if (length(selNames) == 0) {
 		errorDialog("No items selected.")
 		return()
@@ -203,7 +196,6 @@ updateExplorePage <- function() {
 	doAggr2 <- theWidget("explore_cdf_aggr2_radiobutton")$getActive()
 	aggr1By <- theWidget("explore_cdf_aggr1_comboboxentry")$getActiveText()
 	aggr2By <- theWidget("explore_cdf_aggr2_comboboxentry")$getActiveText()
-	startMonth <- theWidget("explore_yearstart_combobox")$getActive() + 1
 	
 	addLogComment("Generate distribution plot")
 	
@@ -230,10 +222,8 @@ updateExplorePage <- function() {
 		aggr.call <- bquote(
 			tmp.data <- lapply(tmp.data, aggregate.timeblob, by=.(aggrBy))
 		)
-		if (any(grep(" month", aggrBy)) || any(grep("year", aggrBy))) {
-			if (startMonth != 1) {
-				aggr.call[[3]]$start.month <- startMonth
-			}
+		if (any(grep("( month|year)", aggrBy))) {
+			aggr.call[[3]]$start.month <- hsp$startMonth
 		}
 		guiDo(call=aggr.call)
 	}
@@ -310,7 +300,8 @@ updateExplorePage <- function() {
 	addToLog(paste(deparse(plot.call), collapse="\n"))
 	guiDo(plotAndPlay(plot.call=plot.call, name="distribution", 
 		extra.buttons=plotAndPlayButtons[c('logscale')],
-		labels=idLabels, eval.args="^tmp"), doLog=F)
+		labels=idLabels, eval.args="^tmp",
+		restore.on.close=StateEnv$win), doLog=F)
 	
 	if (length(tmpObjs) > 0) {
 		guiDo(call=bquote(rm(list=.(tmpObjs))))
@@ -323,7 +314,7 @@ updateExplorePage <- function() {
 	on.exit(StateEnv$win$setSensitive(T))
 	setStatusBar("")
 	
-	selNames <- iconViewGetSelectedNames(theWidget("explore_iconview"))
+	selNames <- iconViewGetSelectedNames(theWidget("selection_iconview"))
 	if (length(selNames) == 0) {
 		errorDialog("No items selected.")
 		return()
@@ -440,7 +431,8 @@ updateExplorePage <- function() {
 	addToLog(paste(deparse(plot.call), collapse="\n"))
 	guiDo(plotAndPlay(plot.call=plot.call, name="seasonality", 
 		extra.buttons=plotAndPlayButtons[c('logscale')],
-		labels=idLabels, eval.args="^tmp"), doLog=F)
+		labels=idLabels, eval.args="^tmp",
+		restore.on.close=StateEnv$win), doLog=F)
 	
 	if (length(tmpObjs) > 0) {
 		guiDo(call=bquote(rm(list=.(tmpObjs))))

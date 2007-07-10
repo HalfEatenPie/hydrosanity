@@ -3,6 +3,13 @@
 ## Copyright (c) 2007 Felix Andrews <felix@nfrac.org>, GPL
 
 updateImportPage <- function() {
+	ratio_item_combo <- theWidget("import_transform_ratio_item_combobox")
+	ratio_item_combo$getModel()$clear()
+	for (x in names(hsp$data)) {
+		ratio_item_combo$appendText(x)
+	}
+	ratio_item_combo$setActive(0)
+	
 	# generate summary table
 	
 	dfID <- dfName <- dfData <- dfStart <- dfEnd <- dfLength <- dfFreq <- 
@@ -583,7 +590,6 @@ updateImportPage <- function() {
 	blobNames <- names(hsp$data)[blobIndices]
 	
 	timestepString <- theWidget("import_transform_timestep_comboboxentry")$getActiveText()
-	startMonth <- theWidget("import_transform_yearstart_combobox")$getActive() + 1
 	aggrFunIdx <- theWidget("import_transform_aggrfun_combobox")$getActive() + 1
 	qualFunIdx <- theWidget("import_transform_qualfun_combobox")$getActive() + 1
 	doReplace <- theWidget("import_transform_replace_checkbutton")$getActive()
@@ -604,10 +610,8 @@ updateImportPage <- function() {
 		)
 		if (aggrFunIdx > 1) { aggr.call[[3]]$FUN <- aggrFun }
 		if (qualFunIdx > 1) { aggr.call[[3]]$fun.qual <- qualFunName }
-		if (any(grep(" month", timestepString)) || any(grep("year", timestepString))) {
-			if (startMonth != 1) {
-				aggr.call[[3]]$start.month <- startMonth
-			}
+		if (any(grep("( month|year)", timestepString))) {
+			aggr.call[[3]]$start.month <- hsp$startMonth
 		}
 		guiDo(call=aggr.call)
 		setStatusBar("Resampled object ", dQuote(x))
@@ -641,9 +645,9 @@ updateImportPage <- function() {
 	guiDo(call=bquote(tmp.filter <- rep(1/.(winSize), .(winSize))))
 		
 	guiDo(call=bquote({
-		tmp.denom <- hsp$data[[.(denomName)]]
+		tmp.denom <- quick.disaccumulate.timeblob(hsp$data[[.(denomName)]])
 		tmp.denom$Data <- filter(tmp.denom$Data, tmp.filter)
-		tmp.data <- syncTo.timeblobs(hsp$data[.(blobNames)], 
+		tmp.data <- syncTo.timeblobs(lapply(hsp$data[.(blobNames)], quick.disaccumulate.timeblob), 
 			blob=tmp.denom)
 		tmp.data[-1] <- lapply(tmp.data[-1], filter, tmp.filter)
 	}))

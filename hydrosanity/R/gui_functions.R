@@ -251,49 +251,66 @@ treeViewGetSelectedIndices <- function(treeView) {
 	indices <- sapply(selPaths, function(x) x$getIndices()) + 1
 }
 
-setupIconView <- function(iconView, itemNames=names(hsp$data), selection=c("first", "all", "none")) {
-	selection <- match.arg(selection)
+setupIconView <- function(iconView, itemNames=names(hsp$data)) {
 	
 	rainPixbuf <- gdkPixbufNewFromFile(getpackagefile("icon_RAIN.png"))$retval
 	flowPixbuf <- gdkPixbufNewFromFile(getpackagefile("icon_FLOW.png"))$retval
 	otherPixbuf <- gdkPixbufNewFromFile(getpackagefile("icon_OTHER.png"))$retval
 	# (or NULL)
 	
-	list_store <- gtkListStore("character", "GdkPixbuf", "character")
+	# these columns are: item name, display text, icon
+	list_store <- gtkListStore("character", "character", "GdkPixbuf")
 	
 	for (x in itemNames) {
-		myRole <- attr(hsp$data[[x]], "role")
-		if (is.null(myRole)) { myRole <- "OTHER" }
+		
 		iter <- list_store$append()$iter
 		list_store$set(iter, 0, x)
-		list_store$set(iter, 1, switch(myRole,
+		myName <- paste(x, attr(hsp$data[[x]], "sitename"), sep=": ")
+		list_store$set(iter, 1, myName)
+		# set icon
+		myRole <- attr(hsp$data[[x]], "role")
+		if (is.null(myRole)) { myRole <- "OTHER" }
+		list_store$set(iter, 2, switch(myRole,
 			"RAIN"=rainPixbuf,
 			"FLOW"=flowPixbuf,
 			otherPixbuf)
 		)
-		myName <- attr(hsp$data[[x]], "sitename")
-		if (is.null(myName)) { myName <- x }
-		list_store$set(iter, 2, myName)
 	}
 	selPaths <- NULL
 	if (!is.null(iconView$getModel())) {
 		selPaths <- iconView$getSelectedItems()
 	}
 	iconView$setModel(list_store)
-	iconView$setTextColumn(2)
-	iconView$setPixbufColumn(1)
-	iconView$setItemWidth(75)
-	if (is.null(selPaths)) {
-		if (selection == "first") {
-			iconView$selectPath(gtkTreePathNewFromString("0"))
-		}
-		if (selection == "all") {
-			iconView$selectAll()
-		}
-	} else {
+	iconView$setTextColumn(1)
+	iconView$setPixbufColumn(2)
+	iconView$setItemWidth(110)
+	if (!is.null(selPaths)) {
 		for (p in selPaths) { iconView$selectPath(p) }
 	}
+	iconView$resizeChildren() #?
 	invisible(NULL)
+}
+
+iconViewSetSelection <- function(iconView, selection=c("first", "all", "none", "rain")) {
+	selection <- match.arg(selection)
+	
+	if (selection == "first") {
+		iconView$selectPath(gtkTreePathNewFromIndices(0))
+	}
+	if (selection == "all") {
+		iconView$selectAll()
+	}
+	if (selection == "none") {
+		iconView$unselectAll()
+	}
+	if (selection == "rain") {
+		iconView$unselectAll()
+		for (i in seq_along(hsp$data)) {
+			if (attr(hsp$data[[i]], "role") == "RAIN") {
+				iconView$selectPath(gtkTreePathNewFromIndices(i-1))
+			}
+		}
+	}
 }
 
 iconViewGetSelectedNames <- function(iconView) {

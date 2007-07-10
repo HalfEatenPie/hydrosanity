@@ -862,6 +862,7 @@ panel.geo <- function(x, y, z, z.interp, subscripts,
 	}
 	# draw cities
 	if (("cities" %in% layers) && require(maps)) {
+		data(world.cities)
 		with(world.cities, {
 			ok <- ((min(xlim) < long) & (long < max(xlim)) &
 				(min(ylim) < lat) & (lat < max(ylim)))
@@ -946,7 +947,6 @@ prepanel.qqmath.fix <- function(x, ...) {
 }
 
 ## this function by Deepayan Sarkar, posted on R-help mailing list
-
 myYlabGrob <-
    function(..., main.ylab = "") ## ...is lab1, lab2, etc
 {

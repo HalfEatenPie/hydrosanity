@@ -25,4 +25,4 @@ coming soon...
 \seealso{
 \code{\link{hydrosanity}}
 }
-}
+

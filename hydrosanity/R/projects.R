@@ -69,6 +69,10 @@ openProject <- function() {
 	
 	setIsImportMode(FALSE)
 	
+	# restore GUI state (only a few bits)
+	
+	# TODO: if (!is.null(hsp$selection))
+	
 	setStatusBar("Loaded project from ", dQuote(filename))
 }
 

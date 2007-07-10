@@ -3,11 +3,6 @@
 ## Copyright (c) 2007 Felix Andrews <felix@nfrac.org>, GPL
 
 updateImputePage <- function() {
-	
-	setupIconView(theWidget("impute_iconview"))
-	
-	.hs_on_impute_iconview_selection_changed()
-	
 	StateEnv$update$impute <- F
 	StateEnv$win$present()
 }
@@ -17,7 +12,7 @@ updateImputePage <- function() {
 	on.exit(StateEnv$win$setSensitive(T))
 	setStatusBar("")
 	
-	selNames <- iconViewGetSelectedNames(theWidget("impute_iconview"))
+	selNames <- iconViewGetSelectedNames(theWidget("selection_iconview"))
 	if (length(selNames) == 0) {
 		errorDialog("No items selected.")
 		return()
@@ -28,7 +23,6 @@ updateImputePage <- function() {
 	doAggr2 <- theWidget("impute_aggr2_radiobutton")$getActive()
 	aggr1By <- theWidget("impute_aggr1_comboboxentry")$getActiveText()
 	aggr2By <- theWidget("impute_aggr2_comboboxentry")$getActiveText()
-	startMonth <- theWidget("explore_yearstart_combobox")$getActive() + 1
 	
 	doByDistance <- theWidget("impute_missing_distance_radiobutton")$getActive()
 	doByCorrelation <- theWidget("impute_missing_correlation_radiobutton")$getActive()
@@ -76,10 +70,8 @@ updateImputePage <- function() {
 		aggr.call <- bquote(
 			tmp.data <- lapply(tmp.data, aggregate.timeblob, by=.(aggrBy))
 		)
-		if (any(grep(" month", aggrBy)) || any(grep("year", aggrBy))) {
-			if (startMonth != 1) {
-				aggr.call[[3]]$start.month <- startMonth
-			}
+		if (any(grep("( month|year)", aggrBy))) {
+			aggr.call[[3]]$start.month <- hsp$startMonth
 		}
 		guiDo(call=aggr.call)
 	}
@@ -106,7 +98,8 @@ updateImputePage <- function() {
 	guiDo(plotAndPlay(plot.call=plot.call, name="imputed vs actual", 
 		extra.buttons=plotAndPlayButtons[c('zero','logscale')],
 		trans.scales=c("x","y"),
-		labels=idLabels, eval.args="^tmp"), doLog=F)
+		labels=idLabels, eval.args="^tmp",
+		restore.on.close=StateEnv$win), doLog=F)
 	
 	if (length(tmpObjs) > 0) {
 		guiDo(call=bquote(rm(list=.(tmpObjs))))
@@ -120,7 +113,7 @@ updateImputePage <- function() {
 	on.exit(StateEnv$win$setSensitive(T))
 	setStatusBar("")
 	
-	selNames <- iconViewGetSelectedNames(theWidget("impute_iconview"))
+	selNames <- iconViewGetSelectedNames(theWidget("selection_iconview"))
 	if (length(selNames) == 0) {
 		errorDialog("No items selected.")
 		return()
@@ -186,7 +179,7 @@ updateImputePage <- function() {
 	on.exit(StateEnv$win$setSensitive(T))
 	setStatusBar("")
 	
-	selNames <- iconViewGetSelectedNames(theWidget("impute_iconview"))
+	selNames <- iconViewGetSelectedNames(theWidget("selection_iconview"))
 	if (length(selNames) == 0) {
 		errorDialog("No items selected.")
 		return()
@@ -209,7 +202,7 @@ updateImputePage <- function() {
 	on.exit(StateEnv$win$setSensitive(T))
 	setStatusBar("")
 	
-	selNames <- iconViewGetSelectedNames(theWidget("impute_iconview"))
+	selNames <- iconViewGetSelectedNames(theWidget("selection_iconview"))
 	if (length(selNames) == 0) {
 		errorDialog("No items selected.")
 		return()
@@ -227,12 +220,15 @@ updateImputePage <- function() {
 	datasetModificationUpdate()
 }
 
-
-.hs_on_impute_iconview_selection_changed <- function(...) {
+.hs_on_impute_calculate_gaps_button_clicked <- function(button) {
+	StateEnv$win$setSensitive(F)
+	on.exit(StateEnv$win$setSensitive(T))
+	setStatusBar("")
+	
 	TXV <- theWidget("impute_textview")
 	setTextview(TXV, "")
 	
-	selNames <- iconViewGetSelectedNames(theWidget("impute_iconview"))
+	selNames <- iconViewGetSelectedNames(theWidget("selection_iconview"))
 	
 	for (x in selNames) {
 		gapInfo <- gaps(window(hsp$data[[x]], hsp$timePeriod[1], 
@@ -254,5 +250,4 @@ updateImputePage <- function() {
 		addTextview(TXV, mySumm, "\n")
 	}
 }
-
 

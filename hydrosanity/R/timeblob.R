@@ -37,10 +37,9 @@ timeblob <- function(Time, Data, Qual=NULL, extras=NULL, timestep=NULL, sitename
 		}
 	}
 	attr(blob, "timestep") <- timestep
-	# set sitename
 	attr(blob, "sitename") <- sitename
-	# set dataname
 	attr(blob, "dataname") <- dataname
+	attr(blob, "role") <- "OTHER"
 	# check that it is.timeblob()!
 	if (!is.timeblob(blob)) { stop("oops, timeblob() function made an invalid timeblob") }
 	return(blob)
@@ -174,13 +173,13 @@ read.timeblob <- function(file, skip=1, sep=",", sitename=NULL, dataname="Data",
 
 # returns length 0 if blob is empty
 start.timeblob <- function(blob) {
-	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
+	#if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
 	blob$Time[min(1,nrow(blob))]
 }
 
 # returns length 0 if blob is empty
 end.timeblob <- function(blob) {
-	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
+	#if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
 	if (identical(attr(blob, "timestep"), "irregular")) {
 		blob$Time[nrow(blob)]
 	} else {
@@ -565,6 +564,11 @@ aggregate.timeblob <- function(blob, by="1 year", FUN=mean, fun.qual=c("worst","
 }
 
 smooth.timeblob <- function(blob, by="1 year") {
+	# check types
+	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
+	if (!is.null(blob$AccumSteps)) {
+		blob <- quick.disaccumulate.timeblob(blob)
+	}
 	triangularFilter <- function(n) {
 		tmp <- c(1:floor(n/2), ceiling(n/2):1)
 		tmp / sum(tmp)
@@ -1019,7 +1023,7 @@ spatialElevation <- function(blob.list, linear=T, extrap=F, xo.length=64, yo.len
 	return(tmp.grid)
 }
 
-spatialField <- function(blob.list, timelim=NULL, type=c("overall","annual","quarters","months"), start.month=1, linear=T, extrap=F, xo.length=64, yo.length=xo.length, countSurface=F) {
+spaceTimeField <- function(blob.list, timelim=NULL, type=c("overall","annual","quarters","months"), start.month=1, linear=T, extrap=F, xo.length=64, yo.length=xo.length, countSurface=F) {
 	# check types
 	if (!require(akima, quietly=TRUE)) { stop("Require package 'akima'") }
 	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
