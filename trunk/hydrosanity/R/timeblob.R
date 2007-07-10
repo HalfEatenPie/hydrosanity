@@ -73,7 +73,7 @@ sapply.timeblob.data <- function(blob.list, FUN, ...) {
 	sapply(lapply(blob.list, function(x) { x$Data }), FUN, ...)
 }
 
-read.timeblob <- function(file, skip=1, sep=",", sitename=NULL, dataname="Data", dataCol=2, qualCol=3, extraCols=c(), extraNames=paste("Extra",extraCols), readTimesFromFile=T, timeCol=1, timeFormat="%d %b %Y", startTime=NA, tz="GMT", timeSeqBy="DSTdays", ...) {
+read.timeblob <- function(file, skip=1, sep=",", sitename=NULL, dataname="Data", dataCol=2, qualCol=3, extraCols=c(), extraNames=paste("Extra",extraCols), readTimesFromFile=T, timeCol=1, timeFormat="%d %b %Y", startTime=NA, tz="GMT", timeSeqBy="days", ...) {
 	# check types
 	if (is.null(sitename)) {
 		if (inherits(file, "connection")) {
@@ -1261,7 +1261,7 @@ as.byString <- function(x, digits=getOption("digits"), explicit=F) {
 		it <- paste(round(x / (365*24*60*60)), "years")
 	}
 	if (!explicit) { it <- sub("^1 ", "", it) }
-	it <- sub(" day", " DSTday", it)
+	#it <- sub(" day", " DSTday", it)
 	return(it)
 }
 
