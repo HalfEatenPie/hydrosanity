@@ -5,7 +5,7 @@
 updateTimePeriodPage <- function() {
 	
 	if (!is.null(hsp$yearStart)) {
-		scope_yearstart_combobox$setActive(hsp$yearStart - 1)
+		theWidget("scope_yearstart_combobox")$setActive(hsp$yearStart - 1)
 	}
 	
 	if (is.null(hsp$timePeriod)) {

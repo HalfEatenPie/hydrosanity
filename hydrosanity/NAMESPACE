@@ -33,6 +33,10 @@ S3method(start, timeblob)
 S3method(end, timeblob)
 S3method(window, timeblob)
 S3method(aggregate, timeblob)
+export(start.timeblob)
+export(end.timeblob)
+export(window.timeblob)
+export(aggregate.timeblob)
 export(
 	timeblob,
 	is.timeblob,
@@ -61,6 +65,9 @@ export(
 	trunc.year,
 	trunc.decade
 )
+
+## this is used by guiDo in the plotAndPlayGTK package
+export(addToLog)
 
 exportPattern("_") # Needed for the Glade interface
 
