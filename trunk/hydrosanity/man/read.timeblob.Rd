@@ -5,13 +5,14 @@
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-read.timeblob(file, skip = 1, sep = ",", dataname = "Data", dataCol = 2, qualCol = 3, extraCols = c(), extraNames = paste("Extra", extraCols), readTimesFromFile = T, timeCol = 1, timeFormat = "\%d \%b \%Y", startTime = NA, timeSeqBy = "DSTday", ...)
+read.timeblob(file, skip = 1, sep = ",", sitename = NULL, dataname = "Data", dataCol = 2, qualCol = 3, extraCols = c(), extraNames = paste("Extra", extraCols), readTimesFromFile = T, timeCol = 1, timeFormat = "\%d \%b \%Y", startTime = NA, tz = "GMT", timeSeqBy = "DSTdays", ...)
 }
 \arguments{
   \item{file}{ ~~Describe \code{file} here~~ }
   \item{skip}{ ~~Describe \code{skip} here~~ }
   \item{sep}{ ~~Describe \code{sep} here~~ }
-  \item{dataname}{ ~~Describe \code{dataName} here~~ }
+  \item{sitename}{ ~~Describe \code{sitename} here~~ }
+  \item{dataname}{ ~~Describe \code{dataname} here~~ }
   \item{dataCol}{ ~~Describe \code{dataCol} here~~ }
   \item{qualCol}{ ~~Describe \code{qualCol} here~~ }
   \item{extraCols}{ ~~Describe \code{extraCols} here~~ }
@@ -20,6 +21,7 @@ read.timeblob(file, skip = 1, sep = ",", dataname = "Data", dataCol = 2, qualCol
   \item{timeCol}{ ~~Describe \code{timeCol} here~~ }
   \item{timeFormat}{ ~~Describe \code{timeFormat} here~~ }
   \item{startTime}{ ~~Describe \code{startTime} here~~ }
+  \item{tz}{ ~~Describe \code{tz} here~~ }
   \item{timeSeqBy}{ ~~Describe \code{timeSeqBy} here~~ }
   \item{\dots}{ ~~Describe \code{\dots} here~~ }
 }

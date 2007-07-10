@@ -20,6 +20,7 @@ unimputeGaps.timeblobs(blob.list, timelim = NULL, type = c("imputed", "disaccumu
   \item{blob.list}{ ~~Describe \code{blob.list} here~~ }
   \item{which.impute}{ ~~Describe \code{which.impute} here~~ }
   \item{timelim}{ ~~Describe \code{timelim} here~~ }
+  \item{extend}{ ~~Describe \code{extend} here~~ }
   \item{withinTimeframe}{ ~~Describe \code{withinTimeframe} here~~ }
   \item{method}{ ~~Describe \code{method} here~~ }
   \item{constant}{ ~~Describe \code{constant} here~~ }
