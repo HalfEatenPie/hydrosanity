@@ -3,12 +3,6 @@
 ## Copyright (c) 2007 Felix Andrews <felix@nfrac.org>, GPL
 
 updateRainPage <- function() {
-	
-	role <- sapply(hsp$data, attr, "role")
-	
-	setupIconView(theWidget("rain_iconview"), 
-		itemNames=names(hsp$data)[role=="RAIN"], selection="all")
-	
 	StateEnv$update$rain <- F
 	StateEnv$win$present()
 }
@@ -18,7 +12,7 @@ updateRainPage <- function() {
 	on.exit(StateEnv$win$setSensitive(T))
 	setStatusBar("")
 	
-	selNames <- iconViewGetSelectedNames(theWidget("rain_iconview"))
+	selNames <- iconViewGetSelectedNames(theWidget("selection_iconview"))
 	if (length(selNames) == 0) {
 		errorDialog("No items selected.")
 		return()
@@ -35,11 +29,9 @@ updateRainPage <- function() {
 	doAnnual <- theWidget("rain_surface_annual_radiobutton")$getActive()
 	doSplines <- theWidget("rain_spline_radiobutton")$getActive()
 	doExtrap <- theWidget("rain_spline_extrapolation_checkbutton")$getActive()
-	gridSideCells <- theWidget("rain_gridcells_spinbutton")$getValue()
 	showPoints <- theWidget("rain_showpoints_checkbutton")$getActive()
 	showCounts <- theWidget("rain_showcounts_checkbutton")$getActive()
 	doElevContours <- theWidget("rain_elevation_contours_checkbutton")$getActive()
-	startMonth <- theWidget("explore_yearstart_combobox")$getActive() + 1
 	
 	myType <- if (doOverall) { "overall" } else
 		if (doAnnual) { "annual" } else
@@ -52,7 +44,7 @@ updateRainPage <- function() {
 	if (any(!ok)) {
 		errorDialog(paste("Some selected items do not have a valid 'location.xy' attribute:",
 			paste(selNames[!ok], collapse=", "),
-			". Try 'edit metadata' in the 'Dataset' tab."))
+			". De-select them, or try 'edit metadata' in the 'Dataset' tab."))
 		return()
 	}
 	
@@ -70,14 +62,13 @@ updateRainPage <- function() {
 		tmp.locs <- data.frame(x=tmp.locs[1,], y=tmp.locs[2,])
 	})
 	
-	grid.call <- call('spatialField')
+	grid.call <- call('spaceTimeField')
 	grid.call[[2]] <- quote(hsp$data[tmp.names])
 	grid.call$timelim <- if (!is.null(hsp$timePeriod)) { quote(hsp$timePeriod) }
 	grid.call$type <- myType
-	grid.call$start.month <- if (startMonth != 1) { startMonth }
+	grid.call$start.month <- hsp$startMonth
 	grid.call$linear <- !doSplines
 	grid.call$extrap <- if (doExtrap) { T }
-	grid.call$xo.length <- gridSideCells
 	grid.call$countSurface <- if (showCounts) { T }
 	
 	tmpObjs <- c(tmpObjs, 'tmp.grid')

@@ -62,6 +62,7 @@ hydrosanity <- function() {
 	StateEnv$update <- list(
 		import=F,
 		timeperiod=F,
+		summary=F,
 		explore=F,
 		impute=F,
 		rain=F,
@@ -108,20 +109,11 @@ hydrosanity <- function() {
 	theWidget("import_makefactor_comboboxentry")$setActive(0)
 	theWidget("import_accum_gaps_comboboxentry")$setActive(3)
 	theWidget("import_transform_timestep_comboboxentry")$setActive(0)
-	theWidget("import_transform_yearstart_combobox")$setActive(0)
 	theWidget("import_transform_aggrfun_combobox")$setActive(0)
 	theWidget("import_transform_qualfun_combobox")$setActive(0)
 	theWidget("import_transform_ratio_timestep_comboboxentry")$setActive(3)
 	theWidget("export_time_format_comboboxentry")$setActive(0)
 	theWidget("export_time_format_codes_combobox")$setActive(0)
-	
-	sitelist_format_combo <- theWidget("scope_sitelist_format_combobox")
-	sitelist_format_combo$getModel()$clear()
-	for (x in names(SITELIST_FORMATS)) {
-		sitelist_format_combo$appendText(x)
-	}
-	sitelist_format_combo$setActive(0)
-	theWidget("scope_sitearchive_type_combobox")$setActive(0)
 	
 	catchment_format_combo <- theWidget("scope_catchment_format_combobox")
 	catchment_format_combo$getModel()$clear()
@@ -129,19 +121,33 @@ hydrosanity <- function() {
 		catchment_format_combo$appendText(x)
 	}
 	catchment_format_combo$setActive(0)
+
+	sitelist_format_combo <- theWidget("scope_sitelist_format_combobox")
+	sitelist_format_combo$getModel()$clear()
+	for (x in names(SITELIST_FORMATS)) {
+		sitelist_format_combo$appendText(x)
+	}
+	sitelist_format_combo$setActive(0)
+	theWidget("scope_sitearchive_type_combobox")$setActive(0)
+	theWidget("scope_yearstart_combobox")$setActive(0)
 	
-	theWidget("explore_cdf_aggr1_radiobutton")$setActive(T)
 	theWidget("explore_timeseries_aggr1_comboboxentry")$setActive(2)
 	theWidget("explore_timeseries_aggr2_comboboxentry")$setActive(4)
-	theWidget("explore_yearstart_combobox")$setActive(0)
+	theWidget("explore_cdf_aggr1_radiobutton")$setActive(T)
 	theWidget("explore_cdf_aggr1_comboboxentry")$setActive(2)
 	theWidget("explore_cdf_aggr2_comboboxentry")$setActive(4)
 	theWidget("impute_aggr1_comboboxentry")$setActive(2)
 	theWidget("impute_aggr2_comboboxentry")$setActive(4)
 	theWidget("impute_missing_gaps_comboboxentry")$setActive(0)
 	theWidget("impute_missing_constant_combobox")$setActive(0)
+	theWidget("multivar_relationplot_aggr1_radiobutton")$setActive(T)
+	theWidget("multivar_relationplot_lag_comboboxentry")$setActive(0)
+	theWidget("multivar_relationplot_aggr1_comboboxentry")$setActive(2)
+	theWidget("multivar_relationplot_aggr2_comboboxentry")$setActive(4)
 	theWidget("corr_smoothed_by_comboboxentry")$setActive(1)
 	theWidget("corr_relationplot_lag_comboboxentry")$setActive(0)
+	theWidget("corr_relationplot_aggr1_comboboxentry")$setActive(2)
+	theWidget("corr_relationplot_aggr2_comboboxentry")$setActive(4)
 	
 	setTextviewMonospace(theWidget("log_textview"))
 	setTextviewMonospace(theWidget("impute_textview"))
@@ -161,10 +167,11 @@ hydrosanity <- function() {
 	importTreeView$setRulesHint(T)
 	
 	# set up table format on timeperiod page
-	timeperiodTreeView <- theWidget("timeperiod_summary_treeview")
+	timeperiodTreeView <- theWidget("summary_treeview")
 	insertTreeViewTextColumns(timeperiodTreeView, 
 		colNames=c("Name", "Min", "Q25", "Median", "Q75", "Max", "Missing", ""))
 	
+	updateNow()
 	StateEnv$win$present()
 }
 
@@ -174,8 +181,7 @@ sprintf("## Run by %s on %s", Sys.info()["user"], R.version.string), "\n\n",
 "## This log keeps a record of the analysis procedure. You can edit it or 
 ## annotate it here in this frame. You can also export it to a file using the 
 ## export button. Saving the Hydrosanity project also retains this log. To run 
-## commands again, copy and paste into the R console, or prepare a file and use 
-## 'source(\"stuff.R\")'.
+## commands again, copy and paste into the R Console.
 
 library(hydrosanity)
 
@@ -186,6 +192,10 @@ library(hydrosanity)
 
 setIsImportMode <- function(isImportMode) {
 	theWidget("timeperiod_scope_expander")$setExpanded(isImportMode)
+	for (x in c("import_import_expander", "import_edit_expander",
+		"import_transform_expander", "import_export_expander")) {
+		theWidget(x)$setExpanded(FALSE)
+	}
 	if (isImportMode) {
 		theWidget("import_import_expander")$setExpanded(TRUE)
 	} else {
@@ -194,6 +204,12 @@ setIsImportMode <- function(isImportMode) {
 }
 
 updateNow <- function(page.num=theWidget("notebook")$getCurrentPage()) {
+	if (page.num %in% c(0, 1, 3, 9)) {
+		theWidget("selection_frame")$setSensitive(FALSE)
+	} else {
+		theWidget("selection_frame")$setSensitive(TRUE)
+	}
+	
 	if (page.num == 1) {
 		if (StateEnv$update$import) { updateImportPage() }
 	}
@@ -201,18 +217,21 @@ updateNow <- function(page.num=theWidget("notebook")$getCurrentPage()) {
 		if (StateEnv$update$timeperiod) { updateTimePeriodPage() }
 	}
 	if (page.num == 3) {
-		if (StateEnv$update$explore) { updateExplorePage() }
+		if (StateEnv$update$summary) { updateSummaryPage() }
 	}
 	if (page.num == 4) {
-		if (StateEnv$update$impute) { updateImputePage() }
+		if (StateEnv$update$explore) { updateExplorePage() }
 	}
 	if (page.num == 5) {
-		if (StateEnv$update$rain) { updateRainPage() }
+		if (StateEnv$update$impute) { updateImputePage() }
 	}
 	if (page.num == 6) {
-		if (StateEnv$update$multivar) { updateMultivarPage() }
+		if (StateEnv$update$rain) { updateRainPage() }
 	}
 	if (page.num == 7) {
+		if (StateEnv$update$multivar) { updateMultivarPage() }
+	}
+	if (page.num == 8) {
 		if (StateEnv$update$corr) { updateCorrPage() }
 	}
 }
@@ -228,12 +247,11 @@ datasetModificationUpdate <- function() {
 		hsp$data <<- hsp$data[order(names(hsp$data))]
 	}
 	
-	ratio_item_combo <- theWidget("import_transform_ratio_item_combobox")
-	ratio_item_combo$getModel()$clear()
-	for (x in names(hsp$data)) {
-		ratio_item_combo$appendText(x)
+	selection_iconview <- theWidget("selection_iconview")
+	setupIconView(selection_iconview)
+	if (length(iconViewGetSelectedNames(selection_iconview)) == 0) {
+		iconViewSetSelection(selection_iconview, "first")
 	}
-	ratio_item_combo$setActive(0)
 	
 	updateNow()
 }
@@ -241,9 +259,10 @@ datasetModificationUpdate <- function() {
 timeperiodModificationUpdate <- function() {
 	hsp$modified <<- T
 	
-	StateEnv$update$timeperiod <- T
-	StateEnv$update$impute <- T
-	StateEnv$update$corr <- T
+	# set all pages except "dataset" to be updated
+	tmp <- StateEnv$update$import
+	StateEnv$update[] <- T
+	StateEnv$update$import <- tmp
 	
 	updateNow()
 }
@@ -252,6 +271,10 @@ regionModificationUpdate <- function() {
 	hsp$modified <<- T
 	
 	updateNow()
+}
+
+.hs_on_select_all_button_clicked <- function(button) {
+	theWidget("selection_iconview")$selectAll()
 }
 
 .hs_on_menu_update_activate <- function(...) {

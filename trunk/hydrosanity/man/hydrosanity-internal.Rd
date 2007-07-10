@@ -1,4 +1,5 @@
 \name{hydrosanity-internal}
+\alias{.hs_on_select_all_button_clicked}
 \alias{.hs_on_notebook_switch_page}
 \alias{.hs_on_menu_quit_activate}
 \alias{.hs_on_menu_about_activate}

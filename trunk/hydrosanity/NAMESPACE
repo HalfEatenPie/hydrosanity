@@ -3,7 +3,8 @@ import(grid)
 ## hydrosanity.R
 export(
 	hydrosanity,
-	select.sites.BOM.AU
+	select.sites.BOM.AU,
+	read.catchment.esri_shapefile
 )
 
 ## timeblob_plots.R
@@ -51,7 +52,7 @@ export(
 	impute.timeblobs,
 	imputeGaps.timeblobs,
 	unimputeGaps.timeblobs,
-	spatialField,
+	spaceTimeField,
 	gaps,
 	expand.indices,
 	rises,

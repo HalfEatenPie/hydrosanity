@@ -3,11 +3,6 @@
 ## Copyright (c) 2007 Felix Andrews <felix@nfrac.org>, GPL
 
 updateCorrPage <- function() {
-	
-	setupIconView(theWidget("corr_iconview"))
-	
-	.hs_on_corr_iconview_selection_changed()
-	
 	StateEnv$update$corr <- F
 	StateEnv$win$present()
 }
@@ -17,7 +12,7 @@ updateCorrPage <- function() {
 	on.exit(StateEnv$win$setSensitive(T))
 	setStatusBar("")
 	
-	selNames <- iconViewGetSelectedNames(theWidget("corr_iconview"))
+	selNames <- iconViewGetSelectedNames(theWidget("selection_iconview"))
 	if (length(selNames) != 2) {
 		errorDialog("Select two items to calculate their cross-correlation.")
 		return()
@@ -100,7 +95,8 @@ updateCorrPage <- function() {
 	
 	addToLog(paste(deparse(plot.call), collapse="\n"))
 	guiDo(plotAndPlay(plot.call=plot.call, name="cross-correlation", 
-		nav.scales="x", eval.args="^tmp"), doLog=F)
+		nav.scales="x", eval.args="^tmp",
+		restore.on.close=StateEnv$win), doLog=F)
 	
 	if (length(tmpObjs) > 0) {
 		guiDo(call=bquote(rm(list=.(tmpObjs))))
@@ -114,7 +110,7 @@ updateCorrPage <- function() {
 	on.exit(StateEnv$win$setSensitive(T))
 	setStatusBar("")
 	
-	selNames <- iconViewGetSelectedNames(theWidget("corr_iconview"))
+	selNames <- iconViewGetSelectedNames(theWidget("selection_iconview"))
 	if (length(selNames) != 2) {
 		errorDialog("Select two items to calculate their correlation.")
 		return()
@@ -131,11 +127,11 @@ updateCorrPage <- function() {
 	doConditioning <- (doSeasons || doAnteFlow || doTime)
 	doSmooth <- theWidget("corr_smooth_checkbutton")$getActive()
 	smoothSpan <- theWidget("corr_smooth_span_spinbutton")$getValue()
-	
-	#if (doRises && doAnteFlow) {
-	#	errorDialog("Can not condition on antecedent flow when using only flow rises.")
-	#	return()
-	#}
+	doRawData <- theWidget("corr_relationplot_rawdata_radiobutton")$getActive()
+	doAggr1 <- theWidget("corr_relationplot_aggr1_radiobutton")$getActive()
+	doAggr2 <- theWidget("corr_relationplot_aggr2_radiobutton")$getActive()
+	aggr1By <- theWidget("corr_relationplot_aggr1_comboboxentry")$getActiveText()
+	aggr2By <- theWidget("corr_relationplot_aggr2_comboboxentry")$getActiveText()
 	
 	addLogComment("Generate rainfall-runoff relationship plot")
 	
@@ -153,7 +149,24 @@ updateCorrPage <- function() {
 	tmpObjs <- c('tmp.data')
 	
 	guiDo(call=bquote(
-		tmp.data <- sync.timeblobs(.(rawdata.call), timelim=hsp$timePeriod)
+		tmp.data <- .(rawdata.call)
+	))
+	
+	# compute and store aggregated series
+	if (doAggr1 || doAggr2) {
+		aggrBy <- if (doAggr1) { aggr1By } else { aggr2By }
+		aggr.call <- bquote(
+			tmp.data <- lapply(tmp.data, aggregate.timeblob, by=.(aggrBy))
+		)
+		if (any(grep("( month|year)", aggrBy))) {
+			aggr.call[[3]]$start.month <- hsp$startMonth
+		}
+		guiDo(call=aggr.call)
+	}
+	
+	
+	guiDo(call=bquote(
+		tmp.data <- sync.timeblobs(tmp.data, timelim=hsp$timePeriod)
 	))
 	
 	if (doSeasons) {
@@ -223,17 +236,9 @@ updateCorrPage <- function() {
 		names(tmp.data)[2], '~', names(tmp.data)[3], 
 		if (doConditioning) { paste('|', conditionVars) }))
 	plot.call[[3]] <- quote(tmp.data)
-	#plot.call$scales$log <- T
 	if (doSmooth) {
-		#plot.call$type <- c("p", "smooth") breaks with missing values, so:
+		plot.call$type <- c("p", "smooth")
 		plot.call$span <- smoothSpan
-		plot.call$panel <- function(x, y, ..., span) {
-			panel.xyplot(x, y, ...)
-			ok <- is.finite(x) & is.finite(y)
-			try(panel.loess(x[ok], y[ok], span=span,
-			col.line=trellis.par.get("superpose.line")$col[2],
-			lty=trellis.par.get("superpose.line")$lty[2], ...))
-		}
 	}
 	plot.call$xscale.components <- quote(lattice.x.prettylog)
 	plot.call$yscale.components <- quote(lattice.y.prettylog)
@@ -244,7 +249,7 @@ updateCorrPage <- function() {
 	guiDo(call=bquote({
 		tmp.n <- sum(!is.na(tmp.data[[2]]) & !is.na(tmp.data[[3]]))
 		tmp.caption <- hydrosanity.caption(
-			range(tmp.data$Time), # TODO: should add timestep to this
+			timelim.timeblobs(tmp.data),
 			by=.(attr(tmp.data, "timestep")), n=tmp.n, series=1)
 	}))
 	plot.call$sub <- quote(tmp.caption)
@@ -256,7 +261,8 @@ updateCorrPage <- function() {
 	guiDo(plotAndPlay(plot.call=plot.call, name="rainfall-runoff", 
 		extra.buttons=plotAndPlayButtons[c('zero', 'logscale')],
 		trans.scales=c("x","y"),
-		labels=idLabels, eval.args="^tmp"), doLog=F)
+		labels=idLabels, eval.args="^tmp",
+		restore.on.close=StateEnv$win), doLog=F)
 	
 	if (length(tmpObjs) > 0) {
 		guiDo(call=bquote(rm(list=.(tmpObjs))))
@@ -266,11 +272,15 @@ updateCorrPage <- function() {
 }
 
 
-.hs_on_corr_iconview_selection_changed <- function(...) {
+.hs_on_corr_calculate_contiguous_button_clicked <- function(button) {
+	StateEnv$win$setSensitive(F)
+	on.exit(StateEnv$win$setSensitive(T))
+	setStatusBar("")
+	
 	TXV <- theWidget("corr_contiguous_textview")
 	setTextview(TXV, "")
 	
-	selNames <- iconViewGetSelectedNames(theWidget("corr_iconview"))
+	selNames <- iconViewGetSelectedNames(theWidget("selection_iconview"))
 	if (length(selNames) != 2) {
 		return()
 	}
