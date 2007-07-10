@@ -171,21 +171,21 @@ read.timeblob <- function(file, skip=1, sep=",", sitename=NULL, dataname="Data",
 	return(blob)
 }
 
-# returns length 0 if blob is empty
-start.timeblob <- function(blob) {
-	#if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
-	blob$Time[min(1,nrow(blob))]
+# returns length 0 if x is empty
+start.timeblob <- function(x) {
+	#if (!is.timex(x)) { stop("'x' must be a timeblob") }
+	x$Time[min(1,nrow(x))]
 }
 
-# returns length 0 if blob is empty
-end.timeblob <- function(blob) {
-	#if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
-	if (identical(attr(blob, "timestep"), "irregular")) {
-		blob$Time[nrow(blob)]
+# returns length 0 if x is empty
+end.timeblob <- function(x) {
+	#if (!is.timex(x)) { stop("'x' must be a timeblob") }
+	if (identical(attr(x, "timestep"), "irregular")) {
+		x$Time[nrow(x)]
 	} else {
-		if (nrow(blob)==0) { return(blob$Time[0]) }
+		if (nrow(x)==0) { return(x$Time[0]) }
 		# extrapolate last time step
-		seq.POSIXt(from=blob$Time[nrow(blob)], by=attr(blob, "timestep"), 
+		seq.POSIXt(from=x$Time[nrow(x)], by=attr(x, "timestep"), 
 			length=2)[2]
 	}
 }
@@ -212,48 +212,48 @@ timelim.timeblobs <- function(blob.list) {
 }
 
 
-window.timeblob <- function(blob, start=NULL, end=NULL, inclusive=F, return.indices=F, extend=F) {
+window.timeblob <- function(x, start=NULL, end=NULL, inclusive=F, return.indices=F, extend=F) {
 	# check types
-	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
-	if (is.null(start)) { start <- start(blob) }
-	if (is.null(end)) { end <- end(blob) }
+	if (!is.timeblob(x)) { stop("'x' must be a timeblob") }
+	if (is.null(start)) { start <- start(x) }
+	if (is.null(end)) { end <- end(x) }
 	start <- as.POSIXct(start)
 	end <- as.POSIXct(end)
 	if (any(is.na(c(start, end)))) { stop("'start' and 'end' must be valid times (POSIXt)") }
 	if (extend) {
 		# pad with NA values out to specified limits
-		timestep <- attr(blob, "timestep")
+		timestep <- attr(x, "timestep")
 		if (is.null(timestep)) {
-			stop("'blob' needs a timestep attribute for 'extend=T'")
+			stop("'x' needs a timestep attribute for 'extend=T'")
 		}
 		negTimestep <- paste("-1", timestep)
 		if (length(grep("^[0-9]", timestep)>0)) {
 			negTimestep <- paste("-", timestep, sep='')
 		}
-		if (start < start(blob)) {
-			extendTimes <- seq.POSIXt(start(blob), start, by=negTimestep)[-1]
+		if (start < start(x)) {
+			extendTimes <- seq.POSIXt(start(x), start, by=negTimestep)[-1]
 			extendTimes <- rev(extendTimes)
-			extendBlob <- blob[c(0,rep(NA,length(extendTimes))),]
+			extendBlob <- x[c(0,rep(NA,length(extendTimes))),]
 			extendBlob$Time <- extendTimes
-			blob <- rbind(extendBlob, blob)
+			x <- rbind(extendBlob, x)
 		}
-		if (end > end(blob)) {
-			extendTimes <- seq.POSIXt(end(blob), end, by=timestep)[-1]
-			extendBlob <- blob[c(0,rep(NA,length(extendTimes))),]
+		if (end > end(x)) {
+			extendTimes <- seq.POSIXt(end(x), end, by=timestep)[-1]
+			extendBlob <- x[c(0,rep(NA,length(extendTimes))),]
 			extendBlob$Time <- extendTimes
-			blob <- rbind(blob, extendBlob)
+			x <- rbind(x, extendBlob)
 		}
 	}
 	
-	windowIdx <- findIntervalPeriod(start, end, blob$Time, inclusive=inclusive)
+	windowIdx <- findIntervalPeriod(start, end, x$Time, inclusive=inclusive)
 	
-	if (!identical(attr(blob, "timestep"), "irregular")) {
+	if (!identical(attr(x, "timestep"), "irregular")) {
 		# TODO: need to handle last time step inclusive
 	}
 	if (return.indices) {
 		return(windowIdx)
 	}
-	return(blob[seq(windowIdx[1],windowIdx[2]),])
+	return(x[seq(windowIdx[1],windowIdx[2]),])
 }
 
 findIntervalPeriod <- function(xLo, xHi, vec, inclusive=F) {
@@ -453,24 +453,24 @@ summary.missing.timeblobs <- function(blob.list, timelim=NULL, timestep=NULL) {
 
 
 # this only handles regular series (the calculation of NA proportion requires it)
-aggregate.timeblob <- function(blob, by="1 year", FUN=mean, fun.qual=c("worst","median","mode","omit"), start.month=1, max.na.proportion=0.01, ...) {
+aggregate.timeblob <- function(x, by="1 year", FUN=mean, fun.qual=c("worst","median","mode","omit"), start.month=1, max.na.proportion=0.01, ...) {
 	# check types
-	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
+	if (!is.timeblob(x)) { stop("'x' must be a timeblob") }
 	fun.qual <- match.arg(fun.qual)
 	if (!is.numeric(start.month)) { stop("'start.month' must be a month number") }
 	# disaccumulate (redistribute values accumulated over multiple time-steps)
 	# (just distribute evenly over gap, should be good enough for aggregating)
-	if (!is.null(blob$AccumSteps)) {
-		blob <- quick.disaccumulate.timeblob(blob)
+	if (!is.null(x$AccumSteps)) {
+		x <- quick.disaccumulate.timeblob(x)
 	}
 	# adjust blob start time to specified calendar month
 	if (any(grep(" month", by)) || any(grep("year", by))) {
-		newStart <- as.POSIXlt(trunc.month(start(blob)))
+		newStart <- as.POSIXlt(trunc.month(start(x)))
 		origMonth <- newStart$mon
 		newMonth <- start.month - 1 # convert to base-zero
 		newStart$mon <- newMonth
 		if (newMonth > origMonth) { newStart$year <- newStart$year - 1 }
-		blob <- window(blob, start=newStart, extend=T)
+		x <- window(x, start=newStart, extend=T)
 		# can not use "years" in cut.POSIXt (uses calendar years only),
 		# so convert to "months"
 		if (any(grep("year", by))) {
@@ -485,30 +485,30 @@ aggregate.timeblob <- function(blob, by="1 year", FUN=mean, fun.qual=c("worst","
 		}
 	}
 	# find expected number of old timesteps in each new timestep
-	oldDelta <- as.numeric.byString(attr(blob, "timestep"))
+	oldDelta <- as.numeric.byString(attr(x, "timestep"))
 	newDelta <- as.numeric.byString(by)
 	freqN <- floor(newDelta / oldDelta)
 	# construct groups
-	dateGroups <- cut.POSIXt(blob$Time, breaks=by)
-	newDates <- as.POSIXct(levels(dateGroups), tz=attr(blob$Time, "tzone"))
+	dateGroups <- cut.POSIXt(x$Time, breaks=by)
+	newDates <- as.POSIXct(levels(dateGroups), tz=attr(x$Time, "tzone"))
 	# aggregate
 	aggrVars <- c("Data")
-	hasExtraVars <- (length(names(blob)) > 3)
+	hasExtraVars <- (length(names(x)) > 3)
 	if (hasExtraVars) {
-		aggrVars <- c(aggrVars, names(blob)[-(1:3)])
+		aggrVars <- c(aggrVars, names(x)[-(1:3)])
 	}
-	allNewVals <- aggregate(as.data.frame(blob[aggrVars]), 
+	allNewVals <- aggregate(as.data.frame(x[aggrVars]), 
 		by=list(dateGroups), FUN=FUN, na.rm=T, ...)[-1]
 	newVals <- allNewVals[,1]
 	# set NA values
-	eachNA <- aggregate(blob$Data, by=list(dateGroups), FUN=function(x) {sum(is.na(x))})[,-1]
+	eachNA <- aggregate(x$Data, by=list(dateGroups), FUN=function(x) {sum(is.na(x))})[,-1]
 	newVals[eachNA > freqN * max.na.proportion] <- NA
 	# check that first and last groups have enough data points
-	firstN <- sum(!is.na(blob$Data[dateGroups==dateGroups[1]]))
+	firstN <- sum(!is.na(x$Data[dateGroups==dateGroups[1]]))
 	if (firstN < freqN * (1-max.na.proportion)) {
 		newVals[1] <- NA
 	}
-	lastN <- sum(!is.na(blob$Data[dateGroups==dateGroups[length(dateGroups)]]))
+	lastN <- sum(!is.na(x$Data[dateGroups==dateGroups[length(dateGroups)]]))
 	if (lastN < freqN * (1-max.na.proportion)) {
 		newVals[length(newVals)] <- NA
 	}
@@ -538,16 +538,16 @@ aggregate.timeblob <- function(blob, by="1 year", FUN=mean, fun.qual=c("worst","
 					rownames(a)[which.max(a)]
 				} else { NA }
 			})
-		tmpQual <- blob$Qual
+		tmpQual <- x$Qual
 		# ignore quality codes where data is missing
-		tmpQual[is.na(blob$Data)] <- NA
+		tmpQual[is.na(x$Data)] <- NA
 		# treat disaccumulated values as "suspect" (better than "poor")
 		tmpQual[tmpQual == "disaccumulated"] <- "suspect"
 		# apply function fun.qual to each aggregated group
 		newQual <- tapply(tmpQual, list(dateGroups), FUN=FUN.Qual)
 		newQual[is.na(newVals)] <- NA
 		# make sure new factor levels are ordered correctly
-		oldLevels <- levels(blob$Qual)
+		oldLevels <- levels(x$Qual)
 		newLevels <- unique(newQual)
 		newLevels <- oldLevels[sort(match(newLevels, oldLevels))]
 		newQual <- factor(newQual, levels=newLevels, ordered=T)
@@ -555,11 +555,11 @@ aggregate.timeblob <- function(blob, by="1 year", FUN=mean, fun.qual=c("worst","
 	# construct new blob
 	newBlob <- timeblob(Time=newDates, Data=allNewVals, Qual=newQual,
 		timestep=by)
-	attr(newBlob, "role") <- attr(blob, "role")
-	attr(newBlob, "dataname") <- attr(blob, "dataname")
-	attr(newBlob, "sitename") <- attr(blob, "sitename")
-	attr(newBlob, "location.xy") <- attr(blob, "location.xy")
-	attr(newBlob, "elevation") <- attr(blob, "elevation")
+	attr(newBlob, "role") <- attr(x, "role")
+	attr(newBlob, "dataname") <- attr(x, "dataname")
+	attr(newBlob, "sitename") <- attr(x, "sitename")
+	attr(newBlob, "location.xy") <- attr(x, "location.xy")
+	attr(newBlob, "elevation") <- attr(x, "elevation")
 	return(newBlob)
 }
 
@@ -991,41 +991,9 @@ unimputeGaps.timeblobs <- function(blob.list, timelim=NULL, type=c("imputed", "d
 	return(blob.list)
 }
 
-spatialElevation <- function(blob.list, linear=T, extrap=F, xo.length=64, yo.length=xo.length) {
-	# check types
-	if (!require(akima, quietly=TRUE)) { stop("Require package 'akima'") }
-	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
-	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
-	if (length(blob.list) < 4) { stop("Need at least 4 items") }
-	# get locations
-	loc <- lapply(blob.list, attr, "location.xy")
-	ok <- (sapply(loc, length) == 2)
-	if (any(!ok)) {
-		stop(paste("These items do not have a valid 'location.xy' attribute:",
-			paste(names(blob.list)[!ok], collapse=", ")))
-	}
-	loc <- lapply(blob.list, attr, "elevation")
-	ok <- (sapply(loc, length) == 1)
-	if (any(!ok)) {
-		stop(paste("These items do not have a valid 'elevation' attribute:",
-			paste(names(blob.list)[!ok], collapse=", ")))
-	}
-	loc <- sapply(blob.list, attr, "location.xy")
-	loc <- data.frame(x=loc[1,], y=loc[2,])
-	loc$z <- sapply(blob.list, attr, "elevation")
-	# construct marginal dimensions of grid
-	xo <- seq(min(loc$x), max(loc$x), length=xo.length)
-	yo <- seq(min(loc$y), max(loc$y), length=yo.length)
-	tmp.grid <- expand.grid(x=xo, y=yo)
-	# compute the spatial field (interpolation)
-	tmp.grid$z <- as.vector(interp(x=loc$x, y=loc$y, z=loc$z, 
-		xo=xo, yo=yo, linear=linear, extrap=extrap)$z)
-	return(tmp.grid)
-}
-
 spaceTimeField <- function(blob.list, timelim=NULL, type=c("overall","annual","quarters","months"), start.month=1, linear=T, extrap=F, xo.length=64, yo.length=xo.length, countSurface=F) {
+	stopifnot(require(akima))
 	# check types
-	if (!require(akima, quietly=TRUE)) { stop("Require package 'akima'") }
 	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
 	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
 	if (length(blob.list) < 4) { stop("Need at least 4 items") }
@@ -1218,7 +1186,7 @@ rises <- function(x) {
 	c(NA, pmax(0, diff(x)))
 }
 
-rises_old <- function(x) {
+rises.old <- function(x) {
 	xBackDiff <- c(NA, diff(x)) # backwards difference
 	#xFwdDiff <- c(xBackDiff[-1], NA) # forwards difference
 	#peaksIdx <- which((xBackDiff > epsilon) & (xFwdDiff < -epsilon))

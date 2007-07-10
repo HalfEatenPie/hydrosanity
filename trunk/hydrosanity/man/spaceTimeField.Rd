@@ -5,7 +5,7 @@
   Spatial interpolation of a set of time series.
 }
 \usage{
-spaceTimeField(blob.list, timelim = NULL, type = c("overall", "annual", "quarters", "months"), start.month = 1, linear = T, extrap = F, xo.length = 40, yo.length = xo.length, countSurface = F)
+spaceTimeField(blob.list, timelim = NULL, type = c("overall", "annual", "quarters", "months"), start.month = 1, linear = T, extrap = F, xo.length = 64, yo.length = xo.length, countSurface = F)
 }
 \arguments{
   \item{blob.list}{ ~~Describe \code{blob.list} here~~ }

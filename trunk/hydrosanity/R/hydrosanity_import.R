@@ -161,7 +161,7 @@ updateImportPage <- function() {
 	
 	if (theWidget("import_known_format_radio")$getActive()) {
 		kfIndex <- theWidget("import_known_format_combobox")$getActive()+1
-		importSpec <- TIMESERIES_FORMATS[[kfIndex]]
+		importSpec <- TIMESERIES.FORMATS[[kfIndex]]
 		importFn <- importSpec[1]
 		# user may have changed options in GUI, so use myOptionString
 		for (i in seq(along=filenames)) {
@@ -728,7 +728,7 @@ setDataRole <- function(blobName, role=NULL, doLogComment=T) {
 
 .hs_on_import_known_format_combobox_changed <- function(widget) {
 	kfIndex <- widget$getActive()+1
-	theWidget("import_options_entry")$setText(TIMESERIES_FORMATS[[kfIndex]][2])
+	theWidget("import_options_entry")$setText(TIMESERIES.FORMATS[[kfIndex]][2])
 }
 
 .hs_on_dataset_expanders_activate <- function(widget) {

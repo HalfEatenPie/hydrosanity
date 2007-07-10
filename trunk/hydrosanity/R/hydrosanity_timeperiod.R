@@ -72,7 +72,7 @@ updateTimePeriodPage <- function() {
 	
 	addLogComment("Generate site map from database and select region")
 	
-	select.call <- call(SITELIST_FORMATS[[siteListFormatIndex]])
+	select.call <- call(SITELIST.FORMATS[[siteListFormatIndex]])
 	select.call$siteListFile <- siteListFile
 	select.call$timelim <- quote(hsp$timePeriod)
 	select.call$min.years <- dataYears
@@ -132,7 +132,7 @@ updateTimePeriodPage <- function() {
 	
 	addLogComment("Generate site map from database and select region")
 	
-	select.call <- call(SITELIST_FORMATS[[siteListFormatIndex]])
+	select.call <- call(SITELIST.FORMATS[[siteListFormatIndex]])
 	select.call$siteListFile <- siteListFile
 	select.call$xlim <- hsp$region$xlim
 	select.call$ylim <- hsp$region$ylim
@@ -190,7 +190,7 @@ updateTimePeriodPage <- function() {
 		return()
 	}
 	
-	select.call <- call(SITELIST_FORMATS[[siteListFormatIndex]])
+	select.call <- call(SITELIST.FORMATS[[siteListFormatIndex]])
 	select.call$siteListFile <- siteListFile
 	select.call$archivePath <- siteDataArchive
 	select.call$xlim <- hsp$region$xlim
@@ -412,7 +412,7 @@ updateTimePeriodPage <- function() {
 	
 	addLogComment("Import catchment boundaries from file")
 	
-	select.call <- call(CATCHMENT_FORMATS[[fileFormatIndex]])
+	select.call <- call(CATCHMENT.FORMATS[[fileFormatIndex]])
 	select.call$file <- shapeFile
 	
 	select.assign.call <- quote(hsp$catchment <- foo)

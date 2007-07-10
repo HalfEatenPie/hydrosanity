@@ -28,7 +28,7 @@ WEBSITE <- "http://code.google.com/p/hydrosanity/"
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-TIMESERIES_FORMATS <- list(
+TIMESERIES.FORMATS <- list(
 	".au BoM daily rainfall"=
 		c('read.timeblob',
 		  'skip=1, sep=",", dataname="Rain (mm/day)", dataCol=6, qualCol=7, extraCols=c(9), extraNames=c("AccumSteps"), readTimesFromFile=F, startTime=list(year=3,month=4,day=5), timeSeqBy="DSTdays"'),
@@ -37,11 +37,11 @@ TIMESERIES_FORMATS <- list(
 		  'skip=3, sep=",", dataname="Flow (ML/day)", timeFormat="%H:%M_%d/%m/%Y", na.strings=c(\'""\')')
 )
 
-SITELIST_FORMATS <- list(
+SITELIST.FORMATS <- list(
 	".au BoM daily rainfall"='select.sites.BOM.AU'
 )
 
-CATCHMENT_FORMATS <- list(
+CATCHMENT.FORMATS <- list(
 	"ESRI shapefile"='read.catchment.esri_shapefile'
 )
 
@@ -99,7 +99,7 @@ hydrosanity <- function() {
 	
 	known_format_combo <- theWidget("import_known_format_combobox")
 	known_format_combo$getModel()$clear()
-	for (x in names(TIMESERIES_FORMATS)) {
+	for (x in names(TIMESERIES.FORMATS)) {
 		known_format_combo$appendText(x)
 	}
 	known_format_combo$setActive(0)
@@ -117,14 +117,14 @@ hydrosanity <- function() {
 	
 	catchment_format_combo <- theWidget("scope_catchment_format_combobox")
 	catchment_format_combo$getModel()$clear()
-	for (x in names(CATCHMENT_FORMATS)) {
+	for (x in names(CATCHMENT.FORMATS)) {
 		catchment_format_combo$appendText(x)
 	}
 	catchment_format_combo$setActive(0)
 
 	sitelist_format_combo <- theWidget("scope_sitelist_format_combobox")
 	sitelist_format_combo$getModel()$clear()
-	for (x in names(SITELIST_FORMATS)) {
+	for (x in names(SITELIST.FORMATS)) {
 		sitelist_format_combo$appendText(x)
 	}
 	sitelist_format_combo$setActive(0)
