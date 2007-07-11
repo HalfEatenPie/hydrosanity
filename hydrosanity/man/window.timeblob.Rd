@@ -17,7 +17,7 @@
 
 start.timeblobs(x, ...)
 end.timeblobs(x, ...)
-timelim.timeblobs(blob.list)
+timelim.timeblobs(x)
 }
 \arguments{
   \item{x}{ ~~Describe \code{x} here~~ }
@@ -27,7 +27,6 @@ timelim.timeblobs(blob.list)
   \item{return.indices}{ ~~Describe \code{return.indices} here~~ }
   \item{extend}{ ~~Describe \code{extend} here~~ }
   \item{\dots}{ ~~Describe \code{\dots} here~~ }
-  \item{blob.list}{ ~~Describe \code{blob.list} here~~ }
 }
 \details{
   ~~ If necessary, more details than the description above ~~
