@@ -51,10 +51,6 @@ if (!exists("StateEnv", environment(), inherits=FALSE)) {
 }
 
 hydrosanity <- function() {
-	stopifnot(require(RGtk2, quietly=TRUE))
-	stopifnot(require(plotAndPlayGTK, quietly=TRUE))
-	stopifnot(require(lattice, quietly=TRUE))
-	
 	if (!is.null(StateEnv$win)) {
 		.hs_on_menu_quit_activate()
 	}
