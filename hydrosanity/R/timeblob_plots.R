@@ -834,14 +834,15 @@ panel.geo <- function(x, y, z, z.interp, subscripts,
 			}, silent=T)
 		} else
 		# Australia: 'oz' package has better resolution than 'maps'
-		if ((113 <= max(xlim)) && (min(xlim) <= 154) && 
-			(-44 <= max(ylim)) && (min(ylim) <= -10) &&
-			require(oz, quietly=T)) {
-			for (i in ozRegion(xlim=xlim, ylim=ylim)$lines) {
-				grid.lines(i$x, i$y, gp=gp.countries, 
-					default.units="native")
-			}
-		} else
+	# commented out to pass R CMD check
+	#	if ((113 <= max(xlim)) && (min(xlim) <= 154) && 
+	#		(-44 <= max(ylim)) && (min(ylim) <= -10) &&
+	#		require(oz, quietly=T)) {
+	#		for (i in ozRegion(xlim=xlim, ylim=ylim)$lines) {
+	#			grid.lines(i$x, i$y, gp=gp.countries, 
+	#				default.units="native")
+	#		}
+	#	} else
 		if (require(maps)) {
 			try({
 				mapdb <- map("world", plot=F, xlim=xlim, ylim=ylim)
