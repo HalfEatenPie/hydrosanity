@@ -1,20 +1,16 @@
-\name{trunc.month}
-\alias{trunc.month}
-\alias{trunc.year}
-\alias{trunc.decade}
-\title{Round Down to a Month, Year or Decade}
+\name{summaryMissing.timeblobs}
+\alias{summaryMissing.timeblobs}
+\title{Summarise Missing Data in a Set of Timeblobs}
 \description{
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-trunc.month(thisPOSIXt)
-
-trunc.year(thisPOSIXt)
-
-trunc.decade(thisPOSIXt)
+summaryMissing.timeblobs(blob.list, timelim = NULL, timestep = NULL)
 }
 \arguments{
-  \item{thisPOSIXt}{ ~~Describe \code{thisPOSIXt} here~~ }
+  \item{blob.list}{ ~~Describe \code{blob.list} here~~ }
+  \item{timelim}{ ~~Describe \code{timelim} here~~ }
+  \item{timestep}{ ~~Describe \code{timestep} here~~ }
 }
 \details{
   ~~ If necessary, more details than the description above ~~

@@ -47,7 +47,7 @@ timeblob <- function(Time, Data, Qual=NULL, extras=NULL, timestep=NULL, sitename
 
 is.timeblob <- function(x) {
 	return (!is.null(x) &&
-		is(x, "timeblob") &&
+		inherits(x, "timeblob") &&
 		is.data.frame(x) &&
 		(ncol(x) >= 2) &&
 		inherits(x$Time, "POSIXct") &&
@@ -172,14 +172,14 @@ read.timeblob <- function(file, skip=1, sep=",", sitename=NULL, dataname="Data",
 }
 
 # returns length 0 if x is empty
-start.timeblob <- function(x) {
-	#if (!is.timex(x)) { stop("'x' must be a timeblob") }
+start.timeblob <- function(x, ...) {
+	#if (!is.timeblob(x)) { stop("'x' must be a timeblob") }
 	x$Time[min(1,nrow(x))]
 }
 
 # returns length 0 if x is empty
-end.timeblob <- function(x) {
-	#if (!is.timex(x)) { stop("'x' must be a timeblob") }
+end.timeblob <- function(x, ...) {
+	#if (!is.timeblob(x)) { stop("'x' must be a timeblob") }
 	if (identical(attr(x, "timestep"), "irregular")) {
 		x$Time[nrow(x)]
 	} else {
@@ -190,29 +190,29 @@ end.timeblob <- function(x) {
 	}
 }
 
-start.timeblobs <- function(blob.list) {
+start.timeblobs <- function(x, ...) {
 	# check types
-	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
-	globalStart <- as.POSIXct(min(unlist(lapply(blob.list, start.timeblob))))
+	if (!identical(class(x),"list")) { x <- list(x) }
+	globalStart <- as.POSIXct(min(unlist(lapply(x, start.timeblob))))
 	return(globalStart)
 }
 
-end.timeblobs <- function(blob.list) {
+end.timeblobs <- function(x, ...) {
 	# check types
-	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
-	globalEnd <- as.POSIXct(max(unlist(lapply(blob.list, end.timeblob))))
+	if (!identical(class(x),"list")) { x <- list(x) }
+	globalEnd <- as.POSIXct(max(unlist(lapply(x, end.timeblob))))
 	return(globalEnd)
 }
 
-timelim.timeblobs <- function(blob.list) {
+timelim.timeblobs <- function(x) {
 	# NOTE: can't use c() because it strips the "tzone" attribute
-	tmp <- start.timeblobs(blob.list)
-	tmp[2] <- end.timeblobs(blob.list)
+	tmp <- start.timeblobs(x)
+	tmp[2] <- end.timeblobs(x)
 	tmp
 }
 
 
-window.timeblob <- function(x, start=NULL, end=NULL, inclusive=F, return.indices=F, extend=F) {
+window.timeblob <- function(x, start=NULL, end=NULL, inclusive=F, return.indices=F, extend=F, ...) {
 	# check types
 	if (!is.timeblob(x)) { stop("'x' must be a timeblob") }
 	if (is.null(start)) { start <- start(x) }
@@ -393,7 +393,7 @@ common.timestep.timeblobs <- function(blob.list, default="DSTdays") {
 
 
 # invisibly returns missing fraction for each series
-summary.missing.timeblobs <- function(blob.list, timelim=NULL, timestep=NULL) {
+summaryMissing.timeblobs <- function(blob.list, timelim=NULL, timestep=NULL) {
 	# check types
 	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
 	if (any(sapply(blob.list, is.timeblob)==F)) { stop("'blob.list' must be a list of timeblobs") }
@@ -465,7 +465,7 @@ aggregate.timeblob <- function(x, by="1 year", FUN=mean, fun.qual=c("worst","med
 	}
 	# adjust blob start time to specified calendar month
 	if (any(grep(" month", by)) || any(grep("year", by))) {
-		newStart <- as.POSIXlt(trunc.month(start(x)))
+		newStart <- as.POSIXlt(truncMonth(start(x)))
 		origMonth <- newStart$mon
 		newMonth <- start.month - 1 # convert to base-zero
 		newStart$mon <- newMonth
@@ -1279,16 +1279,16 @@ as.POSIXct.numeric <- function(secs_since_1970, tz="GMT") {
 	return(secs_since_1970)
 }
 
-trunc.month <- function(thisPOSIXt) {
-	zz <- as.POSIXlt(thisPOSIXt)
+truncMonth <- function(x) {
+	zz <- as.POSIXlt(x)
 	zz$mday <- 1
         zz$hour <- zz$min <- zz$sec <- 0
 	zz$isdst <- -1
 	return(zz)
 }
 
-trunc.year <- function(thisPOSIXt) {
-	zz <- as.POSIXlt(thisPOSIXt)
+truncYear <- function(x) {
+	zz <- as.POSIXlt(x)
 	zz$mday <- 1
 	zz$mon <- 0
         zz$hour <- zz$min <- zz$sec <- 0
@@ -1296,8 +1296,8 @@ trunc.year <- function(thisPOSIXt) {
 	return(zz)
 }
 
-trunc.decade <- function(thisPOSIXt) {
-	zz <- as.POSIXlt(trunc.year(thisPOSIXt))
+truncDecade <- function(x) {
+	zz <- as.POSIXlt(truncYear(x))
 	zz$year <- (zz$year %/% 10) * 10
 	return(zz)
 }

@@ -1,16 +1,18 @@
-\name{summary.missing.timeblobs}
-\alias{summary.missing.timeblobs}
-\title{Summarise Missing Data in a Set of Timeblobs}
+\name{truncMonth}
+\alias{truncMonth}
+\alias{truncYear}
+\alias{truncDecade}
+\title{Round Down to a Month, Year or Decade}
 \description{
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-summary.missing.timeblobs(blob.list, timelim = NULL, timestep = NULL)
+truncMonth(x)
+truncYear(x)
+truncDecade(x)
 }
 \arguments{
-  \item{blob.list}{ ~~Describe \code{blob.list} here~~ }
-  \item{timelim}{ ~~Describe \code{timelim} here~~ }
-  \item{timestep}{ ~~Describe \code{timestep} here~~ }
+  \item{x}{ ~~Describe \code{x} here~~ }
 }
 \details{
   ~~ If necessary, more details than the description above ~~
