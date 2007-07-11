@@ -1,4 +1,8 @@
 import(grid)
+import(grDevices)
+import(graphics)
+import(stats)
+import(utils)
 
 ## hydrosanity.R
 export(
@@ -29,10 +33,10 @@ export(
 )
 
 ## timeblob.R
-S3method(start, timeblob)
-S3method(end, timeblob)
-S3method(window, timeblob)
-S3method(aggregate, timeblob)
+#S3method(start, timeblob)
+#S3method(end, timeblob)
+#S3method(window, timeblob)
+#S3method(aggregate, timeblob)
 export(start.timeblob)
 export(end.timeblob)
 export(window.timeblob)
@@ -50,7 +54,7 @@ export(
 	sync.timeblobs,
 	syncTo.timeblobs,
 	common.timestep.timeblobs,
-	summary.missing.timeblobs,
+	summaryMissing.timeblobs,
 	smooth.timeblob,
 	quick.disaccumulate.timeblob,
 	impute.timeblobs,
@@ -61,9 +65,9 @@ export(
 	expand.indices,
 	rises,
 	lastTime,
-	trunc.month,
-	trunc.year,
-	trunc.decade
+	truncMonth,
+	truncYear,
+	truncDecade
 )
 
 ## this is used by guiDo in the plotAndPlayGTK package

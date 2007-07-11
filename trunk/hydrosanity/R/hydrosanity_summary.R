@@ -18,7 +18,7 @@ updateSummaryPage <- function() {
 	
 	# generate summary
 	missingSummary <- capture.output(
-		missingFrac <- guiDo(summary.missing.timeblobs(hsp$data, 
+		missingFrac <- guiDo(summaryMissing.timeblobs(hsp$data, 
 			timelim=hsp$timePeriod), doLog=F)
 	)
 	addTextview(TXV, paste(missingSummary, collapse="\n"))

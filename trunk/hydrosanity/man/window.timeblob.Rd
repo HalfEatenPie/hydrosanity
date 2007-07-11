@@ -10,13 +10,13 @@
   ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-\method{window}{timeblob}(x, start = NULL, end = NULL, inclusive = F, return.indices = F, extend = F)
+\method{window}{timeblob}(x, start = NULL, end = NULL, inclusive = F, return.indices = F, extend = F, ...)
 
-\method{start}{timeblob}(x)
-\method{end}{timeblob}(x)
+\method{start}{timeblob}(x, ...)
+\method{end}{timeblob}(x, ...)
 
-start.timeblobs(blob.list)
-end.timeblobs(blob.list)
+start.timeblobs(x, ...)
+end.timeblobs(x, ...)
 timelim.timeblobs(blob.list)
 }
 \arguments{
@@ -26,6 +26,7 @@ timelim.timeblobs(blob.list)
   \item{inclusive}{ ~~Describe \code{inclusive} here~~ }
   \item{return.indices}{ ~~Describe \code{return.indices} here~~ }
   \item{extend}{ ~~Describe \code{extend} here~~ }
+  \item{\dots}{ ~~Describe \code{\dots} here~~ }
   \item{blob.list}{ ~~Describe \code{blob.list} here~~ }
 }
 \details{

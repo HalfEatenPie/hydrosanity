@@ -634,27 +634,27 @@ timeAxisComponents <- function(lim, label=T, tz="GMT") {
 	lim <- as.numeric(timelim)
 	startTime <- min(timelim)
 	# utility functions for making pretty times
-	trunc.month <- function(thisPOSIXt) {
+	truncMonth <- function(thisPOSIXt) {
 		zz <- as.POSIXlt(thisPOSIXt)
 		zz$mday <- 1
 		zz$hour <- zz$min <- zz$sec <- 0
 		zz$isdst <- -1
 		zz
 	}
-	trunc.year <- function(thisPOSIXt) {
+	truncYear <- function(thisPOSIXt) {
 		zz <- as.POSIXlt(thisPOSIXt)
 		zz$mday <- 1
 		zz$mon <- zz$hour <- zz$min <- zz$sec <- 0
 		zz$isdst <- -1
 		zz
 	}
-	trunc.decade <- function(thisPOSIXt) {
-		zz <- as.POSIXlt(trunc.year(thisPOSIXt))
+	truncDecade <- function(thisPOSIXt) {
+		zz <- as.POSIXlt(truncYear(thisPOSIXt))
 		zz$year <- (zz$year %/% 10) * 10
 		zz
 	}
 	trunc.century <- function(thisPOSIXt) {
-		zz <- as.POSIXlt(trunc.year(thisPOSIXt))
+		zz <- as.POSIXlt(truncYear(thisPOSIXt))
 		zz$year <- (zz$year %/% 100) * 100
 		zz
 	}
@@ -684,12 +684,12 @@ timeAxisComponents <- function(lim, label=T, tz="GMT") {
 		tickSpec <- labelSpec
 		labelSpec$by <- "3 DSTdays"
 		# ignore up to 3 days of previous month to find start date
-		labelSpec$from <- trunc.month(startTime + 4*24*60*60)
+		labelSpec$from <- truncMonth(startTime + 4*24*60*60)
 	}
 	if (diff(range(lim)) > 18 * 24*60*60) { # 18 days
 		labelSpec$by <- "7 DSTdays"
 		# ignore up to 7 days of previous month to find start date
-		labelSpec$from <- trunc.month(startTime + 7*24*60*60)
+		labelSpec$from <- truncMonth(startTime + 7*24*60*60)
 		# leave ticks going by 1 day
 	}
 	if (diff(range(lim)) > 1.1 * 30*24*60*60) { # 1 month
@@ -705,7 +705,7 @@ timeAxisComponents <- function(lim, label=T, tz="GMT") {
 		tickSpec <- labelSpec
 		labelSpec$by <- "3 months"
 		labelSpec$format <- "%Y-%b"
-		labelSpec$from <- trunc.year(startTime)
+		labelSpec$from <- truncYear(startTime)
 	}
 	if (diff(range(lim)) > 2 * 365.25*24*60*60) { # 2 years
 		tickSpec <- labelSpec
@@ -719,7 +719,7 @@ timeAxisComponents <- function(lim, label=T, tz="GMT") {
 	if (diff(range(lim)) > 8 * 365.25*24*60*60) { # 8 years
 		tickSpec <- labelSpec
 		labelSpec$by <- "2 years"
-		labelSpec$from <- trunc.decade(startTime)
+		labelSpec$from <- truncDecade(startTime)
 	}
 	if (diff(range(lim)) > 12 * 365.25*24*60*60) { # 12 years
 		labelSpec$by <- "5 years"
