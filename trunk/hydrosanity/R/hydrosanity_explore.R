@@ -231,7 +231,7 @@ updateExplorePage <- function() {
 	
 	# make.groups
 	tmpObjs <- c(tmpObjs, 'tmp.groups')
-	guiDo(sprintf(
+	guiDo(string=sprintf(
 		'tmp.groups <- make.groups(%s)',
 		paste(sep='', collapse=', ',
 			make.names(names(tmp.data)), 
