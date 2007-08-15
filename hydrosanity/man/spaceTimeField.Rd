@@ -35,3 +35,5 @@ spaceTimeField(blob.list, timelim = NULL, type = c("overall", "annual", "quarter
 	
 }
 \keyword{ ts }
+\keyword{ spatial }
+

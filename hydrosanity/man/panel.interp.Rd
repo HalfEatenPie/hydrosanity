@@ -51,4 +51,6 @@ prepanel.extend.10(...)
 ##--	or do  help(data=index)  for the standard data sets.
 
 }
+\keyword{aplot}
+\keyword{dplot}
 

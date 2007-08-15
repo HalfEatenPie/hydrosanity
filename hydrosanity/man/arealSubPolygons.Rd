@@ -33,4 +33,5 @@ arealSubPolygons(x, y = NULL, IDs = row.names(x), boundary)
 ##--	or do  help(data=index)  for the standard data sets.
 
 }
+\keyword{ spatial }
 
