@@ -245,7 +245,7 @@ window.timeblob <- function(x, start=NULL, end=NULL, inclusive=F, return.indices
 		}
 	}
 	
-	windowIdx <- findIntervalPeriod(start, end, x$Time, inclusive=inclusive)
+	windowIdx <- findIntervalRange(start, end, x$Time, inclusive=inclusive)
 	
 	if (!identical(attr(x, "timestep"), "irregular")) {
 		# TODO: need to handle last time step inclusive
@@ -256,32 +256,30 @@ window.timeblob <- function(x, start=NULL, end=NULL, inclusive=F, return.indices
 	return(x[seq(windowIdx[1],windowIdx[2]),])
 }
 
-findIntervalPeriod <- function(xLo, xHi, vec, inclusive=F) {
-	if (xLo > xHi) { stop("'xHi' must be greater than 'xLo'") }
+findIntervalRange <- function(xLo, xHi, vec, inclusive=F) {
+	if (xLo > xHi) stop("'xHi' must be greater than 'xLo'")
 	# check whether vec has any elements
-	if (length(vec)==0) {
-		return(c(0,0))
-	}
+	if (length(vec)==0) return(c(0,0))
 	# check whether the period intersects at all with 'vec'
-	if ((xHi < vec[1]) || (xLo > vec[length(vec)])) {
-		return(c(0,0))
-	}
+	if ((xHi < vec[1]) || (xLo > vec[length(vec)])) return(c(0,0))
 	windowIdx <- findInterval(c(xLo,xHi), vec)
 	if (inclusive) {
 		# round up at end (findInterval rounds down)
 		test <- vec[windowIdx[2]]
-		if ((length(test)>0) && (test != xHi) && (windowIdx[2] < length(vec))) {
+		if ((length(test)>0) && (test != xHi) 
+		&& (windowIdx[2] < length(vec))) {
 			windowIdx[2] <- windowIdx[2] + 1
 		}
 	} else {
 		# round up at start (findInterval rounds down)
 		test <- vec[windowIdx[1]]
-		if ((length(test)>0) && (test != xLo) && (windowIdx[1] < length(vec))) {
+		if ((length(test)>0) && (test != xLo)
+		&& (windowIdx[1] < length(vec))) {
 			windowIdx[1] <- windowIdx[1] + 1
 		}
 	}
 	# if there are no complete intervals (inclusive==F)
-	if (windowIdx[1] > windowIdx[2]) { return(c(0,0)) }
+	if (windowIdx[1] > windowIdx[2]) return(c(0,0))
 	return(windowIdx)
 }
 
@@ -367,7 +365,7 @@ matchtimes.timeblob <- function(blob, times) {
 		return(periodIndices)
 	}
 	# each blob here is not entirely outside 'times'
-	blobBounds <- findIntervalPeriod(start(blob), end(blob), times)
+	blobBounds <- findIntervalRange(start(blob), end(blob), times)
 	blobWindowIndices <- seq(blobBounds[1], blobBounds[2])
 	# now times[blobWindowIndices] is not outside blob$Time
 	periodIndices[blobWindowIndices] <- findInterval(times[blobWindowIndices], blob$Time)

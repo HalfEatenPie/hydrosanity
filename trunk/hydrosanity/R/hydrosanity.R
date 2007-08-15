@@ -42,7 +42,7 @@ SITELIST.FORMATS <- list(
 )
 
 CATCHMENT.FORMATS <- list(
-	"ESRI shapefile"='read.catchment.esri_shapefile'
+	"ESRI shapefile"='readShapePoly'
 )
 
 # this stores application (non-project) state information
@@ -370,18 +370,12 @@ sanitycheck.flow <- function(timeblobList) {
 getpackagefile <- function(filename) {
 	## Try firstly to load from the installed hydrosanity package
 	## Otherwise, look locally.
-	myPath <- ""
-	result <- try(etc <- file.path(.path.package(package="hydrosanity")[1], "etc"), silent=TRUE)
-	if (inherits(result, "try-error")) {
-		myPath <- file.path("hydrosanity", "hydrosanity", "inst", "etc", filename)
-	} else {
-		myPath <- file.path(etc, filename)
-	}
-	if (!file.exists(myPath)) {
-		stop("could not find file ", filename)
-	} else {
-		return(myPath)
-	}
+	myPath <- system.file("etc", filename, package = "hydrosanity")
+	if (identical(myPath, "")) 
+		myPath <- file.path("hydrosanity", "hydrosanity", "inst", 
+			"etc", filename)
+	if (!file.exists(myPath)) stop("could not find file ", filename)
+	myPath
 }
 
 
@@ -462,12 +456,4 @@ select.sites.BOM.AU <- function(siteListFile, archivePath, return.data=FALSE, xl
 	
 	return(dataset)
 }
-
-read.catchment.esri_shapefile <- function(file) {
-	stopifnot(require(maptools))
-	theShape <- read.shape(file)
-	# assuming: Shapefile type: Polygon, (5), # of Shapes: 1
-	return(theShape$Shapes[[1]]$verts)
-}
-
 

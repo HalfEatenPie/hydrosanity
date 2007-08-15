@@ -150,7 +150,7 @@ updateMultivarPage <- function() {
 	))
 	for (i in seq_along(tmp.chunks)[-1]) {
 		guiDo(call=bquote({
-			tmp.win <- findIntervalPeriod(.(tmp.chunks[i-1]), 
+			tmp.win <- findIntervalRange(.(tmp.chunks[i-1]), 
 				.(tmp.chunks[i]), tmp.data$Time)
 			tmp.win <- seq(tmp.win[1], tmp.win[2])
 			tmp.ts <- try(na.contiguous(ts.intersect(as.ts(tmp.data[tmp.win,2]), 
