@@ -192,7 +192,7 @@ updateImportPage <- function() {
 	}
 	
 	for (i in seq(along=filenames)) {
-		result <- guiDo(import.string[i])
+		result <- guiDo(string=import.string[i])
 		setStatusBar("Imported file ", dQuote(basename(filenames[i])),
 			" to hsp$data[[", dQuote(dataName[i]), "]]")
 		# mark as rain/flow/etc
@@ -425,7 +425,7 @@ updateImportPage <- function() {
 			'x2 <- {', factorCmdRaw, '}',
 			'factor(x2, ordered=T, exclude=NULL)',
 		'}')
-	guiDo(factor_fn.string)
+	guiDo(string=factor_fn.string)
 	
 	for (i in blobIndices) {
 		blobName <- names(hsp$data)[i]
@@ -544,7 +544,7 @@ updateImportPage <- function() {
 		export.string <- sprintf(
 			'%s(tmp.data, %s%s)', 
 			exportFn, dQuote(filename), myOptionString)
-		guiDo(export.string)
+		guiDo(string=export.string)
 		setStatusBar("Exported data to ", dQuote(filename))
 			
 	} else {
@@ -575,7 +575,7 @@ updateImportPage <- function() {
 			export.string <- sprintf(
 				'%s(tmp.data, %s%s)', 
 				exportFn, dQuote(myFilename), myOptionString)
-			guiDo(export.string)
+			guiDo(string=export.string)
 			setStatusBar("Exported data item ", dQuote(x), " to ", 
 				dQuote(myFilename))
 		}

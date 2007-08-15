@@ -82,28 +82,33 @@ updateTimePeriodPage <- function() {
 	
 	guiDo(call=select.assign.call)
 	
-	plot.call <- call('xyplot')
-	plot.call[[2]] <- quote(y ~ x)
-	plot.call[[3]] <- quote(tmp.sites)
-	plot.call$pch <- quote(ifelse(tmp.sites$ok, 19, 21))
-	plot.call$aspect <- "iso"
+	plot.call <- quote(
+		xyplot(y ~ x, tmp.sites, aspect="iso", pch=ifelse(tmp.sites$ok, 19, 21))
+	)
 	
-	plot.call$panel <- quote(panel.geo)
-	
-	if (doInterpElev) {
-		plot.call$z.interp <- quote(tmp.sites$elev)
-		plot.call$col.regions=quote(grey(seq(0.95,0.65,length=100)))
+	plot.call$panel <- function(x, y, z, labels, ...) {
+		panel.interp(x, y, z, col.regions=grey(seq(0.95,0.65,length=100)))
+		panel.worldmap()
+		panel.rivers()
+		panel.cities()
+		if (!is.null(hsp$catchment))
+			sp.polygons(hsp$catchment)
+		panel.points(x, y)
+		quote(panel.text(x, y, labels=labels, ...))
 	}
+	
+	# turn layer off by wrapping it in quote()
+	if (!doInterpElev) body(plot.call$panel)[[2]] <- 
+		call('quote', body(plot.call$panel)[[2]])
+	
+	plot.call$z <- quote(tmp.sites$elev)
+	plot.call$labels <- quote(row.names(tmp.sites))
 	
 	if (!is.null(hsp$region)) {
 		plot.call$xlim <- quote(hsp$region$xlim)
 		plot.call$ylim <- quote(hsp$region$ylim)
 	} else {
 		plot.call$prepanel <- quote(prepanel.extend.10)
-	}
-	
-	if (!is.null(hsp$catchment)) {
-		plot.call$catchment.poly <- quote(hsp$catchment)
 	}
 	
 	addToLog(paste(deparse(plot.call), collapse="\n"))
@@ -362,10 +367,25 @@ updateTimePeriodPage <- function() {
 	}))
 	
 	plot.call <- quote(
-		xyplot(y ~ x, tmp.locs, aspect="iso", points.labels=rownames(tmp.locs))
+		xyplot(y ~ x, tmp.locs, aspect="iso")
 	)
 	
-	plot.call$panel <- quote(panel.geo)
+	plot.call$panel <- function(x, y, z, labels, ...) {
+		panel.interp(x, y, z, col.regions=grey(seq(0.95,0.65,length=100)))
+		panel.worldmap()
+		panel.rivers()
+		panel.cities()
+		if (!is.null(hsp$catchment))
+			sp.polygons(hsp$catchment)
+		panel.points(x, y)
+		panel.text(x, y, labels=labels, ...)
+	}
+	
+	# turn layer off by wrapping it in quote()
+	if (!doInterpElev) body(plot.call$panel)[[2]] <- 
+		call('quote', body(plot.call$panel)[[2]])
+	
+	plot.call$labels <- quote(row.names(tmp.locs))
 	
 	if (doInterpElev) {
 		tmpObjs <- c(tmpObjs, 'tmp.elev')
@@ -373,20 +393,17 @@ updateTimePeriodPage <- function() {
 			tmp.elev <- lapply(hsp$data[tmp.names], attr, "elevation")
 			tmp.elev <- unlist(ifelse(sapply(tmp.elev,is.null),NA,tmp.elev))
 		})
-		#print("adding interp...")
-		plot.call$z.interp <- quote(tmp.elev)
-		plot.call$col.regions <- quote(grey(seq(0.95,0.65,length=100)))
+		stopifnot(exists("tmp.elev"))
+		plot.call$z <- quote(tmp.elev)
 	}
+	
+	if (!doInterpElev) plot.call$z <- NULL
 	
 	if (!is.null(hsp$region)) {
 		plot.call$xlim <- quote(hsp$region$xlim)
 		plot.call$ylim <- quote(hsp$region$ylim)
 	} else {
 		plot.call$prepanel <- quote(prepanel.extend.10)
-	}
-	
-	if (!is.null(hsp$catchment)) {
-		plot.call$catchment.poly <- quote(hsp$catchment)
 	}
 	
 	addToLog(paste(deparse(plot.call), collapse="\n"))
@@ -417,8 +434,7 @@ updateTimePeriodPage <- function() {
 	
 	addLogComment("Import catchment boundaries from file")
 	
-	select.call <- call(CATCHMENT.FORMATS[[fileFormatIndex]])
-	select.call$file <- shapeFile
+	select.call <- call(CATCHMENT.FORMATS[[fileFormatIndex]], shapeFile)
 	
 	select.assign.call <- quote(hsp$catchment <- foo)
 	select.assign.call[[3]] <- select.call
