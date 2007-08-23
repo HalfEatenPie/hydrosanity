@@ -7,26 +7,24 @@
   closest.
 }
 \usage{
-arealSubPolygons(x, y = NULL, IDs = row.names(x), boundary)
+arealSubPolygons(x, y = NULL, IDs = row.names(x), boundary, min.area.pct = 0.5)
 }
 \arguments{
   \item{x}{ x coordinate of points, or a list containing \code{x} and \code{y}. }
   \item{y}{ y coordinate of points. }
   \item{IDs}{ identification strings for each point. }
   \item{boundary}{ polygon coordinates (coerced to "gpc.poly" class). }
+  \item{min.area.pct}{ minimum percentage area of the polygon to be allocated to any one site.
+	  Sites which would have less area than this will be excluded. }
 }
 \details{
-  ~~ If necessary, more details than the description above ~~
+  Voronoi mosaic, AKA Thiessen polygons, AKA Dirichlet tesselation.
 }
 \value{
-  ~Describe the value returned
-  If it is a LIST, use
-  \item{comp1 }{Description of 'comp1'}
-  \item{comp2 }{Description of 'comp2'}
-  ...
+	An object of class \code{SpatialPolygons} with ID slots from the original \code{IDs} argument.
 }
-\author{ ~~who you are~~ }
-\seealso{ ~~objects to See Also as \code{\link{help}}, ~~~ }
+\author{ Felix Andrews \email{felix@nfrac.org} }
+\seealso{ \code{\link[tripack]{voronoi.mosaic}}, \code{\link[gpclib]{gpc.poly-class}}, \code{\link[sp]{SpatialPolygons}} }
 \examples{
 ##---- Should be DIRECTLY executable !! ----
 ##-- ==>  Define data, use random,

@@ -1,6 +1,9 @@
 \name{hydrosanity-internal}
-\alias{addToLog}
+\alias{waterQuarters}
+\alias{sqrtPalette}
+\alias{sqrtPretty}
 \alias{select.sites.BOM.AU}
+\alias{addToLog}
 \alias{prepanel.qqmath.fix}
 \title{Internal Hydrosanity functions}
 \description{Ignore these.}
