@@ -21,8 +21,12 @@ panel.layers <- function(x, y, ..., layers=list()) {
 	}
 }
 
-panel.interp <- function(x, y, z, subscripts=T, xo.length=64, yo.length=xo.length, 
-	linear=T, extrap=F, contour=F, at, ...) {
+panel.contourplot.interp <- function(..., contour=T, region=F) {
+	panel.levelplot.interp(..., contour=contour, region=region)
+}
+
+panel.levelplot.interp <- function(x, y, z, subscripts=T, xo.length=40, yo.length=xo.length, 
+	linear=T, extrap=F, contour=F, region=T, at, ...) {
 	# draw interpolated grid
 	stopifnot(require(akima))
 	xlim <- convertX(unit(0:1,"npc"), "native", valueOnly=T)
@@ -51,10 +55,11 @@ panel.interp <- function(x, y, z, subscripts=T, xo.length=64, yo.length=xo.lengt
 	}
 	myAt <- if (contour) pretty(z) else
 		seq(min(z, na.rm=T), max(z, na.rm=T), length=100)
+	if (diff(range(myAt)) == 0) myAt <- c(myAt[1], myAt[1] + 1)
 	if (!missing(at)) myAt <- at
 	with(tmp.grid,
 		panel.levelplot(x, y, z, subscripts=subscripts, 
-			contour=contour, at=myAt, ...))
+			contour=contour, region=region, at=myAt, ...))
 }
 
 panel.worldmap <- function(col="black", ...) {
@@ -126,6 +131,22 @@ prepanel.extend.10 <- function(...) {
 	tmp
 }
 
+# ColorBrewer 9-class sequential Blues
+Blues <- c("#F7FBFF", "#DEEBF7", "#C6DBEF", "#9ECAE1", "#6BAED6", "#4292C6",  "#2171B5", "#08519C", "#08306B")
+
+sqrtSeq <- function(from, to, length.out)
+	seq(sqrt(from), sqrt(to), length=length.out)^2
+
+sqrtPalette <- function(cols=Blues, n=100)
+	colorRampPalette(cols, bias=2)(n)
+
+sqrtPalette1 <- function() hsv(h=sqrt(seq(1/6^2, 1, length=100)))
+
+sqrtPalette2 <- function(x=rainbow(100, start=1/6)) 
+	colorRampPalette(x, bias=2)(length(x))
+
+sqrtPretty <- function(x, ...) pretty(sqrt(x), ...)^2
+
 # assumes full 2D grid; 'xlim' and 'ylim' refer to dimensions 1 and 2
 subGrid <- function(grid, xlim=NULL, ylim=NULL, inclusive=F) {
 	stopifnot(fullgrid(grid))
@@ -155,7 +176,7 @@ subGrid <- function(grid, xlim=NULL, ylim=NULL, inclusive=F) {
 	grid[win[[2]], win[[1]]]
 }
 
-arealSubPolygons <- function(x, y=NULL, IDs=row.names(x), boundary) {
+arealSubPolygons <- function(x, y=NULL, IDs=row.names(x), boundary, min.area.pct=0.5) {
 	require(gpclib)
 	require(tripack)
 	xy <- xy.coords(x, y)
@@ -170,6 +191,18 @@ arealSubPolygons <- function(x, y=NULL, IDs=row.names(x), boundary) {
 	vpolys <- lapply(vpolys, as, "gpc.poly")
 	# clip it
 	subpolys <- lapply(vpolys, intersect, boundary)
+	# remove any sites with less than min.area.frac fraction of the area
+	if (min.area.pct > 0) {
+		min.area.frac <- min.area.pct / 100
+		totalArea <- area.poly(boundary)
+		ok <- rep(TRUE, length(IDs))
+		for (i in seq(along=IDs)) {
+			if (area.poly(subpolys[[i]]) / totalArea < min.area.frac)
+				ok[i] <- FALSE
+		}
+		if (any(!ok)) return(arealSubPolygons(xy$x[ok], xy$y[ok], IDs[ok], 
+			boundary=boundary, min.area.pct=min.area.pct))
+	}
 	# convert back to SpatialPolygons
 	thisSPs <- list()
 	for (i in seq(along=IDs)) {

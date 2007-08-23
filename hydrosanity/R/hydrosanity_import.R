@@ -96,9 +96,8 @@ updateImportPage <- function() {
 ## ACTIONS
 
 .hs_on_import_displayfile_button_clicked <- function(button) {
-	StateEnv$win$setSensitive(F)
-	on.exit(StateEnv$win$setSensitive(T))
-	setStatusBar("")
+	freezeGUI()
+	on.exit(thawGUI())
 	
 	filenames <- choose.files(multi=T)
 	StateEnv$win$present()
@@ -107,9 +106,8 @@ updateImportPage <- function() {
 }
 
 .hs_on_import_viewtable_button_clicked <- function(button) {
-	StateEnv$win$setSensitive(F)
-	on.exit(StateEnv$win$setSensitive(T))
-	setStatusBar("")
+	freezeGUI()
+	on.exit(thawGUI())
 	
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
 	if (length(blobIndices)==0) {
@@ -135,9 +133,8 @@ updateImportPage <- function() {
 }
 
 .hs_on_import_file_button_clicked <- function(button) {
-	StateEnv$win$setSensitive(F)
-	on.exit(StateEnv$win$setSensitive(T))
-	setStatusBar("")
+	freezeGUI()
+	on.exit(thawGUI())
 	
 	filenames <- choose.files()
 	StateEnv$win$present()
@@ -265,9 +262,8 @@ updateImportPage <- function() {
 }
 
 .hs_on_import_edit_metadata_button_clicked <- function(button) {
-	StateEnv$win$setSensitive(F)
-	on.exit(StateEnv$win$setSensitive(T))
-	setStatusBar("")
+	freezeGUI()
+	on.exit(thawGUI())
 	
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
 	if (length(blobIndices)==0) {
@@ -353,9 +349,8 @@ updateImportPage <- function() {
 }
 
 .hs_on_import_remove_blob_button_clicked <- function(button) {
-	StateEnv$win$setSensitive(F)
-	on.exit(StateEnv$win$setSensitive(T))
-	setStatusBar("")
+	freezeGUI()
+	on.exit(thawGUI())
 	
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
 	if (length(blobIndices)==0) {
@@ -376,9 +371,8 @@ updateImportPage <- function() {
 }
 
 .hs_on_import_extract_extra_button_clicked <- function(button) {
-	StateEnv$win$setSensitive(F)
-	on.exit(StateEnv$win$setSensitive(T))
-	setStatusBar("")
+	freezeGUI()
+	on.exit(thawGUI())
 	
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
 	if (length(blobIndices)==0) {
@@ -408,9 +402,8 @@ updateImportPage <- function() {
 }
 
 .hs_on_import_makefactor_button_clicked <- function(button) {
-	StateEnv$win$setSensitive(F)
-	on.exit(StateEnv$win$setSensitive(T))
-	setStatusBar("")
+	freezeGUI()
+	on.exit(thawGUI())
 	
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
 	if (length(blobIndices)==0) {
@@ -439,9 +432,8 @@ updateImportPage <- function() {
 }
 
 .hs_on_import_set_accums_button_clicked <- function(button) {
-	StateEnv$win$setSensitive(F)
-	on.exit(StateEnv$win$setSensitive(T))
-	setStatusBar("")
+	freezeGUI()
+	on.exit(thawGUI())
 	
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
 	if (length(blobIndices)==0) {
@@ -480,9 +472,8 @@ updateImportPage <- function() {
 }
 
 .hs_on_export_button_clicked <- function(button) {
-	StateEnv$win$setSensitive(F)
-	on.exit(StateEnv$win$setSensitive(T))
-	setStatusBar("")
+	freezeGUI()
+	on.exit(thawGUI())
 	
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
 	if (length(blobIndices)==0) {
@@ -585,9 +576,8 @@ updateImportPage <- function() {
 }
 
 .hs_on_import_transform_button_clicked <- function(button) {
-	StateEnv$win$setSensitive(F)
-	on.exit(StateEnv$win$setSensitive(T))
-	setStatusBar("")
+	freezeGUI()
+	on.exit(thawGUI())
 	
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
 	if (length(blobIndices)==0) {
@@ -629,9 +619,8 @@ updateImportPage <- function() {
 }
 
 .hs_on_import_transform_ratio_button_clicked <- function(button) {
-	StateEnv$win$setSensitive(F)
-	on.exit(StateEnv$win$setSensitive(T))
-	setStatusBar("")
+	freezeGUI()
+	on.exit(thawGUI())
 	
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
 	if (length(blobIndices)==0) {
@@ -681,6 +670,8 @@ updateImportPage <- function() {
 ## NON-ACTIONS, just interface bits and pieces
 
 setDataRole <- function(blobName, role=NULL, doLogComment=T) {
+	StateEnv$use.core.log <- T
+	
 	if (is.null(role)) {
 		if (one.step.acf(hsp$data[[blobName]]) > 0.5) {
 			role <- "FLOW"
@@ -689,7 +680,7 @@ setDataRole <- function(blobName, role=NULL, doLogComment=T) {
 		}
 	}
 	
-	if (doLogComment) { addLogComment("Set data role") }
+	if (doLogComment) addLogComment("Set data role")
 	
 	guiDo(call=bquote(
 		attr(hsp$data[[.(blobName)]], "role") <- .(role)

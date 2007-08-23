@@ -5,8 +5,8 @@ Version: VERSION
 Date: DATE
 Author: Felix Andrews <felix@nfrac.org>
 Maintainer: Felix Andrews <felix@nfrac.org>
-Depends: R (>= 2.5.0), RGtk2, plotAndPlayGTK (>= 0.8.45), lattice (>= 0.16)
-Imports: grid, grDevices, stats, utils
+Depends: R (>= 2.5.0), RGtk2, plotAndPlayGTK (>= 0.8.63), lattice (>= 0.16)
+Imports: grid, grDevices, stats, utils, reshape
 Suggests: sp, rgdal, maptools, tripack, gpclib, akima, maps, oz, mapdata
 Description: Hydrosanity provides a graphical user interface for exploring hydrological
   time series. It is designed to work with catchment surface hydrology data 

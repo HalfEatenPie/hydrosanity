@@ -8,9 +8,8 @@ updateExplorePage <- function() {
 }
 
 .hs_on_explore_timeseries_button_clicked <- function(button) {
-	StateEnv$win$setSensitive(F)
-	on.exit(StateEnv$win$setSensitive(T))
-	setStatusBar("")
+	freezeGUI(use.core.log=F)
+	on.exit(thawGUI())
 	
 	selNames <- iconViewGetSelectedNames(theWidget("selection_iconview"))
 	if (length(selNames) == 0) {
@@ -175,9 +174,8 @@ updateExplorePage <- function() {
 }
 
 .hs_on_explore_cdf_button_clicked <- function(button) {
-	StateEnv$win$setSensitive(F)
-	on.exit(StateEnv$win$setSensitive(T))
-	setStatusBar("")
+	freezeGUI(use.core.log=F)
+	on.exit(thawGUI())
 	
 	selNames <- iconViewGetSelectedNames(theWidget("selection_iconview"))
 	if (length(selNames) == 0) {
@@ -219,7 +217,7 @@ updateExplorePage <- function() {
 	
 	# compute and store aggregated series
 	if (doAggr1 || doAggr2) {
-		aggrBy <- if (doAggr1) { aggr1By } else { aggr2By }
+		aggrBy <- if (doAggr1) aggr1By else aggr2By
 		aggr.call <- bquote(
 			tmp.data <- lapply(tmp.data, aggregate.timeblob, by=.(aggrBy))
 		)
@@ -313,9 +311,8 @@ updateExplorePage <- function() {
 }
 
 .hs_on_explore_seasonal_button_clicked <- function(button) {
-	StateEnv$win$setSensitive(F)
-	on.exit(StateEnv$win$setSensitive(T))
-	setStatusBar("")
+	freezeGUI(use.core.log=F)
+	on.exit(thawGUI())
 	
 	selNames <- iconViewGetSelectedNames(theWidget("selection_iconview"))
 	if (length(selNames) == 0) {
@@ -378,18 +375,18 @@ updateExplorePage <- function() {
 	plot.call$panel <- if (doDrawLine && !doSupStripPlot) {
 		if (doStripPlot) {
 			function(...) {
-				panel.linejoin(..., fun=function(x){mean(x, na.rm=T)})
+				panel.linejoin(..., fun=function(x)mean(x, na.rm=T))
 				panel.stripplot(...)
 			}
 		} else if (doViolinPlot) {
 			function(...) {
-				panel.linejoin(..., fun=function(x){mean(x, na.rm=T)})
+				panel.linejoin(..., fun=function(x)mean(x, na.rm=T))
 				panel.violin(varwidth=T, ...)
 				panel.stripplot(pch=3, ...)
 			}
 		} else {
 			function(...) {
-				panel.linejoin(..., fun=function(x){mean(x, na.rm=T)})
+				panel.linejoin(..., fun=function(x)mean(x, na.rm=T))
 				panel.bwplot(...)
 			}
 		}

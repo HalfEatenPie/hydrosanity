@@ -3,6 +3,7 @@
 ## Copyright (c) 2007 Felix Andrews <felix@nfrac.org>, GPL
 
 
+
 grid.timeline.plot <- function(blob.list, xscale=NULL, colMap=NULL, barThickness=unit(1.2,"lines"), auto.key=T, maxLabelChars=20, pad=unit(1,"lines"), grill=T, main=NULL, sub=T, newpage=T) {
 	# check types
 	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }

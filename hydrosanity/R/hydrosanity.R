@@ -74,6 +74,9 @@ hydrosanity <- function() {
 	gladeXMLSignalAutoconnect(StateEnv$GUI)
 	gSignalConnect(StateEnv$win, "delete-event", .hs_on_menu_quit_activate)
 	
+	freezeGUI()
+	on.exit(thawGUI())
+	
 	# set up log page
 	addInitialLogMessage()
 	
@@ -146,6 +149,7 @@ hydrosanity <- function() {
 	theWidget("corr_relationplot_aggr2_comboboxentry")$setActive(4)
 	
 	setTextviewMonospace(theWidget("log_textview"))
+	setTextviewMonospace(theWidget("core_log_textview"))
 	setTextviewMonospace(theWidget("impute_textview"))
 	setTextviewMonospace(theWidget("corr_contiguous_textview"))
 	
@@ -278,14 +282,14 @@ regionModificationUpdate <- function() {
 }
 
 .hs_on_notebook_switch_page <- function(widget, page, page.num, ...) {
-	StateEnv$win$setSensitive(F)
-	on.exit(StateEnv$win$setSensitive(T))
-	setStatusBar("")
+	freezeGUI()
+	on.exit(thawGUI())
 	
 	updateNow(page.num=page.num)
 }
 
 .hs_on_menu_quit_activate <- function(action, window) {
+	freezeGUI()
 	if (exists("hsp") && hsp$modified && (length(hsp$data) > 0)) {
 		if (!is.null(questionDialog("Save project?"))) {
 			saveProject()
@@ -299,7 +303,6 @@ regionModificationUpdate <- function() {
 }
 
 .hs_on_menu_about_activate <-  function(action, window) {
-	setStatusBar("")
 	about <- gladeXMLNew(getpackagefile("hydrosanity.glade"), 
 		root="aboutdialog")
 	about$getWidget("aboutdialog")$setVersion(VERSION)
@@ -308,22 +311,25 @@ regionModificationUpdate <- function() {
 }
 
 .hs_on_export_log_button_clicked <- function(button) {
-	StateEnv$win$setSensitive(F)
-	on.exit(StateEnv$win$setSensitive(T))
-	setStatusBar("")
+	freezeGUI()
+	on.exit(thawGUI())
 	
-	filename <- choose.file.save("log.R", caption="Export Log", 
-		filters=Filters[c("R","txt","All"),])
+	which_log <- if (theWidget("log_notebook")$getCurrentPage() == 0)
+		"log" else "core_log"
+	
+	filename <- choose.file.save(paste(which_log, "R", sep="."), 
+		caption="Export Log", filters=Filters[c("R","txt","All"),])
 	StateEnv$win$present()
-	if (is.na(filename)) { return() }
+	if (is.na(filename)) return()
 	
 	if (get.extension(filename) == "") {
-		filename <- sprintf("%s.R", filename)
+		filename <- paste(filename, "R", sep=".")
 	}
 	
-	write(getTextviewText(theWidget("log_textview")), filename)
+	which_widget <- theWidget(paste(which_log, "_textview", sep=""))
+	write(getTextviewText(which_widget), filename)
 	
-	setStatusBar("The log has been exported to ", filename)
+	setStatusBar("The ", which_log, " has been exported to ", filename)
 }
 
 

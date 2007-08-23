@@ -12,11 +12,14 @@ export(
 
 ## spatial_functions.R
 export(
-	panel.interp,
+	panel.levelplot.interp,
+	panel.contourplot.interp,
 	panel.worldmap,
 	panel.rivers,
 	panel.cities,
 	prepanel.extend.10,
+	sqrtPalette,
+	sqrtPretty,
 	arealSubPolygons
 )
 	
@@ -65,7 +68,7 @@ export(
 	impute.timeblobs,
 	imputeGaps.timeblobs,
 	unimputeGaps.timeblobs,
-	spaceTimeField,
+	waterQuarters,
 	gaps,
 	expand.indices,
 	rises,
