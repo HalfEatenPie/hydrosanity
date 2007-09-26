@@ -14,8 +14,8 @@ DESCRIPTION=$(PACKAGE)/DESCRIPTION
 DESCRIPTIN=DESCRIPTION.in
 
 # Canonical version information from source file
-MAJOR=$(shell egrep '^MAJOR' $(SRC)/$(PACKAGE).R | cut -d\" -f 2)
-MINOR=$(shell egrep '^MINOR' $(SRC)/$(PACKAGE).R | cut -d\" -f 2)
+MAJOR=$(shell grep -E "^MAJOR" $(SRC)/$(PACKAGE).R | cut -d\" -f 2)
+MINOR=$(shell grep -E "^MINOR" $(SRC)/$(PACKAGE).R | cut -d\" -f 2)
 REVISION=$(shell C:/"Program Files"/TortoiseSVN/bin/SubWCRev.exe . | grep committed | cut -d" " -f 5)
 #$(shell svn info | egrep 'Revision:' |  cut -d" " -f 2)
 VERSION=$(MAJOR).$(MINOR).$(REVISION)
