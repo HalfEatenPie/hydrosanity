@@ -73,7 +73,11 @@ sapply.timeblob.data <- function(blob.list, FUN, ...) {
 	sapply(lapply(blob.list, function(x) x$Data), FUN, ...)
 }
 
-read.timeblob <- function(file, skip=1, sep=",", sitename=NULL, dataname="Data", dataCol=2, qualCol=3, extraCols=c(), extraNames=paste("Extra",extraCols), readTimesFromFile=T, timeCol=1, timeFormat="%d %b %Y", startTime=NA, tz="GMT", timeSeqBy="days", timeOffset=NULL, ...) {
+read.timeblob <- function(file, skip=1, sep=",", sitename=NULL, dataname="Data", 
+	dataCol=2, qualCol=3, extraCols=c(), extraNames=paste("Extra",extraCols), 
+	readTimesFromFile=T, timeCol=1, timeFormat="%d %b %Y", startTime=NA, 
+	tz="GMT", timeSeqBy="days", timeOffset=NULL, ...) {
+	
 	# check types
 	if (is.null(sitename)) {
 		if (inherits(file, "connection")) {
