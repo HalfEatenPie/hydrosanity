@@ -32,8 +32,7 @@ prepanel.extend.10(...)
 \arguments{
   \item{x, y, z}{ x and y coordinates and z value to be interpolated. }
   \item{subscripts}{ used by Lattice for conditioning. }
-  \item{at}{ \code{z} values at which to indicate changes. If missing this is \code{pretty(z)} 
-  if \code{contour=T} and a 100-point sequence between the ranges of \code{z} otherwise. }
+  \item{at}{ \code{z} values at which to indicate changes. May be omitted, see details below. }
   \item{col.regions}{ a vector of colours representing levels. See \code{\link{levelplot}}. }
   \item{xo.length, yo.length}{ resolution of interpolated surface.
   The plot region is divided into \code{xo.length * yo.length} cells. }
@@ -42,13 +41,12 @@ prepanel.extend.10(...)
   the convex hull of the data. }
   \item{contour}{ draw contour lines (passed to \code{panel.levelplot}. }
   \item{region}{ draw shaded image (passed to \code{panel.levelplot}. }
-  \item{at}{ \code{z} values at which to indicate changes. If missing this is \code{pretty(z)} 
-  if \code{contour=T} and a 100-point sequence between the ranges of \code{z} otherwise. }
   \item{\dots}{ further arguments passed to \code{panel.levelplot}. }
   \item{col, lty, pch}{ passed on to the usual drawing functions. }
 }
 \details{
-  ~~ If necessary, more details than the description above ~~
+	For \code{panel.levelplot.interp}, if the \code{at} argument is missing it is taken as \code{pretty(z)} 
+	if \code{contour=T} and a 100-point sequence between the ranges of \code{z} otherwise.
 }
 \value{
   ~Describe the value returned
