@@ -22,7 +22,7 @@ export(
 	sqrtPalette,
 	sqrtPretty,
 	arealSubPolygons,
-	readGDAL_FLTfix
+	readGDAL_fixed
 )
 	
 ## timeblob_plots.R
