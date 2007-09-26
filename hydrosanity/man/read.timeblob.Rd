@@ -2,7 +2,7 @@
 \alias{read.timeblob}
 \title{Read Timeblob from a Text File}
 \description{
-  ~~ A concise (1-5 lines) description of what the function does. ~~
+  Read in a timeblob (time series) from a file.
 }
 \usage{
 read.timeblob(file, skip = 1, sep = ",", sitename = NULL, dataname = "Data", 
@@ -15,8 +15,8 @@ read.timeblob(file, skip = 1, sep = ",", sitename = NULL, dataname = "Data",
   \item{file}{ path to a file, or a connection. }
   \item{skip}{ number of lines in file before data begins. }
   \item{sep}{ column separator, see \code{\link{read.table}}. }
-  \item{sitename}{ ~~Describe \code{sitename} here~~ }
-  \item{dataname}{ ~~Describe \code{dataname} here~~ }
+  \item{sitename}{ site name attribute. }
+  \item{dataname}{ data name attribute. }
   \item{dataCol}{ file column number (starting from 1) containing data. }
   \item{qualCol}{ file column number (starting from 1) containing quality codes. }
   \item{extraCols}{ a vector of other file column numbers to read in. }
@@ -38,15 +38,10 @@ read.timeblob(file, skip = 1, sep = ",", sitename = NULL, dataname = "Data",
 	
 }
 \value{
-  ~Describe the value returned
-  If it is a LIST, use
-  \item{comp1 }{Description of 'comp1'}
-  \item{comp2 }{Description of 'comp2'}
-  ...
+	An object of class \code{timeblob}. It is just a \code{\link{data.frame}} with some extra attributes.
 }
-\references{ ~put references to the literature/web site here ~ }
-\author{ ~~who you are~~ }
-\seealso{ ~~objects to See Also as \code{\link{help}}, ~~~ }
+\author{ Felix Andrews \email{felix@nfrac.org} }
+\seealso{ \code{\link{read.table}} }
 \examples{
 	
 }
