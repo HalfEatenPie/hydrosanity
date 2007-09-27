@@ -17,6 +17,8 @@ hydrosanity(project = NULL)
 Andrews, F. (2007). Hydrosanity: a starting point for hydrological analysis.
 To appear in \emph{Proceedings of MODSIM 2007 - International Congress on Modelling and Simulation, 
 Christchurch, New Zealand, 10-13 December 2007}. Modelling and Simulation Society of Australia and New Zealand Inc.
+
+Package home page: \url{http://hydrosanity.googlecode.com/}
 }
 \author{ Felix Andrews \email{felix@nfrac.org} }
 \examples{
