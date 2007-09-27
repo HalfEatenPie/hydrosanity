@@ -24,7 +24,7 @@ panel.layers <- function(x, y, ..., layers=list()) {
 panel.levelplot.mosaic <- function(x, y, z, subscripts=T, 
 	at=seq(min(z, na.rm=T), max(z, na.rm=T), length=100), col.regions=regions$col) {
 	# draw Voronoi mosaic
-	require(grid)
+	#require(grid)
 	stopifnot(require(tripack))
 	xlim <- convertX(unit(0:1,"npc"), "native", valueOnly=T)
 	ylim <- convertY(unit(0:1,"npc"), "native", valueOnly=T)
@@ -62,7 +62,7 @@ panel.contourplot.interp <- function(..., contour=T, region=F) {
 panel.levelplot.interp <- function(x, y, z, subscripts=T, xo.length=40, yo.length=xo.length, 
 	linear=T, extrap=F, contour=F, region=T, at, ...) {
 	# draw interpolated grid
-	require(grid)
+	#require(grid)
 	stopifnot(require(akima))
 	xlim <- convertX(unit(0:1,"npc"), "native", valueOnly=T)
 	ylim <- convertY(unit(0:1,"npc"), "native", valueOnly=T)
@@ -102,7 +102,7 @@ panel.levelplot.interp <- function(x, y, z, subscripts=T, xo.length=40, yo.lengt
 
 panel.worldmap <- function(col="black", ...) {
 	# draw map lines for national borders and coastlines
-	require(grid)
+	#require(grid)
 	xlim <- convertX(unit(0:1,"npc"), "native", valueOnly=T)
 	ylim <- convertY(unit(0:1,"npc"), "native", valueOnly=T)
 	if (require(mapdata, quietly=T)) {
@@ -129,7 +129,7 @@ panel.worldmap <- function(col="black", ...) {
 
 panel.rivers <- function(col="blue", lty="longdash", ...) {
 	# draw lines for major rivers
-	require(grid)
+	#require(grid)
 	xlim <- convertX(unit(0:1,"npc"), "native", valueOnly=T)
 	ylim <- convertY(unit(0:1,"npc"), "native", valueOnly=T)
 	if (require(maps, quietly=T)) {
@@ -142,7 +142,7 @@ panel.rivers <- function(col="blue", lty="longdash", ...) {
 
 panel.cities <- function(pch=15, col="black", ...) {
 	# draw cities
-	require(grid)
+	#require(grid)
 	stopifnot(require(maps))
 	xlim <- convertX(unit(0:1,"npc"), "native", valueOnly=T)
 	ylim <- convertY(unit(0:1,"npc"), "native", valueOnly=T)
