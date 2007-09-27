@@ -3,11 +3,12 @@
 
 == Dataset tab ==
   * import from text files in arbitrary format, or in one of the pre-defined formats;
-  * import from a database of rainfall stations (currently Bureau of Meteorology), with iterative refinement of space and time bounds;
+  * view and edit metadata (and raw data);
   * transform time series: temporal aggregation, and ratio of time series;
   * export time series.
 
 == Scope tab ==
+  * import from a database of rainfall stations (currently Bureau of Meteorology), with iterative refinement of space and time bounds;
   * timeline plot showing missing values and quality codes;
   * site map showing locations of sites, catchment boundary, coastlines, etc.
 
@@ -40,8 +41,7 @@
   * estimate catchment areal rainfall by Thiessen polygon method, with "downscaling" from gridded areal rainfall series: the original data is scaled to be consistent with the spatial grids.
 
 == Multivariate tab ==
-  * plot time series of lags between pairs of sites (lag maximising correlation);
-  * plot time series of correlation between pairs of sites (at best lag);
+  * plot annual time series of cross-correlation/lag between pairs of sites (usually multiple rain series compared to one stream flow series);
   * plot rainfall-runoff relationship, showing many rainfall series against one flow series.
 
 == Bivariate tab ==
@@ -49,5 +49,4 @@
   * plot rainfall-runoff relationship, conditioned on time, season and/or antecedent flow.
 
 == Log tab ==
-  * "Full Log" keeps a record of everything, including each plot generated.
-  * "Core Log" keeps a record of permanent data modifications only.
+  * keeps a record of all data modifications.
