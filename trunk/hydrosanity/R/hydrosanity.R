@@ -304,13 +304,16 @@ regionModificationUpdate <- function() {
 .hs_on_menu_quit_activate <- function(action, window) {
 	freezeGUI()
 	if (exists("hsp") && hsp$modified && (length(hsp$data) > 0)) {
+		#if (gconfirm("Save project?")) {
 		if (!is.null(questionDialog("Save project?"))) {
 			saveProject()
 		}
 	}
-	for (x in ls(plotAndPlayGTK:::StateEnv)) {
-		try(plotAndPlayGTK:::StateEnv[[x]]$win$destroy(), silent=TRUE)
-	}
+	# TODO: only destroy those that are owned by hydrosanity
+	for (x in playDevList()) playDevOff(x)
+	#for (x in ls(plotAndPlayGTK:::StateEnv)) {
+	#	try(plotAndPlayGTK:::StateEnv[[x]]$win$destroy(), silent=TRUE)
+	#}
 	StateEnv$win$destroy()
 	rm(win, GUI, envir=StateEnv)
 }

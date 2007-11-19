@@ -152,7 +152,7 @@ updateExplorePage <- function() {
 	}
 	
 	# plot scales and annotation specifications
-	plot.call$xscale <- quote(hsp$timePeriod)
+	plot.call$xlim <- quote(hsp$timePeriod)
 	plot.call$sameScales <- if (doCommonScale) { T } else { F }
 	plot.call$allSameScales <- if (doCommonScale && doSuperpose #&& !doSmooth
 		&& (length(list.call[-1]) > 1)) { T }
@@ -161,11 +161,11 @@ updateExplorePage <- function() {
 	}
 	
 	addToLog(paste(deparse(plot.call), collapse="\n"))
-	guiDo(playwith(plot.call=plot.call, name="timeseries", 
-		buttons=hydrosanityButtons[c('zoomin','zoomout','centre','logscale','setperiod')],
-		extra.buttons=NULL, 
-		eval.args="^hsp$", invert=T, restore.on.close=StateEnv$win), 
-		doLog=F)
+	playwith(plot.call=plot.call, title="timeseries", 
+		viewport="time.vp", time.mode=TRUE,
+		# TODO: log scale button
+		bottom=list(setPeriodTool),
+		eval.args="^hsp$", invert.match=T, on.close=restoreHS)
 	
 	if (length(tmpObjs) > 0) {
 		guiDo(call=bquote(rm(list=.(tmpObjs))))
@@ -299,10 +299,9 @@ updateExplorePage <- function() {
 	}))
 	
 	addToLog(paste(deparse(plot.call), collapse="\n"))
-	guiDo(playwith(plot.call=plot.call, name="distribution", 
-		extra.buttons=list("logscale"), labels=idLabels, 
-		eval.args="^hsp$", invert=T, restore.on.close=StateEnv$win), 
-		doLog=F)
+	playwith(plot.call=plot.call, title="distribution", 
+		labels=idLabels, 
+		eval.args="^hsp$", invert.match=T, on.close=restoreHS)
 	
 	if (length(tmpObjs) > 0) {
 		guiDo(call=bquote(rm(list=.(tmpObjs))))
@@ -429,11 +428,9 @@ updateExplorePage <- function() {
 	idLabels <- rep(format(tmp.data$Time, "%Y"), nBlobs)
 	
 	addToLog(paste(deparse(plot.call), collapse="\n"))
-	guiDo(playwith(plot.call=plot.call, name="seasonality", 
-		extra.buttons=list("logscale"),
+	playwith(plot.call=plot.call, title="seasonality", 
 		labels=idLabels, 
-		eval.args="^hsp$", invert=T, restore.on.close=StateEnv$win), 
-		doLog=F)
+		eval.args="^hsp$", invert.match=T, on.close=restoreHS)
 	
 	if (length(tmpObjs) > 0) {
 		guiDo(call=bquote(rm(list=.(tmpObjs))))
