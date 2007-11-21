@@ -5,7 +5,7 @@ Version: VERSION
 Date: DATE
 Author: Felix Andrews <felix@nfrac.org>
 Maintainer: Felix Andrews <felix@nfrac.org>
-Depends: R (>= 2.5.0), playwith (>= 0.8.16), lattice (>= 0.16)
+Depends: R (>= 2.5.0), playwith (>= 0.8.23), lattice (>= 0.16)
 Imports: RGtk2, gWidgets, reshape, grid, grDevices, stats, utils
 Suggests: sp, rgdal, tripack, gpclib, akima, oz, maps, mapdata, maptools
 Description: Hydrosanity provides a graphical user interface for exploring hydrological

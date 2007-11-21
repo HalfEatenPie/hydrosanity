@@ -4,7 +4,7 @@
 
 
 
-grid.timeline.plot <- function(blob.list, xlim=NULL, colMap=NULL, barThickness=unit(1.2,"lines"), auto.key=T, maxLabelChars=20, pad=unit(1,"lines"), grill=T, main=NULL, sub=T, newpage=T) {
+grid.timeline.plot <- function(blob.list, xlim=NULL, ylim=NULL, colMap=NULL, barThickness=unit(1.2,"lines"), auto.key=T, maxLabelChars=20, pad=unit(1,"lines"), grill=T, main=NULL, sub=T, newpage=T) {
 	xscale <- xlim
 	# check types
 	if (!identical(class(blob.list),"list")) { blob.list <- list(blob.list) }
