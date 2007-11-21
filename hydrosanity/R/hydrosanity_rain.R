@@ -171,7 +171,7 @@ updateRainPage <- function() {
 	
 	addToLog(paste(deparse(plot.call), collapse="\n"))
 	playwith(plot.call=plot.call, name="rainfall mosaic", 
-		time.index=if (doRaw) tmp.data$Time,
+		time.vector=if (doRaw) tmp.data$Time,
 		labels=rownames(tmp.locs),
 		eval.args="^hsp$", invert.match=T, on.close=restoreHS)
 	
@@ -253,7 +253,7 @@ updateRainPage <- function() {
 	
 	addToLog(paste(deparse(plot.call), collapse="\n"))
 	playwith(plot.call=plot.call, title="Areal rainfall grids", 
-		time.index=if (yearsVary || monthsVary) tmp.times,
+		time.vector=if (yearsVary || monthsVary) tmp.times,
 		labels=NA,
 		eval.args="^hsp$", invert.match=T, on.close=restoreHS)
 	
