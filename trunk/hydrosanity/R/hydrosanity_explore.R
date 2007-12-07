@@ -50,7 +50,7 @@ updateExplorePage <- function() {
 			tmp.aggr1 <- lapply(.(rawdata.call), aggregate.timeblob,
 				by=.(aggr1By)))
 		if (any(grep("( month|year)", aggr1By))) {
-			aggr.call[[3]]$start.month <- hsp$startMonth
+			aggr.call[[3]]$start.month <- hsp$yearStart
 		}
 		if (doSmooth) {
 			aggr.call <- bquote(
@@ -65,7 +65,7 @@ updateExplorePage <- function() {
 			tmp.aggr2 <- lapply(.(rawdata.call), aggregate.timeblob,
 				by=.(aggr2By)))
 		if (any(grep("( month|year)", aggr2By))) {
-			aggr.call[[3]]$start.month <- hsp$startMonth
+			aggr.call[[3]]$start.month <- hsp$yearStart
 		}
 		if (doSmooth) {
 			aggr.call <- bquote(
@@ -221,18 +221,18 @@ updateExplorePage <- function() {
 			tmp.data <- lapply(tmp.data, aggregate.timeblob, by=.(aggrBy))
 		)
 		if (any(grep("( month|year)", aggrBy))) {
-			aggr.call[[3]]$start.month <- hsp$startMonth
+			aggr.call[[3]]$start.month <- hsp$yearStart
 		}
 		guiDo(call=aggr.call)
 	}
 	
 	# make.groups
-	tmpObjs <- c(tmpObjs, 'tmp.groups')
+	tmpObjs <- c(tmpObjs, "tmp.groups")
 	guiDo(string=sprintf(
-		'tmp.groups <- make.groups(%s)',
-		paste(sep='', collapse=', ',
+		"tmp.groups <- make.groups(%s)",
+		paste(sep="", collapse=", ",
 			make.names(names(tmp.data)), 
-			'=tmp.data[[', dQuote(names(tmp.data)), ']]$Data')
+			'=tmp.data[[', shQuote(names(tmp.data)), ']]$Data')
 	))
 	#guiDo(tmp.groups <- do.call(make.groups, 
 	#	lapply(tmp.data, function(x) x$Data )))
@@ -264,8 +264,8 @@ updateExplorePage <- function() {
 		tmpObjs <- c(tmpObjs, 'tmp.probs')
 		plot.call$scales <- quote(list())
 		if (doNormal) {
-			guiDo(tmp.probs <- c(0.001, 0.01, 0.1, 0.25, 0.5, 
-				0.75, 0.9, 0.99, 0.999))
+			guiDo(tmp.probs <- c(0.0001, 0.001, 0.01, 0.1, 0.25, 0.5, 
+				0.75, 0.9, 0.99, 0.999, 0.9999))
 			plot.call$scales$x <- quote(list(
 				at=qnorm(1-tmp.probs), labels=tmp.probs * 100))
 			plot.call$xlim <- quote(rev(extendrange(qnorm(tmp.probs))))

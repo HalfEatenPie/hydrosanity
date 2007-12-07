@@ -2,8 +2,6 @@
 ##
 ## Copyright (c) 2007 Felix Andrews <felix@nfrac.org>, GPL
 
-
-
 grid.timeline.plot <- function(blob.list, xlim=NULL, ylim=NULL, colMap=NULL, barThickness=unit(1.2,"lines"), auto.key=T, maxLabelChars=20, pad=unit(1,"lines"), grill=T, main=NULL, sub=T, newpage=T) {
 	xscale <- xlim
 	# check types
@@ -156,6 +154,11 @@ grid.timeline.bar <- function(blob, colMap=NULL, name="timeline.bar", vp=NULL) {
 }
 
 
+lattice.timeline.plot <- function(blob.list, allSameScales=F, xlim=NULL, ylim=NULL, logScale=F, sub=T, ...) {
+	
+}
+
+
 grid.timeseries.plot.superpose <- function(superpose.blob.list, allSameScales=F, xlim=NULL, ylim=NULL, logScale=F, sub=T, ...) {
 	# check types
 	if (!identical(class(superpose.blob.list),"list")) {
@@ -220,7 +223,7 @@ grid.timeseries.plot.superpose <- function(superpose.blob.list, allSameScales=F,
 }
 
 
-grid.timeseries.plot <- function(blob.list, xlim=NULL, ylim=NULL, sameScales=T, logScale=F, qualTimeline=F, colMap=NULL, barThickness=unit(0.5,"lines"), auto.key=T, maxLabelChars=20, pad=unit(1,"lines"), between=unit(0,"lines"), superPos=1, newScale=T, main=NULL, sub=T, newpage=(superPos==1), nSuperpose=1, gp=gpar(col=rep(trellis.par.get("superpose.line")$col, len=superPos)[superPos], lty=rep(trellis.par.get("superpose.line")$lty, len=superPos)[superPos])) {
+grid.timeseries.plot <- function(blob.list, xlim=NULL, ylim=NULL, sameScales=T, logScale=F, qualTimeline=F, colMap=NULL, barThickness=unit(0.5,"lines"), auto.key=T, maxLabelChars=20, pad=unit(1,"lines"), between=unit(0,"lines"), superPos=1, newScale=T, main=NULL, sub=T, newpage=(superPos==1), nSuperpose=1, gp=gpar(col=rep(trellis.par.get("superpose.line")$col, len=superPos)[superPos], alpha=rep(trellis.par.get("superpose.line")$alpha, len=superPos)[superPos], lty=rep(trellis.par.get("superpose.line")$lty, len=superPos)[superPos], lwd=rep(trellis.par.get("superpose.line")$lwd, len=superPos)[superPos])) {
 	xscale <- xlim
 	yscale <- ylim
 	# check types
@@ -304,7 +307,7 @@ grid.timeseries.plot <- function(blob.list, xlim=NULL, ylim=NULL, sameScales=T, 
 			heights=unit.c(pad, unit(1,"null"), unit(3, "lines")))))
 		# overall plot viewport, and layout for timeseries plots
 		pushViewport(viewport(name="time.vp", 
-			layout.pos.col=2, layout.pos.row=2, xscale=xscale,
+			layout.pos.col=2, layout.pos.row=2, xscale=as.numeric(xscale),
 			layout=grid.layout(nBlobs*3, 1,
 			heights=rep(unit.c(between, unit(1,"null"), barThickness), nBlobs))))
 		# draw time axis with labels at bottom of plot
@@ -360,7 +363,7 @@ grid.timeseries.plot <- function(blob.list, xlim=NULL, ylim=NULL, sameScales=T, 
 			pushViewport(viewport(
 				name=paste("timeseries",k,".vp",sep=''),
 				layout.pos.row=k*3-1, 
-				xscale=xscale, yscale=myYScale, clip="on"))
+				xscale=as.numeric(xscale), yscale=myYScale, clip="on"))
 		} else {
 			# navigate down to where timeseries number k was plotted
 			downViewport(paste("timeseries",k,".vp",sep=''))
@@ -368,14 +371,14 @@ grid.timeseries.plot <- function(blob.list, xlim=NULL, ylim=NULL, sameScales=T, 
 				# push a new viewport to change scales
 				pushViewport(viewport(
 					name=paste("timeseries",k,"/",superPos,".vp",sep=''),
-					xscale=xscale, yscale=myYScale, clip="on"))
+					xscale=as.numeric(xscale), yscale=myYScale, clip="on"))
 			}
 		}
 		grid.timeseries.steps(blob.list[[k]], logScale=logScale,
 			gp=gp, name=paste("timeseries",k,sep=''))
 		# draw frame and axes
 		if (superPos == 1) {
-			pushViewport(viewport(xscale=xscale, yscale=myYScale, 
+			pushViewport(viewport(xscale=as.numeric(xscale), yscale=myYScale, 
 				clip="off"))
 			grid.rect()
 			if (logScale) {
@@ -391,10 +394,10 @@ grid.timeseries.plot <- function(blob.list, xlim=NULL, ylim=NULL, sameScales=T, 
 			# draw timeline bar and x-axis
 			if (qualTimeline) {
 				pushViewport(viewport(y=0, height=barThickness, 
-					just="top", xscale=xscale, clip="off"))
+					just="top", xscale=as.numeric(xscale), clip="off"))
 				if (nBlobs <= 4) { grid.xaxis.POSIXt(label=F) }
 				grid.lines(y=0)
-				pushViewport(viewport(xscale=xscale, clip="on"))
+				pushViewport(viewport(xscale=as.numeric(xscale), clip="on"))
 				grid.timeline.bar(blob.list[[k]], colMap=colMap,
 					name=paste("timeline.bar",k,sep=''))
 				upViewport(2)
