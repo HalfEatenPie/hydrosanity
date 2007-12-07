@@ -155,11 +155,12 @@ updateTimePeriodPage <- function() {
 		}
 	})
 	
-	plot.call <- quote(grid.timeline.plot(tmp.coverage, xscale=hsp$timePeriod))
+	plot.call <- quote(grid.timeline.plot(tmp.coverage, xlim=hsp$timePeriod))
 	
 	addToLog(paste(deparse(plot.call), collapse="\n"))
 	playwith(plot.call=plot.call, title="timeline", 
-		viewport="time.vp", time.mode=TRUE,
+		viewport="time.vp", 
+		time.mode=TRUE,
 		bottom=list(setPeriodTool),
 		eval.args="^hsp$", invert.match=T, on.close=restoreHS)
 	

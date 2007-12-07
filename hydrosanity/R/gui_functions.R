@@ -14,7 +14,7 @@ addToLog <- function(..., sep="", end.with="\n") {
 	if (isTRUE(StateEnv$echo.to.log))
 		addTextview(theWidget("log_textview"), ..., end.with, sep=sep)
 	if (isTRUE(StateEnv$echo.to.console))
-		cat(..., end.with, sep=sep)
+		message(...)
 }
 
 addLogSeparator <- function() {

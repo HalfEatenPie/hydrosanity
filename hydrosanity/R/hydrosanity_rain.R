@@ -100,7 +100,7 @@ updateRainPage <- function() {
 		tmpObjs <- c(tmpObjs, 'tmp.goo')
 		guiDo({
 			tmp.data <- sync.timeblobs(lapply(tmp.data, aggregate.timeblob, 
-				by="years", start.month=hsp$startMonth, fun.qual="omit"))
+				by="years", start.month=hsp$yearStart, fun.qual="omit"))
 			tmp.data$Time <- factor(as.POSIXlt(tmp.data$Time)$year+1900)
 			tmp.goo <- melt(tmp.data, id="Time", variable_name="site")
 			tmp.goo <- cast(tmp.goo, site ~ Time)
@@ -113,8 +113,8 @@ updateRainPage <- function() {
 	if (doQuarters) {
 		guiDo({
 			tmp.data <- sync.timeblobs(lapply(tmp.data, aggregate.timeblob, 
-				by="3 months", start.month=hsp$startMonth, fun.qual="omit"))
-			tmp.data$Season <- waterQuarters(tmp.data$Time, start.month=hsp$startMonth)
+				by="3 months", start.month=hsp$yearStart, fun.qual="omit"))
+			tmp.data$Season <- waterQuarters(tmp.data$Time, start.month=hsp$yearStart)
 		})
 	}
 	if (doMonths) {
@@ -162,7 +162,7 @@ updateRainPage <- function() {
 		#if (FALSE) panel.text(x, y, labels=row.names(points.xy)) TODO
 	}
 	
-	if (!is.null(hsp$region)) {
+	if (length(hsp$region)) {
 		plot.call$xlim <- quote(hsp$region$xlim)
 		plot.call$ylim <- quote(hsp$region$ylim)
 	} else {
@@ -172,6 +172,7 @@ updateRainPage <- function() {
 	addToLog(paste(deparse(plot.call), collapse="\n"))
 	playwith(plot.call=plot.call, name="rainfall mosaic", 
 		time.vector=if (doRaw) tmp.data$Time,
+		time.mode.page.incr=4,
 		labels=rownames(tmp.locs),
 		eval.args="^hsp$", invert.match=T, on.close=restoreHS)
 	
