@@ -1,10 +1,10 @@
-import(RGtk2)
-import(gWidgets)
-import(reshape)
 import(grid)
 import(grDevices)
 import(stats)
 import(utils)
+import(RGtk2)
+import(gWidgets)
+import(reshape)
 
 ## hydrosanity.R
 export(
