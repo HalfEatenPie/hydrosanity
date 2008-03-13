@@ -1,4 +1,3 @@
-import(tripack)
 import(gpclib)
 import(grid)
 import(grDevices)
