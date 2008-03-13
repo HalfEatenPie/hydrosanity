@@ -198,8 +198,6 @@ updateRainPage <- function() {
 	
 	tmpObjs <- c()
 	
-	guiDo(library(rgdal))
-	
 	if (!yearsVary && !monthsVary) {
 		tmpObjs <- c(tmpObjs, "tmp.grid")
 		guiDo(call=bquote(

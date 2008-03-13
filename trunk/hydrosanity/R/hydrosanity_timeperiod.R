@@ -427,22 +427,22 @@ updateTimePeriodPage <- function() {
 	shapeDir <- dirname(shapeFile)
 	shapeLayer <- get.stem(shapeFile)
 	
-	if (require(rgdal, quietly=T)) {
+	#if (require(rgdal, quietly=T)) {
 		guiDo(library(rgdal))
 		guiDo(call=bquote(
 			hsp$catchment <- readOGR(.(shapeDir), .(shapeLayer))
 		))
-	} else if (require(maptools, quietly=T)) {
-		guiDo(library(maptools))
-		guiDo(call=bquote(
-			hsp$catchment <- readShapePoly(.(shapeFile))
-		))
-	} else {
-		errorDialog('You need the "rgdal" package or "maptools" package ',
-			"to import catchment boundaries ",
-			"(note: maptools only supports ESRI shapefiles).")
-		return()
-	}
+	#} else if (require(maptools, quietly=T)) {
+	#	guiDo(library(maptools))
+	#	guiDo(call=bquote(
+	#		hsp$catchment <- readShapePoly(.(shapeFile))
+	#	))
+	#} else {
+	#	errorDialog('You need the "rgdal" package or "maptools" package ',
+	#		"to import catchment boundaries ",
+	#		"(note: maptools only supports ESRI shapefiles).")
+	#	return()
+	#}
 	
 	setStatusBar("Imported catchment boundaries from file")
 }

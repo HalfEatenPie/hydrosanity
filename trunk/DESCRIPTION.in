@@ -5,9 +5,10 @@ Version: VERSION
 Date: DATE
 Author: Felix Andrews <felix@nfrac.org>
 Maintainer: Felix Andrews <felix@nfrac.org>
-Depends: R (>= 2.5.0), stats, playwith (>= 0.8.24), lattice (>= 0.16), RGtk2 (>= 2.10.11), gWidgets, gWidgetsRGtk2
-Imports: sp, rgdal, maptools, tripack, gpclib, reshape, grid, grDevices, utils
-Suggests: akima, oz, maps, mapdata
+Depends: R (>= 2.5.0), stats, reshape, playwith (>= 0.8.24), lattice (>= 0.16), 
+  sp, rgdal, RGtk2 (>= 2.10.11), gWidgets, gWidgetsRGtk2
+Imports: tripack, gpclib, grid, grDevices, utils
+Suggests: maptools, akima, oz, maps, mapdata
 Description: Hydrosanity provides a graphical user interface for exploring hydrological
   time series. It is designed to work with catchment surface hydrology data 
   (mainly rainfall and streamflow time series at a set of locations). 
