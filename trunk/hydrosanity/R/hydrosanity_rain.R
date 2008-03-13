@@ -455,10 +455,10 @@ updateRainPage <- function() {
 	guiDo({
 		tmp.poly <- hsp$catchment@polygons[[1]]@Polygons[[1]]
 		tmp.subPolys <- arealSubPolygons(tmp.locs, boundary=coordinates(tmp.poly))
-		tmp.subAreas <- sapply(tmp.subPolys@polygons, getPolygonAreaSlot)
+		tmp.subAreas <- sapply(tmp.subPolys@polygons, slot, "area")
 		tmp.areaFrac <- tmp.subAreas / tmp.poly@area
 		
-		tmp.polyNames <- getSpPPolygonsIDSlots(tmp.subPolys)
+		tmp.polyNames <- sapply(tmp.subPolys@polygons, slot, "ID")
 		tmp.data <- lapply(hsp$data[tmp.polyNames], window, hsp$timePeriod[1], hsp$timePeriod[2])
 		tmp.data <- lapply(tmp.data, quick.disaccumulate.timeblob)
 		tmp.sync <- sync.timeblobs(tmp.data)

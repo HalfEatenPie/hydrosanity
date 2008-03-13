@@ -22,7 +22,8 @@ panel.layers <- function(x, y, ..., layers=list()) {
 }
 
 panel.levelplot.mosaic <- function(x, y, z, subscripts=T, 
-	at=seq(min(z, na.rm=T), max(z, na.rm=T), length=100), col.regions=regions$col) {
+	at=seq(min(z, na.rm=T), max(z, na.rm=T), length=100), 
+	col.regions=regions$col, boundary=NULL) {
 	# draw Voronoi mosaic
 	#require(grid)
 	stopifnot(require(tripack))
@@ -42,6 +43,24 @@ panel.levelplot.mosaic <- function(x, y, z, subscripts=T,
 	z <- z[ok]
 	xy <- xy.coords(x, y)
 	xy <- data.frame(x=xy$x, y=xy$y)
+	
+	
+	subPolys <- arealSubPolygons(xy, boundary=boundary, min.area.pct=0)
+	# draw it as one composite polygon
+	coords_list <- lapply(subPolys@polygons, function(pp) 
+		lapply(pp@Polygons, coordinates))
+	composite_n <- sapply(coords_list, length)
+	poly_n <- rapply(coords_list, nrow)
+	do.rbind <- function(x) do.call("rbind", x)
+	polydata <- do.rbind( lapply(coords_list, do.rbind) )
+	
+	regions <- trellis.par.get("regions")
+	zcol <- level.colors(z, at, col.regions, colors = TRUE)
+	poly_col <- rep(zcol, times=composite_n)
+	grid.polygon(polydata[,1], polydata[,2], id.lengths=poly_n,
+		default.units="native", gp=gpar(fill=poly_col, col="transparent"))
+	return()
+		
 	# add dummy points to ensure that voronoi polygons are finite
 	dummies <- data.frame(x=c(-1,-1,1,1), y=c(-1,1,-1,1)) * 10 * max(abs(xy))
 	xy <- rbind(xy, dummies)
@@ -240,32 +259,36 @@ notInterp <- function(x, y, z, xo=seq(min(x), max(x), length = 40),
 	list(x=xo, y=yo, z=zz)
 }
 
-arealSubPolygons <- function(x, y=NULL, IDs=row.names(x), boundary, min.area.pct=0.5) {
+arealSubPolygons <- function(x, y=NULL, IDs=row.names(x), boundary=NULL, min.area.pct=0.5) {
 	stopifnot(require(tripack))
 	stopifnot(require(gpclib))
 	xy <- xy.coords(x, y)
 	stopifnot(length(IDs) == length(xy$x))
 	xy <- data.frame(x=xy$x, y=xy$y)
-	boundary <- as(boundary, "gpc.poly")
 	# add dummy points to ensure that voronoi polygons are finite
 	dummies <- data.frame(x=c(-1,-1,1,1), y=c(-1,1,-1,1)) * 10 * max(abs(xy))
 	xy <- rbind(xy, dummies)
 	# calculate voronoi mosaic
-	vpolys <- voronoi.polygons(voronoi.mosaic(xy))
-	vpolys <- lapply(vpolys, as, "gpc.poly")
-	# clip it
-	subpolys <- lapply(vpolys, intersect, boundary)
-	# remove any sites with less than min.area.frac fraction of the area
-	if (min.area.pct > 0) {
-		min.area.frac <- min.area.pct / 100
+	vpolys <- voronoi.polygons(voronoi.mosaic(xy, duplicate="error"))
+	subpolys <- lapply(vpolys, as, "gpc.poly")
+	if (!is.null(boundary)) {
+		boundary <- as(boundary, "gpc.poly")
+		# clip it
 		totalArea <- area.poly(boundary)
-		ok <- rep(TRUE, length(IDs))
-		for (i in seq(along=IDs)) {
-			if (area.poly(subpolys[[i]]) / totalArea < min.area.frac)
-				ok[i] <- FALSE
+		stopifnot(totalArea > 0)
+		subpolys <- lapply(subpolys, gpclib::intersect, boundary)
+		# remove any sites with less than min.area.frac fraction of the area
+		if (min.area.pct > 0) {
+			min.area.frac <- min.area.pct / 100
+			ok <- rep(TRUE, length(IDs))
+			for (i in seq(along=IDs)) {
+				if (area.poly(subpolys[[i]]) / totalArea < min.area.frac)
+					ok[i] <- FALSE
+			}
+			# remove too-small entries and call recursively
+			if (any(!ok)) return(arealSubPolygons(xy$x[ok], xy$y[ok], IDs[ok], 
+				boundary=boundary, min.area.pct=min.area.pct))
 		}
-		if (any(!ok)) return(arealSubPolygons(xy$x[ok], xy$y[ok], IDs[ok], 
-			boundary=boundary, min.area.pct=min.area.pct))
 	}
 	# convert back to SpatialPolygons
 	thisSPs <- list()

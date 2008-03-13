@@ -6,7 +6,7 @@
 
 MAJOR <- "0"
 MINOR <- "8"
-REVISION <- unlist(strsplit("$Revision: 0 $", split=" "))[2]
+REVISION <- unlist(strsplit("$Revision: 77 $", split=" "))[2]
 VERSION <- paste(MAJOR, MINOR, REVISION, sep=".")
 COPYRIGHT <- paste("(c) 2007 Felix Andrews <felix@nfrac.org>\n",
 	" GUI based on Rattle (c) 2006 Graham.Williams@togaware.com")
@@ -416,7 +416,7 @@ select.sites.BOM.AU <- function(siteListFile, archivePath, return.data=FALSE, xl
 		gsub("\\b(\\w)", "\\U\\1", tolower(x), perl=TRUE)
 	}
 	siteinfo$name <- make.unique(wordCaps(siteinfo$name))
-	row.names(siteinfo) <- siteinfo$name
+	row.names(siteinfo) <- siteinfo$id
 	
 	# apply selection criteria
 	ok <- rep(TRUE, nrow(siteinfo))
@@ -459,8 +459,8 @@ select.sites.BOM.AU <- function(siteListFile, archivePath, return.data=FALSE, xl
 		}
 		dataset[[x]] <- read.timeblob(fileConn, skip=1, sep=",", 
 			sitename=siteinfo$name[i], dataname="Rain (mm/day)", 
-			dataCol=6, qualCol=7, extraCols=c(9), 
-			extraNames=c("AccumSteps"), readTimesFromFile=F, 
+			dataCol=6, qualCol=7, extraCols=c(9, 8), 
+			extraNames=c("AccumSteps", "AccumRainsteps"), readTimesFromFile=F, 
 			startTime=list(year=3, month=4, day=5),
 			timeOffset=as.difftime(9 - 24, units="hours"))
 		# observation covers 24 hours to 9am on the nominal day
