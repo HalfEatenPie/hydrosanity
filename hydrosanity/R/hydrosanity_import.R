@@ -120,7 +120,7 @@ updateImportPage <- function() {
 		infoDialog("Only the first selected item (",
 			blobName, ") will be shown.")
 	}
-	tmp <- hsp$data[[thisIndex]][,-1]
+	tmp <- hsp$data[[thisIndex]][,-1,drop=FALSE]
 	row.names(tmp) <- make.unique(format(hsp$data[[thisIndex]]$Time))
 	tmp2 <- edit(tmp, title=blobName)
 	mostattributes(tmp2) <- attributes(tmp)
@@ -647,7 +647,7 @@ updateImportPage <- function() {
 		tmp.denom$Data <- filter(tmp.denom$Data, tmp.filter)
 		tmp.data <- syncTo.timeblobs(lapply(hsp$data[.(blobNames)], quick.disaccumulate.timeblob), 
 			blob=tmp.denom)
-		tmp.data[-1] <- lapply(tmp.data[-1], filter, tmp.filter)
+		tmp.data[-1] <- lapply(tmp.data[-1,drop=F], filter, tmp.filter)
 	}))
 	
 	for (i in seq(along=blobNames)) {
