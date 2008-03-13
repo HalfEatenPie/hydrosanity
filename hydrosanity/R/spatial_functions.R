@@ -26,7 +26,7 @@ panel.levelplot.mosaic <- function(x, y, z, subscripts=T,
 	col.regions=regions$col, boundary=NULL) {
 	# draw Voronoi mosaic
 	#require(grid)
-	stopifnot(require(tripack))
+	#stopifnot(require(tripack))
 	xlim <- convertX(unit(0:1,"npc"), "native", valueOnly=T)
 	ylim <- convertY(unit(0:1,"npc"), "native", valueOnly=T)
 	# only interpolate with sites in twice visible range
@@ -82,7 +82,7 @@ panel.levelplot.interp <- function(x, y, z, subscripts=T, xo.length=40, yo.lengt
 	linear=T, extrap=F, contour=F, region=T, at, ...) {
 	# draw interpolated grid
 	#require(grid)
-	stopifnot(require(akima))
+	#stopifnot(require(akima))
 	xlim <- convertX(unit(0:1,"npc"), "native", valueOnly=T)
 	ylim <- convertY(unit(0:1,"npc"), "native", valueOnly=T)
 	# only interpolate with sites in twice visible range
@@ -243,7 +243,7 @@ subGrid <- function(grid, xlim=NULL, ylim=NULL, inclusive=F) {
 
 notInterp <- function(x, y, z, xo=seq(min(x), max(x), length = 40),
 	yo=seq(min(y), max(y), length = 40)) {
-	require(tripack)
+	#require(tripack)
 	xy <- xy.coords(x, y)
 	stopifnot(length(z) == length(xy$x))
 	xy <- data.frame(x=xy$x, y=xy$y)
@@ -260,8 +260,8 @@ notInterp <- function(x, y, z, xo=seq(min(x), max(x), length = 40),
 }
 
 arealSubPolygons <- function(x, y=NULL, IDs=row.names(x), boundary=NULL, min.area.pct=0.5) {
-	stopifnot(require(tripack))
-	stopifnot(require(gpclib))
+	#stopifnot(require(tripack))
+	#stopifnot(require(gpclib))
 	xy <- xy.coords(x, y)
 	stopifnot(length(IDs) == length(xy$x))
 	xy <- data.frame(x=xy$x, y=xy$y)
