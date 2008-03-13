@@ -77,7 +77,7 @@ updateRainPage <- function() {
 		})
 		
 		plot.call <- quote(levelplot(data ~ x * y | which, data={
-				foo <- tmp.data[ii <- cur.index+seq(4)-1, -1]
+				foo <- tmp.data[ii <- cur.index+seq(4)-1, -1, drop=F]
 				row.names(foo) <- format(tmp.data$Time[ii])
 				dat <- do.call(make.groups, as.data.frame(t(foo)))
 				dat[c('x','y')] <- tmp.locs
@@ -129,7 +129,7 @@ updateRainPage <- function() {
 	if (doQuarters || doMonths) {
 		tmpObjs <- c(tmpObjs, 'tmp.goo')
 		guiDo({
-			tmp.goo <- melt(tmp.data[-1], id="Season", variable_name="site")
+			tmp.goo <- melt(tmp.data[-1,drop=F], id="Season", variable_name="site")
 			tmp.goo <- cast(tmp.goo, site ~ Season, fun.aggregate=mean, na.rm=T)
 			tmp.goo <- cbind(tmp.goo, tmp.locs)
 			tmp.goo <- melt(tmp.goo, id=c("site","x","y"), variable_name="Season")
@@ -461,7 +461,7 @@ updateRainPage <- function() {
 		tmp.data <- lapply(tmp.data, quick.disaccumulate.timeblob)
 		tmp.sync <- sync.timeblobs(tmp.data)
 		tmp.synctime <- tmp.sync$Time
-		tmp.sync <- tmp.sync[-1]
+		tmp.sync <- tmp.sync[-1,drop=F]
 	})
 	
 	if (doByGrids) {

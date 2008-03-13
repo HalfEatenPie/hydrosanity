@@ -438,7 +438,7 @@ summaryMissing.timeblobs <- function(blob.list, timelim=NULL, timestep=NULL) {
 	# find whether data exists for each timeblob for each time in myPeriod
 	# (note: this rounds down if times do not match)
 	dataMatrix <- sync.timeblobs(blob.list, timestep=timestep)
-	dataExistsMatrix <- !is.na(as.matrix(dataMatrix[-1]))
+	dataExistsMatrix <- !is.na(as.matrix(dataMatrix[-1,drop=F]))
 	
 	activeNs <- apply(dataExistsMatrix, 1, sum)
 	allActiveSteps <- sum(activeNs == nBlobs)
@@ -516,7 +516,7 @@ aggregate.timeblob <- function(x, by="1 year", FUN=mean, fun.qual=c("worst","med
 		aggrVars <- c(aggrVars, names(x)[-(1:3)])
 	}
 	allNewVals <- aggregate(as.data.frame(x[aggrVars]), 
-		by=list(dateGroups), FUN=FUN, ...)[-1]
+		by=list(dateGroups), FUN=FUN, ...)[-1,drop=F]
 	# aggregate quality codes
 	newQual <- NULL
 	if (fun.qual != "omit") {
@@ -866,7 +866,7 @@ impute.timeblobs <- function(blob.list, which.impute=names(blob.list), timelim=N
 			scales <- pairScales[[blobNameOK]]
 			
 			# calculate correlations with blob$Data
-			cors <- sapply(rawSync[-1], cor, blob$Data, use="complete")
+			cors <- sapply(rawSync[-1,drop=F], cor, blob$Data, use="complete")
 			names(cors) <- names(blob.list)
 			cors <- rev(sort(cors))
 			

@@ -88,7 +88,7 @@ updateMultivarPage <- function() {
 	addToLog("## Make hydrosanity caption")
 	tmpObjs <- c(tmpObjs, 'tmp.n', 'tmp.caption')
 	guiDo(call=bquote({
-		tmp.n <- sum(unlist(lapply(tmp.data[-1], function(x) !is.na(x) & !is.na(tmp.data[1]))))
+		tmp.n <- sum(unlist(lapply(tmp.data[-1,drop=F], function(x) !is.na(x) & !is.na(tmp.data[1]))))
 		tmp.caption <- hydrosanity.caption(
 			timelim.timeblobs(tmp.data),
 			by=.(attr(tmp.data, "timestep")), n=tmp.n, series=.(ncol(tmp.data)-1))

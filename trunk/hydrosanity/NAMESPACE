@@ -1,4 +1,3 @@
-import(gpclib)
 import(grid)
 import(grDevices)
 import(utils)
