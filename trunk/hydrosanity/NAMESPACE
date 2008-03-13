@@ -1,10 +1,14 @@
+import(sp)
+import(rgdal)
+import(maptools)
+import(tripack)
+import(gpclib)
+import(reshape)
 import(grid)
 import(grDevices)
-import(stats)
 import(utils)
-import(RGtk2)
-import(gWidgets)
-import(reshape)
+#import(RGtk2) i would like to import this but it causes problems, eg. with gWidgets
+#import(gWidgets)
 
 ## hydrosanity.R
 export(
