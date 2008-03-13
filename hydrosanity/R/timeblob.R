@@ -11,7 +11,8 @@ timeblob <- function(Time, Data, Qual=NULL, extras=NULL, timestep=NULL, sitename
 		extras <- Data[-1]
 		Data <- Data[[1]]
 	}
-	if (!is.numeric(Data)) { stop("'Data' must be numeric") }
+	Data <- as.numeric(Data)
+	#if (!is.numeric(Data)) { stop("'Data' must be numeric") }
 	# construct timeblob
 	blob <- data.frame(
 		Time=Time,
@@ -26,14 +27,18 @@ timeblob <- function(Time, Data, Qual=NULL, extras=NULL, timestep=NULL, sitename
 	class(blob) <- c("timeblob", "data.frame")
 	# set timestep
 	if (is.null(timestep)) {
-		timestep <- as.byString(Time[2] - Time[1], digits=1)
-		# check whether series is irregular
-		timeStepDiffs <- diff(as.numeric(Time))
-		# trim by 10% because of anomolies in seq.POSIXt with DSTdays
-		timeStepRange <- c(quantile(timeStepDiffs, c(0.1, 0.9)))
-		# up to 11% difference expected in regular series (feb vs jan)
-		if (timeStepRange[2] > 1.11 * timeStepRange[1]) {
+		if (length(Time) <= 1) {
 			timestep <- "irregular"
+		} else {
+			timestep <- as.byString(Time[2] - Time[1], digits=1)
+			# check whether series is irregular
+			timeStepDiffs <- diff(as.numeric(Time))
+			# trim by 10% because of anomolies in seq.POSIXt with DSTdays
+			timeStepRange <- c(quantile(timeStepDiffs, c(0.1, 0.9)))
+			# up to 11% difference expected in regular series (feb vs jan)
+			if (timeStepRange[2] > 1.11 * timeStepRange[1]) {
+				timestep <- "irregular"
+			}
 		}
 	}
 	attr(blob, "timestep") <- timestep
@@ -600,6 +605,64 @@ quick.disaccumulate.timeblob <- function(blob) {
 	levels(blob$Qual) <- union(levels(blob$Qual), "disaccumulated")
 	blob$Qual[allSpans] <- "disaccumulated"
 	blob$AccumSteps <- NULL
+	return(blob)
+}
+
+smart.disaccumulate.timeblob <- function(blob) {
+	# check types
+	if (!is.timeblob(blob)) { stop("'blob' must be a timeblob") }
+	if (is.null(blob$AccumSteps)) { return(blob) }
+	spanInfo <- data.frame(end=which(blob$AccumSteps > 1))
+	if (nrow(spanInfo) == 0) {
+		blob$AccumSteps <- NULL
+		return(blob)
+	}
+	spanInfo$accum <- blob$Data[spanInfo$end]
+	spanInfo$length <- blob$AccumSteps[spanInfo$end]
+	spanInfo$start <- with(spanInfo, end - length + 1)
+	ok <- with(spanInfo, (start > 0) & !is.na(length) & (length > 1))
+	spanInfo <- spanInfo[ok,]
+	eventInfo <- spanInfo
+	if (!is.null(blob$AccumRainsteps)) {
+		eventInfo$length <- blob$AccumRainsteps[spanInfo$end]
+		ok <- with(eventInfo, !is.na(length) & (length > 0)
+			& (length <= spanInfo$length))
+		eventInfo$length[!ok] <- spanInfo$length[!ok]
+		eventInfo$start <- with(eventInfo, end - length + 1)
+	}
+	# estimate the distribution of rainfall in 2-day events, 3-day, etc
+	# -- the highest fraction of event total falling in one day
+	x.rawdata <- blob$Data
+	x.rawdata[blob$AccumSteps > 1] <- NA
+	x.rawdata[is.na(x.rawdata)] <- 0
+	e.rle <- rle(x.rawdata > 0)
+	e.rle$values <- ifelse(e.rle$values, seq_along(e.rle$values), NA)
+	events <- inverse.rle(e.rle)
+	e.frac <- tapply(x.rawdata, events, function(e)
+		if (length(e) == 1) NA else max(e) / sum(e))
+	e.dur <- tapply(x.rawdata, events, function(e)
+		if (length(e) == 1) NA else length(e))
+	# hi_frac is the highest fraction of the event falling in one day
+	# (mean over all events of the same duration)
+	# lo_frac is the remaining fraction distributed evenly over the other days
+	# frac_dur is the corresponding event duration in days
+	hi_frac <- tapply(e.frac, e.dur, mean, na.rm=TRUE)
+	frac_dur <- as.numeric(names(hi_frac))
+	eventInfo$hi_frac <- approx(x=frac_dur, y=hi_frac, xout=eventInfo$length, rule=2)$y
+	eventInfo$lo_frac <- (1 - eventInfo$hi_frac) / (eventInfo$length - 1)
+	# concatenated indices of all the time steps in accums
+	allSpans <- expand.indices(spanInfo)
+	blob$Data[allSpans] <- 0
+	# fill gaps with lo_frac fraction of the accumulated value
+	allEvents <- expand.indices(eventInfo)
+	blob$Data[allEvents] <- with(eventInfo, 
+		rep(accum * lo_frac, times=length))
+	# set last day of event to hi_frac
+	blob$Data[eventInfo$end] <- with(eventInfo, accum * hi_frac)
+	levels(blob$Qual) <- union(levels(blob$Qual), "disaccumulated")
+	blob$Qual[allSpans] <- "disaccumulated"
+	blob$AccumSteps <- NULL
+	blob$AccumRainsteps <- NULL
 	return(blob)
 }
 
