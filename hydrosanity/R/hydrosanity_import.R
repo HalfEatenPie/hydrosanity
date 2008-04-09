@@ -457,12 +457,12 @@ updateImportPage <- function() {
 				max.length=.(maxGapStepsAccum))
 		))
 		if (nrow(tmp.gapInfo) > 0) {
+			if (!"AccumSteps" %in% names(hsp$data[[x]]))
+				guiDo(call=bquote( hsp$data[[.(x)]]$AccumSteps <- as.integer(1) ))
 			guiDo(call=bquote({
-				hsp$data[[.(x)]]$AccumSteps <- as.integer(1)
-				with(tmp.gapInfo, 
-					hsp$data[[.(x)]]$AccumSteps[start + length] <-
-						length + 1
-				)
+				hsp$data[[.(x)]]$AccumSteps[with(tmp.gapInfo, start + length)] <-
+						tmp.gapInfo$length + 1
+				# TODO: AccumRainsteps
 			}))
 		} else {
 			addToLog("# No gaps fit the criteria.")
