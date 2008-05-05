@@ -21,8 +21,8 @@ panel.layers <- function(x, y, ..., layers=list()) {
 	}
 }
 
-panel.levelplot.mosaic <- function(x, y, z, subscripts=T, 
-	at=seq(min(z, na.rm=T), max(z, na.rm=T), length=100), 
+panel.levelplot.mosaic <- function(x, y, z, subscripts=T,
+	at=seq(min(z, na.rm=T), max(z, na.rm=T), length=100),
 	col.regions=regions$col, boundary=NULL) {
 	# draw Voronoi mosaic
 	#require(grid)
@@ -43,24 +43,24 @@ panel.levelplot.mosaic <- function(x, y, z, subscripts=T,
 	z <- z[ok]
 	xy <- xy.coords(x, y)
 	xy <- data.frame(x=xy$x, y=xy$y)
-	
-	
+
+
 	subPolys <- arealSubPolygons(xy, boundary=boundary, min.area.pct=0)
 	# draw it as one composite polygon
-	coords_list <- lapply(subPolys@polygons, function(pp) 
+	coords_list <- lapply(subPolys@polygons, function(pp)
 		lapply(pp@Polygons, coordinates))
 	composite_n <- sapply(coords_list, length)
 	poly_n <- rapply(coords_list, nrow)
 	do.rbind <- function(x) do.call("rbind", x)
 	polydata <- do.rbind( lapply(coords_list, do.rbind) )
-	
+
 	regions <- trellis.par.get("regions")
 	zcol <- level.colors(z, at, col.regions, colors = TRUE)
 	poly_col <- rep(zcol, times=composite_n)
 	grid.polygon(polydata[,1], polydata[,2], id.lengths=poly_n,
 		default.units="native", gp=gpar(fill=poly_col, col="transparent"))
 	return()
-		
+
 	# add dummy points to ensure that voronoi polygons are finite
 	dummies <- data.frame(x=c(-1,-1,1,1), y=c(-1,1,-1,1)) * 10 * max(abs(xy))
 	xy <- rbind(xy, dummies)
@@ -78,7 +78,7 @@ panel.contourplot.interp <- function(..., contour=T, region=F) {
 	panel.levelplot.interp(..., contour=contour, region=region)
 }
 
-panel.levelplot.interp <- function(x, y, z, subscripts=T, xo.length=40, yo.length=xo.length, 
+panel.levelplot.interp <- function(x, y, z, subscripts=T, xo.length=40, yo.length=xo.length,
 	linear=T, extrap=F, contour=F, region=T, at, ...) {
 	# draw interpolated grid
 	#require(grid)
@@ -103,8 +103,8 @@ panel.levelplot.interp <- function(x, y, z, subscripts=T, xo.length=40, yo.lengt
 	tmp.grid <- expand.grid(x=xo, y=yo)
 	# compute the spatial field (interpolation)
 	tmp.grid$z <- as.vector(
-		interp(x=x[ok], y=y[ok], z=z[ok], 
-		xo=xo, yo=yo, linear=linear, 
+		interp(x=x[ok], y=y[ok], z=z[ok],
+		xo=xo, yo=yo, linear=linear,
 		extrap=extrap, duplicate="mean")$z)
 	# restrict surface within observed limits (for spline silliness)
 	if (!linear) {
@@ -115,7 +115,7 @@ panel.levelplot.interp <- function(x, y, z, subscripts=T, xo.length=40, yo.lengt
 	if (diff(range(myAt)) == 0) myAt <- c(myAt[1], myAt[1] + 1)
 	if (missing(at)) at <- myAt
 	with(tmp.grid,
-		panel.levelplot(x, y, z, subscripts=subscripts, 
+		panel.levelplot(x, y, z, subscripts=subscripts,
 			contour=contour, region=region, at=at, ...))
 }
 
@@ -131,7 +131,7 @@ panel.worldmap <- function(col="black", ...) {
 		}, silent=T)
 	} else
 	# Australia: 'oz' package has better resolution than 'maps'
-	if ((113 <= max(xlim)) && (min(xlim) <= 154) && 
+	if ((113 <= max(xlim)) && (min(xlim) <= 154) &&
 		(-44 <= max(ylim)) && (min(ylim) <= -10) &&
 		require(oz, quietly=T)) {
 		for (i in ozRegion(xlim=xlim, ylim=ylim)$lines) {
@@ -170,14 +170,14 @@ panel.cities <- function(pch=15, col="black", ...) {
 		ok <- ((min(xlim) < long) & (long < max(xlim)) &
 			(min(ylim) < lat) & (lat < max(ylim)))
 		if (any(ok)) {
-			if (sum(ok) < 25) panel.points(long[ok], lat[ok], 
+			if (sum(ok) < 25) panel.points(long[ok], lat[ok],
 				pch=pch, col=col, ...)
 			ux <- unit(long[ok], "native")
 			uy <- unit(lat[ok], "native")
-			grid.text(name[ok], ux, uy + unit(0.5, "char"), 
+			grid.text(name[ok], ux, uy + unit(0.5, "char"),
 				just="top", check.overlap=T,
 				gp=gpar(col=col, ...))
-			#foo <- grid.grabExpr(panel.text(long[ok], lat[ok], 
+			#foo <- grid.grabExpr(panel.text(long[ok], lat[ok],
 			#	name[ok], pos=1, col=col, ...))
 			#grid.draw(editGrob(foo, ".", grep=T, check.overlap=T))
 		}
@@ -207,7 +207,7 @@ sqrtPalette <- function(cols=Blues, n=100)
 
 sqrtPalette1 <- function() hsv(h=sqrt(seq(1/6^2, 1, length=100)))
 
-sqrtPalette2 <- function(x=rainbow(100, start=1/6)) 
+sqrtPalette2 <- function(x=rainbow(100, start=1/6))
 	colorRampPalette(x, bias=2)(length(x))
 
 sqrtPretty <- function(x, ...) pretty(sqrt(x), ...)^2
@@ -228,7 +228,7 @@ subGrid <- function(grid, xlim=NULL, ylim=NULL, inclusive=F) {
 		flipped <- is.unsorted(coords[[i]])
 		if (flipped) coords[[i]] <- rev(coords[[i]])
 		# find indices corresponding to given dimension limits
-		lim.idx <- findIntervalRange(min(lim[[i]]), max(lim[[i]]), 
+		lim.idx <- findIntervalRange(min(lim[[i]]), max(lim[[i]]),
 			coords[[i]], inclusive=inclusive)
 		# SpatialGrid can not handle a zero length dimension
 		if (all(lim.idx == 0)) stop("dimension ", i, " is empty")
@@ -259,10 +259,14 @@ notInterp <- function(x, y, z, xo=seq(min(x), max(x), length = 40),
 	list(x=xo, y=yo, z=zz)
 }
 
-arealSubPolygons <- function(x, y=NULL, IDs=row.names(x), boundary=NULL, min.area.pct=0.5) {
+arealSubPolygons <- function(x, y=NULL, IDs=NULL, boundary=NULL, min.area.pct=0.5) {
 	#stopifnot(require(tripack))
 	#stopifnot(require(gpclib))
 	xy <- xy.coords(x, y)
+	if (is.null(IDs)) {
+		IDs <- labels(x)
+		if (is.list(IDs)) IDs <- IDs[[1]]
+	}
 	stopifnot(length(IDs) == length(xy$x))
 	xy <- data.frame(x=xy$x, y=xy$y)
 	# add dummy points to ensure that voronoi polygons are finite
@@ -286,8 +290,11 @@ arealSubPolygons <- function(x, y=NULL, IDs=row.names(x), boundary=NULL, min.are
 					ok[i] <- FALSE
 			}
 			# remove too-small entries and call recursively
-			if (any(!ok)) return(arealSubPolygons(xy$x[ok], xy$y[ok], IDs[ok], 
-				boundary=boundary, min.area.pct=min.area.pct))
+			if (any(!ok)) {
+				ok <- c(ok, rep(FALSE, 4)) # exclude dummy points
+				return(arealSubPolygons(xy$x[ok], xy$y[ok], IDs[ok],
+					boundary=boundary, min.area.pct=min.area.pct))
+			}
 		}
 	}
 	# convert back to SpatialPolygons

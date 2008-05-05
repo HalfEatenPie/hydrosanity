@@ -327,6 +327,8 @@ updateTimePeriodPage <- function() {
 	doInterpElev <- theWidget("scope_sitemap_elevation_checkbutton")$getActive()
 	doRainOnly <- theWidget("scope_sitemap_rainonly_checkbutton")$getActive()
 	
+	if (doInterpElev && !require(akima)) doInterpElev <- FALSE
+	
 	selNames <- names(hsp$data)
 	
 	if (doRainOnly) {

@@ -22,6 +22,6 @@ Description: Hydrosanity provides a graphical user interface for exploring hydro
   WARNING: this package is under development and should not be considered stable.
   An introductory paper is included, but there is not much detailed documentation.
   Hydrosanity's Graphical User Interface was based on Rattle by Graham Williams.
-License: GPL (>= 2)
+License: GPL-2
 URL: http://hydrosanity.googlecode.com/
 
