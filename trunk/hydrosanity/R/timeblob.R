@@ -78,11 +78,11 @@ sapply.timeblob.data <- function(blob.list, FUN, ...) {
 	sapply(lapply(blob.list, function(x) x$Data), FUN, ...)
 }
 
-read.timeblob <- function(file, skip=1, sep=",", sitename=NULL, dataname="Data", 
-	dataCol=2, qualCol=3, extraCols=c(), extraNames=paste("Extra",extraCols), 
-	readTimesFromFile=T, timeCol=1, timeFormat="%d %b %Y", startTime=NA, 
+read.timeblob <- function(file, skip=1, sep=",", sitename=NULL, dataname="Data",
+	dataCol=2, qualCol=3, extraCols=c(), extraNames=paste("Extra",extraCols),
+	readTimesFromFile=T, timeCol=1, timeFormat="%d %b %Y", startTime=NA,
 	tz="GMT", timeSeqBy="days", timeOffset=NULL, ...) {
-	
+
 	# check types
 	if (is.null(sitename)) {
 		if (inherits(file, "connection")) {
@@ -107,23 +107,23 @@ read.timeblob <- function(file, skip=1, sep=",", sitename=NULL, dataname="Data",
 	# number of columns in file
 	fileCols <- 200 # assumed maximum
 	# unz seems to have problems, so just read in the whole file
-	if (inherits(file, "unz")) { 
+	if (inherits(file, "unz")) {
 		fileText <- readLines(file)
 		close(file)
 		file <- textConnection(fileText)
-		firstLine <- read.table(file, header=F, skip=skip, sep=sep, 
+		firstLine <- read.table(file, header=F, skip=skip, sep=sep,
 			strip.white=T, nrows=1, ...)
 		fileCols <- ncol(firstLine)
 		# reset the connection
 		file <- textConnection(fileText)
 	}
 	if (is.character(file) || isSeekable(file)) {
-		firstLine <- read.table(file, header=F, skip=skip, sep=sep, 
+		firstLine <- read.table(file, header=F, skip=skip, sep=sep,
 			strip.white=T, nrows=1, ...)
 		fileCols <- ncol(firstLine)
 	}
 	if (dataCol > fileCols) {
-		stop("Column ", dataCol, " ('dataCol') not found on line ", skip+1, 
+		stop("Column ", dataCol, " ('dataCol') not found on line ", skip+1,
 		"; maybe 'sep'=\"", sep, "\" or 'skip'=", skip, " is wrong?")
 	}
 	# drop variables for which column does not exist in file
@@ -137,7 +137,7 @@ read.timeblob <- function(file, skip=1, sep=",", sitename=NULL, dataname="Data",
 	fileColClasses[qualCol] <- NA # note qualCol may be NULL
 	fileColClasses[extraCols] <- NA # note extraCols may be NULL
 	# read file
-	rawData <- read.table(file, header=F, skip=skip, sep=sep, 
+	rawData <- read.table(file, header=F, skip=skip, sep=sep,
 		colClasses=fileColClasses, strip.white=T, ...)
 	# work out which column of rawData has the data (from dataCol)
 	dataIndex <- dataCol - sum(fileColClasses[1:dataCol]=="NULL", na.rm=T)
@@ -184,7 +184,7 @@ read.timeblob <- function(file, skip=1, sep=",", sitename=NULL, dataname="Data",
 	if (!is.null(timeOffset)) myTime <- myTime + as.numeric(timeOffset, units="secs")
 	extras <- rawData[-c(timeIndex, dataIndex, qualIndex)]
 	names(extras) <- extraNames
-	blob <- timeblob(Time=myTime, Data=rawData[[dataIndex]], Qual=myQual, 
+	blob <- timeblob(Time=myTime, Data=rawData[[dataIndex]], Qual=myQual,
 		extras=extras, sitename=sitename, dataname=dataname)
 	return(blob)
 }
@@ -203,7 +203,7 @@ end.timeblob <- function(x, ...) {
 	} else {
 		if (nrow(x)==0) { return(x$Time[0]) }
 		# extrapolate last time step
-		seq.POSIXt(from=x$Time[nrow(x)], by=attr(x, "timestep"), 
+		seq.POSIXt(from=x$Time[nrow(x)], by=attr(x, "timestep"),
 			length=2)[2]
 	}
 }
@@ -262,9 +262,9 @@ window.timeblob <- function(x, start=NULL, end=NULL, inclusive=F, return.indices
 			x <- rbind(x, extendBlob)
 		}
 	}
-	
+
 	windowIdx <- findIntervalRange(start, end, x$Time, inclusive=inclusive)
-	
+
 	if (!identical(attr(x, "timestep"), "irregular")) {
 		# TODO: need to handle last time step inclusive
 	}
@@ -284,7 +284,7 @@ findIntervalRange <- function(xLo, xHi, vec, inclusive=F) {
 	if (inclusive) {
 		# round up at end (findInterval rounds down)
 		test <- vec[windowIdx[2]]
-		if ((length(test)>0) && (test != xHi) 
+		if ((length(test)>0) && (test != xHi)
 		&& (windowIdx[2] < length(vec))) {
 			windowIdx[2] <- windowIdx[2] + 1
 		}
@@ -360,13 +360,13 @@ sync.timeblobs <- function(blob.list, timestep=NULL, timelim=NULL, extractColumn
 # x <- seq(as.POSIXct("1970-01-01"), by="2 years", length=5)
 # blob <- timeblob(Time=x, Data=seq(70, by=2, length=5))
 # yearseq <- seq(as.POSIXct("1965-01-01"), by="years", length=10)
-# data.frame(yearseq, 
-# 	blob.index=matchtimes.timeblob(blob, yearseq), 
+# data.frame(yearseq,
+# 	blob.index=matchtimes.timeblob(blob, yearseq),
 # 	blob.data=blob$Data[matchtimes.timeblob(blob, yearseq)])
 #
 # sixseq <- seq(as.POSIXct("1970-06-06"), as.POSIXct("1981-06-06"), by="6 months")
-# data.frame(sixseq, 
-# 	blob.index=matchtimes.timeblob(blob, sixseq), 
+# data.frame(sixseq,
+# 	blob.index=matchtimes.timeblob(blob, sixseq),
 # 	blob.data=blob$Data[matchtimes.timeblob(blob, sixseq)])
 
 matchtimes.timeblob <- function(blob, times) {
@@ -434,36 +434,36 @@ summaryMissing.timeblobs <- function(blob.list, timelim=NULL, timestep=NULL) {
 	myCompleteN <- sum(myDataFrac >= 1)
 	my95PctN <- sum(myDataFrac > 0.95)
 	my75PctN <- sum(myDataFrac > 0.75)
-	
+
 	# find whether data exists for each timeblob for each time in myPeriod
 	# (note: this rounds down if times do not match)
 	dataMatrix <- sync.timeblobs(blob.list, timestep=timestep)
 	dataExistsMatrix <- !is.na(as.matrix(dataMatrix[-1,drop=F]))
-	
+
 	activeNs <- apply(dataExistsMatrix, 1, sum)
 	allActiveSteps <- sum(activeNs == nBlobs)
 	allActiveFrac <- allActiveSteps / length(times)
 	activeNQ <- quantile(activeNs, probs=c(0.25, 0.5, 0.75))
 	activeNQFrac <- activeNQ / nBlobs
-	
+
 	cat(sprintf('Overall, %.0f%% of data is missing.\n', (1-overallDataFrac)*100))
-	cat(sprintf('There are %i time series, of which %i %s complete.\n', 
+	cat(sprintf('There are %i time series, of which %i %s complete.\n',
 		nBlobs, myCompleteN, ifelse(myCompleteN==1,'is','are')))
-	cat(sprintf('...%i %s > 95%% complete and %i %s > 75%% complete.\n', 
+	cat(sprintf('...%i %s > 95%% complete and %i %s > 75%% complete.\n',
 		my95PctN, ifelse(my95PctN==1,'is','are'), my75PctN, ifelse(my75PctN==1,'is','are')))
 	cat('\n')
 	cat(sprintf('%i time steps (%.1f%%) have data from all series.\n', allActiveSteps, allActiveFrac*100))
 	cat(sprintf('The median number of active sites is %i (%.0f%%).\n', activeNQ[2], activeNQFrac[2]*100))
 	cat(sprintf('...Half the time, the number of active sites is between %i and %i.\n', activeNQ[1], activeNQ[3]))
 	#cat(sprintf('The number of active sites ranges from %i to %i.\n', activeNQ[1], activeNQ[3]))
-	
+
 	# gap length distribution
-	
+
 	# quality code summary
-	
+
 	# missing fraction for each series
 	missingFrac <- (length(times) - apply(dataExistsMatrix, 2, sum)) / length(times)
-	
+
 	invisible(missingFrac)
 }
 
@@ -515,12 +515,12 @@ aggregate.timeblob <- function(x, by="1 year", FUN=mean, fun.qual=c("worst","med
 	if (hasExtraVars) {
 		aggrVars <- c(aggrVars, names(x)[-(1:3)])
 	}
-	allNewVals <- aggregate(as.data.frame(x[aggrVars]), 
+	allNewVals <- aggregate(as.data.frame(x[aggrVars]),
 		by=list(dateGroups), FUN=FUN, ...)[-1,drop=F]
 	# aggregate quality codes
 	newQual <- NULL
 	if (fun.qual != "omit") {
-		FUN.Qual <- switch(fun.qual, 
+		FUN.Qual <- switch(fun.qual,
 			worst=function(x) {
 				x <- x[!is.na(x)]
 				if (length(x)>0) {
@@ -655,7 +655,7 @@ smart.disaccumulate.timeblob <- function(blob) {
 	blob$Data[allSpans] <- 0
 	# fill gaps with lo_frac fraction of the accumulated value
 	allEvents <- expand.indices(eventInfo)
-	blob$Data[allEvents] <- with(eventInfo, 
+	blob$Data[allEvents] <- with(eventInfo,
 		rep(accum * lo_frac, times=length))
 	# set last day of event to hi_frac
 	blob$Data[eventInfo$end] <- with(eventInfo, accum * hi_frac)
@@ -686,7 +686,7 @@ impute.timeblobs <- function(blob.list, which.impute=names(blob.list), timelim=N
 				paste(names(blob.list)[!ok], collapse=", ")))
 		}
 	}
-	
+
 	if (extend) {
 		myTimelim <- timelim
 		if (is.null(timelim)) {
@@ -694,16 +694,16 @@ impute.timeblobs <- function(blob.list, which.impute=names(blob.list), timelim=N
 		}
 		for (x in which.impute) {
 			if (start(blob.list[[x]]) > min(myTimelim)) {
-				blob.list[[x]] <- window(blob.list[[x]], 
+				blob.list[[x]] <- window(blob.list[[x]],
 					start=min(myTimelim), extend=T)
 			}
 			if (end(blob.list[[x]]) < max(myTimelim)) {
-				blob.list[[x]] <- window(blob.list[[x]], 
+				blob.list[[x]] <- window(blob.list[[x]],
 					end=max(myTimelim), extend=T)
 			}
 		}
 	}
-	
+
 	# calculate distances
 	loc <- NA
 	pairDistance <- NA
@@ -713,7 +713,7 @@ impute.timeblobs <- function(blob.list, which.impute=names(blob.list), timelim=N
 		pairDistance <- as.matrix(dist(loc))
 		diag(pairDistance) <- NA
 	}
-	
+
 	pairScales <- list()
 	if (method %in% c("distance", "correlation")) {
 		tmp.data <- lapply(blob.list, quick.disaccumulate.timeblob)
@@ -729,7 +729,7 @@ impute.timeblobs <- function(blob.list, which.impute=names(blob.list), timelim=N
 				if (sum(ok) < 10) {
 					pairScales[[x]][[yName]] <- NA
 				} else {
-					pairScales[[x]][[yName]] <- 
+					pairScales[[x]][[yName]] <-
 						mean(tmp.data[[x]][ok], trim=trim) /
 						mean(tmp.data[[y]][ok], trim=trim)
 				}
@@ -737,7 +737,7 @@ impute.timeblobs <- function(blob.list, which.impute=names(blob.list), timelim=N
 		}
 		rm(tmp.data)
 	}
-	
+
 	# find all multiple accumulations (using AccumSteps column)
 	# and set to NA to indicate a missing value there (it is part of the gap)
 	# this is so that Data column is directly comparable to Imputed
@@ -748,18 +748,18 @@ impute.timeblobs <- function(blob.list, which.impute=names(blob.list), timelim=N
 			blob.list[[x]]$Data[spanEnd] <- NA
 		}
 	}
-	
+
 	# exclude any "imputed" values: do not use imputed values to impute
 	for (x in names(blob.list)) {
 		blob.list[[x]]$Data[ (blob.list[[x]]$Qual == "imputed") ] <- NA
 	}
-	
+
 	ROWS <- 1 # constant
-	
+
 	for (blobName in which.impute) {
 		print(paste("*** going to impute site", blobName))
 		blob <- blob.list[[blobName]]
-		
+
 		if (method == "constant") {
 			val <- NA
 			if (constant == "mean") {
@@ -777,13 +777,13 @@ impute.timeblobs <- function(blob.list, which.impute=names(blob.list), timelim=N
 			}
 			blob.list[[blobName]]$Imputed <- val
 		}
-		
+
 		if (method == "distance") {
 			# synchronise all other data to this blob
 			rawSync <- syncTo.timeblobs(blob.list, blob)
 			blobNameOK <- make.names(blobName) # in rawSync
 			blobIndex <- match(blobName, names(blob.list))
-			
+
 			dist <- pairDistance[blobIndex,]
 			scales <- pairScales[[blobNameOK]]
 			# select nearest site in each of four geometric quadrants
@@ -856,39 +856,39 @@ impute.timeblobs <- function(blob.list, which.impute=names(blob.list), timelim=N
 			imputed[!is.finite(imputed)] <- NA
 			blob.list[[blobName]]$Imputed <- imputed
 		}
-		
+
 		if (method == "correlation") {
 			# synchronise all other data to this blob
 			rawSync <- syncTo.timeblobs(blob.list, blob)
 			blobNameOK <- make.names(blobName) # in rawSync
 			blobIndex <- match(blobName, names(blob.list))
-			
+
 			scales <- pairScales[[blobNameOK]]
-			
+
 			# calculate correlations with blob$Data
 			cors <- sapply(rawSync[-1,drop=F], cor, blob$Data, use="complete")
 			names(cors) <- names(blob.list)
 			cors <- rev(sort(cors))
-			
+
 			predictors <- names(cors)[cors > 0.1]
 			predictors <- predictors[(predictors != blobName)]
-			
+
 			cat("CORRELATIONS:\n")
 			print(cors[predictors])
 			cat("SCALE factors (ratio of means):\n")
 			print(scales[predictors])
-			
+
 			data.matrix <- as.matrix(rawSync[make.names(predictors)])
 			colnames(data.matrix) <- predictors
-			
-			data.matrix <- data.matrix * 
+
+			data.matrix <- data.matrix *
 				rep(scales[predictors], each=nrow(data.matrix))
-			
+
 			masked <- rep(F, nrow(data.matrix))
 			i <- 1
 			predicted.frac <- sum(!is.na(data.matrix[!masked,i])) / nrow(data.matrix)
 			print(paste(predictors[i], ": predicted", round(100*predicted.frac), "%"))
-			
+
 			i <- 2
 			while (i <= ncol(data.matrix)) {
 				masked <- masked | !is.na(data.matrix[,i-1])
@@ -899,14 +899,14 @@ impute.timeblobs <- function(blob.list, which.impute=names(blob.list), timelim=N
 				}
 				i <- i + 1
 			}
-			
+
 			# compute the interpolated values
 			imputed <- apply(data.matrix, ROWS, sum, na.rm=T)
 			noprediction <- apply(is.na(data.matrix), ROWS, all)
 			imputed[noprediction] <- NA
 			blob.list[[blobName]]$Imputed <- imputed
 		}
-		
+
 	}
 	return(blob.list[which.impute])
 }
@@ -922,14 +922,14 @@ imputeGaps.timeblobs <- function(blob.list, which.impute=names(blob.list), type=
 		imputedPeriod <- timelim.timeblobs(impBlob)
 		# if imputing beyond ends of the record, need to extend here too
 		if (start(blob.list[[x]]) > start(impBlob)) {
-			blob.list[[x]] <- window(blob.list[[x]], 
+			blob.list[[x]] <- window(blob.list[[x]],
 				start=start(impBlob), extend=T)
 		}
 		if (end(blob.list[[x]]) < end(impBlob)) {
-			blob.list[[x]] <- window(blob.list[[x]], 
+			blob.list[[x]] <- window(blob.list[[x]],
 				end=end(impBlob), extend=T)
 		}
-		lim <- window(blob.list[[x]], start(impBlob), end(impBlob), 
+		lim <- window(blob.list[[x]], start(impBlob), end(impBlob),
 			return.indices=T)
 		#lim <- findInterval(imputedPeriod, blob.list[[x]]$Time)
 		# first disaccumulate
@@ -948,9 +948,9 @@ imputeGaps.timeblobs <- function(blob.list, which.impute=names(blob.list), type=
 			# get known (observed) totals
 			spanInfo$accum <- blob.list[[x]]$Data[spanInfo$end + lim[1] - 1]
 			# work out sum of imputed values in each gap
-			cumSum <- cumsum(ifelse(is.na(impBlob$Imputed), 0, 
+			cumSum <- cumsum(ifelse(is.na(impBlob$Imputed), 0,
 				impBlob$Imputed))
-			spanInfo$sum <- with(spanInfo, cumSum[end] - 
+			spanInfo$sum <- with(spanInfo, cumSum[end] -
 				c(ifelse(start[1]==0, 0, start[1]), cumSum[start[-1]-1]))
 			# check for imputed sums equal to zero
 			zeroSums <- (spanInfo$sum == 0)
@@ -1011,7 +1011,7 @@ unimputeGaps.timeblobs <- function(blob.list, timelim=NULL, type=c("imputed", "d
 		if (any(is.na(timelim))) { stop("'timelim' must be a pair of valid times (POSIXt)") }
 	}
 	type <- match.arg(type, several.ok=T)
-	
+
 	# revert imputed values
 	for (x in names(blob.list)) {
 		if (!("imputed" %in% type)) { break }
@@ -1019,7 +1019,7 @@ unimputeGaps.timeblobs <- function(blob.list, timelim=NULL, type=c("imputed", "d
 		imputed[is.na(imputed)] <- F
 		if (!is.null(timelim)) {
 			# restrict to be within time window
-			lim <- window(blob.list[[x]], timelim[1], timelim[2], 
+			lim <- window(blob.list[[x]], timelim[1], timelim[2],
 				return.indices=T)
 			iRow <- seq(along=blob.list[[x]]$Data)
 			imputed <- imputed & (lim[1] <= iRow) & (iRow <= lim[2])
@@ -1028,7 +1028,7 @@ unimputeGaps.timeblobs <- function(blob.list, timelim=NULL, type=c("imputed", "d
 		blob.list[[x]]$Data[imputed] <- NA
 		blob.list[[x]]$Qual[imputed] <- NA # or whatever
 	}
-	
+
 	# revert disaccumulated values
 	for (x in names(blob.list)) {
 		if (!("disaccumulated" %in% type)) { break }
@@ -1036,7 +1036,7 @@ unimputeGaps.timeblobs <- function(blob.list, timelim=NULL, type=c("imputed", "d
 		accumd[is.na(accumd)] <- F
 		if (!is.null(timelim)) {
 			# restrict to be within time window
-			lim <- window(blob.list[[x]], timelim[1], timelim[2], 
+			lim <- window(blob.list[[x]], timelim[1], timelim[2],
 				return.indices=T)
 			iRow <- seq(along=blob.list[[x]]$Data)
 			accumd <- accumd & (lim[1] <= iRow) & (iRow <= lim[2])
@@ -1060,14 +1060,14 @@ unimputeGaps.timeblobs <- function(blob.list, timelim=NULL, type=c("imputed", "d
 		}
 		blob.list[[x]]$AccumSteps[spanInfo$end] <- spanInfo$length
 	}
-	
+
 	# remove quality code levels if possible
 	for (x in names(blob.list)) {
 		blob.list[[x]]$Qual <- blob.list[[x]]$Qual[,drop=T]
 	}
-	
+
 	# TODO contract series (drop NAs at start or end) to reverse 'extend=T'
-	
+
 	return(blob.list)
 }
 
@@ -1097,7 +1097,7 @@ gaps <- function(x, max.length=Inf, internal.only=T) {
 	gapEnd <- which(diffNA==-1) - 1
 	nGaps <- length(gapEnd)
 	naCumSum <- cumsum(seriesNA)
-	gapLength <- naCumSum[gapEnd] - 
+	gapLength <- naCumSum[gapEnd] -
 		naCumSum[c(preDataGap+1,gapEnd[-nGaps])]
 	if (internal.only == FALSE) {
 		gapLength <- c(if (preDataGap>0) { preDataGap },
@@ -1140,7 +1140,7 @@ rises.old <- function(x) {
 	xBackDiff <- c(NA, diff(x)) # backwards difference
 	#xFwdDiff <- c(xBackDiff[-1], NA) # forwards difference
 	#peaksIdx <- which((xBackDiff > epsilon) & (xFwdDiff < -epsilon))
-	
+
 	# TODO: find start of rise and take increase
 	isRising <- (xBackDiff > 0)
 	isRising[is.na(isRising)] <- F # take NAs as non-rises
@@ -1155,14 +1155,14 @@ rises.old <- function(x) {
 	stopIdx <- which(isRisingFwdDiff == -1)
 	stopIdx_prev <- c(1, stopIdx[-length(stopIdx)])
 	stopIdx_next <- c(stopIdx[-1], length(x))
-	
+
 	rise <- cumRise[stopIdx] - cumRise[stopIdx_prev]
-	
+
 	#peakIdx <- which(
 	#	((cumRise[stops] - cumRise[stops_prev]) > epsilon) &
 	#	((cumFall[stops] - cumFall[stops_next]) > epsilon)
 	#)
-	
+
 	#peakIdx <- which(isRisingBackDiff == -1)
 	#prevPeakIdx <- c(1, peakIdx[-length(peakIdx)])
 	#cumRise <- cumsum(ifelse(isRising, xBackDiff, 0))
@@ -1203,7 +1203,7 @@ as.byString <- function(x, digits=getOption("digits"), explicit=F) {
 	#	if (!is.numeric(x)) { stop("'x' must be difftime or numeric") }
 	#	x <- diff(as.POSIXct(c(0,x)))
 	#}
-	
+
 	if (inherits(x, "difftime")) x <- as.numeric(x, units="secs")
 	stopifnot(is.numeric(x))
 	#x <- as.numeric.byString(x)

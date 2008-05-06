@@ -24,7 +24,7 @@ export(
 	arealSubPolygons,
 	readGDAL_fixed
 )
-	
+
 ## timeblob_plots.R
 export(
 	grid.timeline.plot,
@@ -63,6 +63,7 @@ export(
 	end.timeblobs,
 	timelim.timeblobs,
 	matchtimes.timeblob,
+        findIntervalRange,
 	sync.timeblobs,
 	syncTo.timeblobs,
 	common.timestep.timeblobs,
@@ -79,7 +80,9 @@ export(
 	lastTime,
 	truncMonth,
 	truncYear,
-	truncDecade
+	truncDecade,
+       incr.POSIXt,
+       decr.POSIXt
 )
 
 ## this is used by guiDo in the plotAndPlayGTK package

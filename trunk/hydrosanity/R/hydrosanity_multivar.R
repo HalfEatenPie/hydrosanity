@@ -3,9 +3,9 @@
 ## Copyright (c) 2007 Felix Andrews <felix@nfrac.org>, GPL
 
 updateMultivarPage <- function() {
-	
+
 	role <- sapply(hsp$data, attr, "role")
-	
+
 	flow_combo <- theWidget("multivar_flowblob_combobox")
 	oldSel <- flow_combo$getActive()
 	flow_combo$getModel()$clear()
@@ -14,7 +14,7 @@ updateMultivarPage <- function() {
 	}
 	if (oldSel == -1) { oldSel <- 0 }
 	flow_combo$setActive(oldSel)
-	
+
 	StateEnv$update$multivar <- F
 	StateEnv$win$present()
 }
@@ -22,7 +22,7 @@ updateMultivarPage <- function() {
 .hs_on_multivar_relationplot_button_clicked <- function(button) {
 	freezeGUI(echo.to.log=F)
 	on.exit(thawGUI())
-	
+
 	selNames <- iconViewGetSelectedNames(theWidget("selection_iconview"))
 	if (length(selNames) == 0) {
 		errorDialog("No items selected.")
@@ -44,19 +44,19 @@ updateMultivarPage <- function() {
 		return()
 	}
 	selNames <- c(flowName, selNames)
-	
+
 	addLogComment("Generate multivariate rainfall-runoff relationship plot")
-	
+
 	tmpObjs <- c('tmp.data')
-	
+
 	guiDo(call=bquote(
 		tmp.data <- lapply(hsp$data[.(selNames)], window, hsp$timePeriod[1], hsp$timePeriod[2])
 	))
-	
+
 	if (doRises) {
 		guiDo(tmp.data[[1]]$Data <- rises(tmp.data[[1]]$Data))
 	}
-	
+
 	# compute and store aggregated series
 	if (doAggr1 || doAggr2) {
 		aggrBy <- if (doAggr1) { aggr1By } else { aggr2By }
@@ -68,9 +68,9 @@ updateMultivarPage <- function() {
 		}
 		guiDo(call=aggr.call)
 	}
-	
+
 	guiDo(tmp.data <- syncTo.timeblobs(tmp.data, blob=tmp.data[[1]]))
-	
+
 	plot.call <- call('xyplot')
 	plot.call[[2]] <- as.formula(
 		paste(make.names(flowName), "~",  paste(make.names(selNames[-1]), collapse=" + "))
@@ -83,7 +83,7 @@ updateMultivarPage <- function() {
 	}
 	plot.call$xscale.components <- quote(lattice.x.prettylog)
 	plot.call$yscale.components <- quote(lattice.y.prettylog)
-	
+
 	# hydrosanity caption
 	addToLog("## Make hydrosanity caption")
 	tmpObjs <- c(tmpObjs, 'tmp.n', 'tmp.caption')
@@ -94,28 +94,28 @@ updateMultivarPage <- function() {
 			by=.(attr(tmp.data, "timestep")), n=tmp.n, series=.(ncol(tmp.data)-1))
 	}))
 	plot.call$sub <- quote(tmp.caption)
-	
-	idLabels <- format(tmp.data$Time, 
+
+	idLabels <- format(tmp.data$Time,
 		timestepTimeFormat(attr(tmp.data, "timestep")))
-	
+
 	addToLog(paste(deparse(plot.call), collapse="\n"))
-	guiDo(playwith(plot.call=plot.call, name="rainfall-runoff", 
+	guiDo(playwith(plot.call=plot.call, name="rainfall-runoff",
 		extra.buttons=list("zero", "logscale"),
-		trans.scales=c("x","y"), labels=idLabels, 
-		eval.args="^hsp$", invert=T, restore.on.close=StateEnv$win), 
+		trans.scales=c("x","y"), labels=idLabels,
+		eval.args="^hsp$", invert=T, restore.on.close=StateEnv$win),
 		doLog=F)
-	
+
 	if (length(tmpObjs) > 0) {
 		guiDo(call=bquote(rm(list=.(tmpObjs))))
 	}
-	
+
 	setStatusBar("Generated multivariate rainfall-runoff relationship plot")
 }
 
 .hs_on_multivar_lagseries_button_clicked <- function(button) {
 	freezeGUI(echo.to.log=F)
 	on.exit(thawGUI())
-	
+
 	selNames <- iconViewGetSelectedNames(theWidget("selection_iconview"))
 	if (length(selNames) == 0) {
 		errorDialog("No items selected.")
@@ -129,21 +129,21 @@ updateMultivarPage <- function() {
 		errorDialog("No flow item was selected.")
 		return()
 	}
-	
+
 	addLogComment("Generate multivariate correlation lag plot")
-	
+
 	tmpObjs <- c('tmp.data')
 	guiDo(call=bquote({
 		tmp.names <- .(selNames)
 		tmp.flowname <- .(flowName)
 		tmp.data <- hsp$data[tmp.names]
 	}))
-	
-	guiDo(tmp.data <- sync.timeblobs(hsp$data[c(tmp.flowname, tmp.names)], 
+
+	guiDo(tmp.data <- sync.timeblobs(hsp$data[c(tmp.flowname, tmp.names)],
 		timelim=hsp$timePeriod))
-	
+
 	if (doRises) guiDo(tmp.data[[2]] <- rises(tmp.data[[2]]))
-	
+
 	tmpObjs <- c(tmpObjs, 'tmp.lags', 'tmp.chunks', 'tmp.win', 'tmp.ccf')
 	guiDo(call=bquote({
 		tmp.chunks <- seq(hsp$timePeriod[1], hsp$timePeriod[2], by="years")
@@ -154,15 +154,15 @@ updateMultivarPage <- function() {
 	}))
 	guiDo(call=bquote({
 		for (i in seq_along(tmp.chunks)) {
-			tmp.win <- findIntervalRange(tmp.chunks[i], 
+			tmp.win <- findIntervalRange(tmp.chunks[i],
 				incr.POSIXt(tmp.chunks[i], "years"), tmp.data$Time)
 			tmp.win <- seq(tmp.win[1], tmp.win[2])
-			tmp.newlags <- lapply(as.data.frame(tmp.data[tmp.win,-(1:2)]), 
+			tmp.newlags <- lapply(as.data.frame(tmp.data[tmp.win,-(1:2)]),
 			function(x) {
-				tmp.ccf <- try(ccf(tmp.data[tmp.win,2], x, 
-					lag.max=.(lagMax), na.action=na.contiguous, 
+				tmp.ccf <- try(ccf(tmp.data[tmp.win,2], x,
+					lag.max=.(lagMax), na.action=na.contiguous,
 					plot=F), silent=T)
-				if (inherits(tmp.ccf, "try-error") || 
+				if (inherits(tmp.ccf, "try-error") ||
 					(tmp.ccf$n.used < 30))
 					return(NA)
 				return(tmp.ccf$acf)
@@ -173,23 +173,27 @@ updateMultivarPage <- function() {
 	}))
 	guiDo(tmp.mushgrid$value <- as.vector(tmp.mush))
 	guiDo(tmp.mushgrid$value <- pmax(tmp.mushgrid$value, 0))
-	
+
+        ## lattice not displaying POSIXct axis by years in R 2.7
+        guiDo(tmp.mushgrid$time <- as.Date(tmp.mushgrid$time))
+
 	plot.call <- quote(levelplot(value ~ time * lag | site, data=tmp.mushgrid))
+        plot.call$prepanel <- quote(prepanel.default.xyplot) ## bug in prepanel.default.levelplot
 	plot.call$at <- quote(0:10/10)
 	plot.call$layout <- c(1, min(5, length(tmp.names)))
 	plot.call$strip <- quote(F)
 	plot.call$strip.left <- quote(T)
 	plot.call$ylim <- extendrange(c(-1, lagMax))
-	
+
 	addToLog(paste(deparse(plot.call), collapse="\n"))
-	guiDo(playwith(plot.call=plot.call, name="lag over time", 
-		eval.args="^hsp$", invert=T, restore.on.close=StateEnv$win), 
+	guiDo(playwith(plot.call=plot.call, name="lag over time",
+		eval.args="^hsp$", invert=T, restore.on.close=StateEnv$win),
 		doLog=F)
-	
+
 	if (length(tmpObjs) > 0) {
 		guiDo(call=bquote(rm(list=.(tmpObjs))))
 	}
-	
+
 	setStatusBar("Generated lag over time plot")
 }
 
