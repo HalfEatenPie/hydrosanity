@@ -36,21 +36,21 @@ restoreHS <- function(playState) {
 
 setPeriodTool <- function(playState) {
 	quickTool(playState,
-		"Set period", 
-		icon = "gtk-yes", 
+		"Set period",
+		icon = "gtk-yes",
 		f = setperiod_handler)
 }
 
 setRegionTool <- function(playState) {
 	quickTool(playState,
-		"Set region", 
-		icon = "gtk-yes", 
+		"Set region",
+		icon = "gtk-yes",
 		f = setregion_handler)
 }
 
 setperiod_handler <- function(widget, playState) {
 	addLogComment("Set time period for analysis")
-	xlim <- callArg(playState, xlim)
+	xlim <- callArg(playState, "xlim")
 	if (is.null(xlim)) {
 		guiDo(hsp$timePeriod <- NULL)
 		gmessage(paste("Set time period for analysis to NULL",
@@ -70,8 +70,8 @@ setperiod_handler <- function(widget, playState) {
 
 setregion_handler <- function(widget, playState) {
 	addLogComment("Set region for analysis")
-	xlim <- callArg(playState, xlim)
-	ylim <- callArg(playState, ylim)
+	xlim <- callArg(playState, "xlim")
+	ylim <- callArg(playState, "ylim")
 	if (is.null(xlim) || is.null(ylim)) {
 		guiDo(hsp$region <- NULL)
 		gmessage(paste("Set region for analysis to NULL ",
@@ -81,196 +81,16 @@ setregion_handler <- function(widget, playState) {
 		ylim <- round(ylim, digits=3)
 		guiDo(call=bquote(hsp$region <- list(xlim=.(xlim), ylim=.(ylim))))
 		gmessage(paste("Set region for analysis:",
-			"X=", paste(xlim, collapse=" to "), 
+			"X=", paste(xlim, collapse=" to "),
 			"Y=", paste(ylim, collapse=" to ")))
 	}
 	regionModificationUpdate()
 	playState$win$present()
 }
 
-# TODO: delete these
-hydrosanityButtons <- alist(
-	setregion=quickTool("Set region", "gtk-yes", f=.hs_map_setregion_event),
-	setperiod=quickTool("Set period", "gtk-yes", f=.hs_time_setperiod_event),
-	zoomin=quickTool("Zoom in", "gtk-zoom-in", f=.hs_time_zoomin_event),
-	zoomout=quickTool("Zoom out", "gtk-zoom-out", f=.hs_time_zoomout_event),
-	centre=quickTool("Re-centre", "gtk-jump-to-ltr", f=.hs_time_centre_event),
-	logscale=quickTool("Log scale", "gtk-goto-top", f=.hs_time_logscale_event, isToggle=T),
-	layers=quickTool("Layers...", "gtk-index", f=.hs_layers_event)
-)
 
 as.POSIXct.numeric <- function(x) {
 	structure(as.numeric(x), class = c("POSIXt", "POSIXct"))
-}
-
-.hs_map_setregion_event <- function(widget, user.data) {
-	tmp.state <- plotAndPlayGetCurrState()
-	# disable other plot buttons until this is over
-	plotAndPlayGetToolbar()$setSensitive(F)
-	on.exit(plotAndPlayGetToolbar()$setSensitive(T))
-	# get current scale setting
-	myX <- eval(tmp.state$call$xlim, tmp.state$env)
-	myY <- eval(tmp.state$call$ylim, tmp.state$env)
-	addLogComment("Set region for analysis")
-	if (is.null(myX) || is.null(myY)) {
-		guiDo(hsp$region <- NULL)
-		infoDialog("Set region for analysis to NULL ",
-			"(i.e. include all sites)")
-	} else {
-		myX <- round(myX, digits=3)
-		myY <- round(myY, digits=3)
-		guiDo(call=bquote(hsp$region <- list(xlim=.(myX), ylim=.(myY))))
-		infoDialog("Set region for analysis: X=",
-			paste(myX, collapse=" to "), " Y=", paste(myY, collapse=" to "))
-	}
-	regionModificationUpdate()
-	tmp.state$win$present()
-}
-
-.hs_time_setperiod_event <- function(widget, user.data) {
-	tmp.state <- plotAndPlayGetCurrState()
-	# disable other plot buttons until this is over
-	plotAndPlayGetToolbar()$setSensitive(F)
-	on.exit(plotAndPlayGetToolbar()$setSensitive(T))
-	# get current scale setting
-	myXScale <- eval(tmp.state$call$xscale, tmp.state$env)
-	addLogComment("Set time period for analysis")
-	if (is.null(myXScale)) {
-		guiDo(hsp$timePeriod <- NULL)
-		infoDialog("Set time period for analysis to NULL ",
-			"(i.e. include all data)")
-	} else {
-		timelim <- as.POSIXct(myXScale)
-		myTimeStrings <- format(round(timelim, "days"))
-		guiDo(call=bquote(
-			hsp$timePeriod <- as.POSIXct(.(myTimeStrings), tz="GMT")
-		))
-		infoDialog("Set time period for analysis: ",
-			paste(myTimeStrings, collapse=" to "))
-	}
-	timeperiodModificationUpdate()
-	tmp.state$win$present()
-}
-
-.hs_time_centre_event <- function(widget, user.data) {
-	tmp.state <- plotAndPlayGetCurrState()
-	# disable other plot buttons until this is over
-	plotAndPlayGetToolbar()$setSensitive(F)
-	on.exit(plotAndPlayGetToolbar()$setSensitive(T))
-	# set up prompt
-	plotAndPlayMakePrompt()
-	on.exit(plotAndPlayUnmakePrompt(), add=T)
-	# get new scales interactively
-	depth <- try(downViewport("time.vp"), silent=T)
-	if (inherits(depth, "try-error")) {
-		errorDialog("Viewport 'time.vp' not found")
-		return()
-	}
-	xscale <- as.numeric(convertX(unit(0:1, "npc"), "native"))
-	# get new centre point
-	plotAndPlaySetPrompt("Click to re-centre the plot")
-	clickLoc <- grid.locator()
-	if (is.null(clickLoc)) {
-		upViewport(depth)
-		return()
-	}
-	xscale.new <- as.numeric(clickLoc$x) + diff(xscale) * c(-0.5, 0.5)
-	xscale.new <- as.POSIXct(xscale.new)
-	# update state
-	tmp.state$call$xscale <- xscale.new
-	plotAndPlaySetCurrState(tmp.state)
-	plotAndPlayUpdate()
-}
-
-.hs_time_zoomin_event <- function(widget, user.data) {
-	tmp.state <- plotAndPlayGetCurrState()
-	# disable other plot buttons until this is over
-	plotAndPlayGetToolbar()$setSensitive(F)
-	on.exit(plotAndPlayGetToolbar()$setSensitive(T))
-	# set up prompt
-	plotAndPlayMakePrompt()
-	on.exit(plotAndPlayUnmakePrompt(), add=T)
-	# set up masking
-	maskGrob <- rectGrob(gp=gpar(col="grey", 
-		fill=rgb(0.5,0.5,0.5, alpha=0.5)), name="tmp.mask")
-	# get new scales interactively
-	depth <- try(downViewport("time.vp"), silent=T)
-	if (inherits(depth, "try-error")) {
-		errorDialog("Viewport 'time.vp' not found")
-		return()
-	}
-	xscale <- convertX(unit(0:1, "npc"), "native")
-	# get start time
-	plotAndPlaySetPrompt("Click at the start of the window (to zoom in to)")
-	clickLoc <- grid.locator()
-	if (is.null(clickLoc)) {
-		upViewport(depth)
-		return()
-	}
-	xscale.new <- as.POSIXct.numeric(clickLoc$x)
-	grid.draw(editGrob(maskGrob, x=unit(0,"npc"), 
-		width=(clickLoc$x - xscale[1]), just="left"))
-	# get end time
-	plotAndPlaySetPrompt("OK, now click at the end of the window")
-	clickLoc <- grid.locator()
-	if (is.null(clickLoc)) {
-		grid.remove("tmp.mask", grep=T, global=T, strict=T)
-		upViewport(depth)
-		return()
-	}
-	xscale.new[2] <- as.POSIXct.numeric(clickLoc$x)
-	grid.draw(editGrob(maskGrob, x=unit(1,"npc"),
-		width=(xscale[2] - clickLoc$x), just="right"))
-	# update state
-	tmp.state$call$xscale <- xscale.new
-	plotAndPlaySetCurrState(tmp.state)
-	plotAndPlayUpdate()
-}
-
-.hs_time_zoomout_event <- function(widget, user.data) {
-	tmp.state <- plotAndPlayGetCurrState()
-	# disable other plot buttons until this is over
-	plotAndPlayGetToolbar()$setSensitive(F)
-	on.exit(plotAndPlayGetToolbar()$setSensitive(T))
-	# get new scales interactively
-	depth <- try(downViewport("time.vp"), silent=T)
-	if (inherits(depth, "try-error")) {
-		errorDialog("Viewport 'time.vp' not found")
-		return()
-	}
-	xscale <- as.numeric(convertX(unit(0:1, "npc"), "native"))
-	xscale <- xscale + diff(xscale) * c(-0.5, 0.5)
-	xscale <- as.POSIXct(xscale)
-	# update state
-	tmp.state$call$xscale <- xscale
-	plotAndPlaySetCurrState(tmp.state)
-	plotAndPlayUpdate()
-}
-
-.hs_time_logscale_event <- function(widget, user.data) {
-	tmp.state <- plotAndPlayGetCurrState()
-	# disable other plot buttons until this is over
-	plotAndPlayGetToolbar()$setSensitive(F)
-	on.exit(plotAndPlayGetToolbar()$setSensitive(T))
-	# get new log scale setting
-	logScale <- widget$getActive()
-	# update state
-	tmp.state$call$logScale <- logScale
-	plotAndPlaySetCurrState(tmp.state)
-	plotAndPlayUpdate()
-}
-
-.hs_layers_event <- function(widget, user.data) {
-	tmp.state <- plotAndPlayGetCurrState()
-	# disable other plot buttons until this is over
-	plotAndPlayGetToolbar()$setSensitive(F)
-	on.exit(plotAndPlayGetToolbar()$setSensitive(T))
-	# show window with layer options
-	c("add.cities", "add.rivers", "z", "")
-	# update state
-	tmp.state$call$add.cities <- add.cities
-	plotAndPlaySetCurrState(tmp.state)
-	plotAndPlayUpdate()
 }
 
 
@@ -302,18 +122,18 @@ treeViewGetSelectedIndices <- function(treeView) {
 }
 
 setupIconView <- function(iconView, itemNames=names(hsp$data)) {
-	
+
 	flowPixbuf <- gdkPixbufNewFromFile(getpackagefile("icon_FLOW.png"))$retval
 	rainPixbuf <- gdkPixbufNewFromFile(getpackagefile("icon_RAIN.png"))$retval
 	arealPixbuf <- gdkPixbufNewFromFile(getpackagefile("icon_AREAL.png"))$retval
 	otherPixbuf <- gdkPixbufNewFromFile(getpackagefile("icon_OTHER.png"))$retval
 	# (or NULL)
-	
+
 	# these columns are: item name, display text, icon
 	list_store <- gtkListStore("character", "character", "GdkPixbuf")
-	
+
 	for (x in itemNames) {
-		
+
 		iter <- list_store$append()$iter
 		list_store$set(iter, 0, x)
 		myName <- paste(x, attr(hsp$data[[x]], "sitename"), sep=": ")
@@ -345,7 +165,7 @@ setupIconView <- function(iconView, itemNames=names(hsp$data)) {
 
 iconViewSetSelection <- function(iconView, selection=c("first", "all", "none", "rain")) {
 	selection <- match.arg(selection)
-	
+
 	if (selection == "first") {
 		iconView$selectPath(gtkTreePathNewFromIndices(0))
 	}
@@ -413,15 +233,15 @@ setStatusBar <- function(..., sep="")
 
 # generally useful RGtk2 GUI things
 
-guiDo <- function(expr, call, string, doLog=T, doFailureLog=doLog, 
-	logFunction=addToLog, doFailureDialog=T, doStop=T, 
+guiDo <- function(expr, call, string, doLog=T, doFailureLog=doLog,
+	logFunction=addToLog, doFailureDialog=T, doStop=T,
 	envir=if (doLog) .GlobalEnv else parent.frame(), ...) {
-	
+
 	if (missing(expr) + missing(call) + missing(string) != 2)
 		stop("give only one of 'expr', 'call' and 'string'")
 	if (!missing(expr)) call <- substitute(expr)
 	isString <- !missing(string)
-	
+
 	# set default log function in case 'addToLog' is not defined
 	if (doLog || doFailureLog) {
 		if (inherits(try(eval(logFunction), silent=T), "try-error")
@@ -461,14 +281,14 @@ guiDo <- function(expr, call, string, doLog=T, doFailureLog=doLog,
 			if (length(callText)==0) callText <- ""
 			errorDialog(paste(sep='',
 				'A command has failed. The error was:',
-				'\n\n<span foreground="#aa0000">', 
+				'\n\n<span foreground="#aa0000">',
 					pangoEscape(msgText),
 				'</span>\n\n',
 				'The error occurred in: \n\n<tt>',
-					pangoEscape(callText), 
-				'</tt>\n\n', 
+					pangoEscape(callText),
+				'</tt>\n\n',
 				'The original command was: \n\n<tt>',
-					pangoEscape(commandText), 
+					pangoEscape(commandText),
 				'</tt>\n\n',
 				'If this is not your fault, you might want to select ',
 				'this text and copy it into a bug report. Please also ',
@@ -490,7 +310,7 @@ guiDo <- function(expr, call, string, doLog=T, doFailureLog=doLog,
 		result <- tryCatch(eval(parse(text=string), envir=envir,
 			enclos=enclos), error=handleIt)
 	} else {
-		result <- tryCatch(eval(call, envir=envir, enclos=enclos), 
+		result <- tryCatch(eval(call, envir=envir, enclos=enclos),
 			error=handleIt)
 	}
 	return(result)
@@ -541,10 +361,10 @@ pangoEscape <- function(x) {
 	x
 }
 
-guiTextInput <- function(text="", title="Text Input", prompt="", oneLiner=F, 
-	accepts.tab=T, wrap.mode=c("none", "char", "word", "word_char"), 
+guiTextInput <- function(text="", title="Text Input", prompt="", oneLiner=F,
+	accepts.tab=T, wrap.mode=c("none", "char", "word", "word_char"),
 	size=c(600, 320), width.chars=-1, focus.on.ok=!oneLiner) {
-	
+
 	wrap.mode <- match.arg(wrap.mode)
 	# construct dialog
 	editBox <- gtkDialog(title=title, NULL, NULL,
@@ -598,7 +418,7 @@ editAsText <- function(x, title=NULL, edit.row.names=any(row.names(x) != 1:nrow(
 	# show text box and repeat if there was an error
 	readOK <- F
 	while (!readOK) {
-		newTableTxt <- guiTextInput(text=tableTxt, title=title, 
+		newTableTxt <- guiTextInput(text=tableTxt, title=title,
 			prompt=paste("Copy and paste to/from a spreadsheet,",
 				"or edit the text here (in tab-separated format).\n",
 				"Do not move the columns around,",
@@ -624,7 +444,7 @@ editAsText <- function(x, title=NULL, edit.row.names=any(row.names(x) != 1:nrow(
 		warning("Number of rows changed from ",
 			nrow(x), " to ", nrow(newData))
 	} else if (!edit.row.names) {
-		# keep original row names 
+		# keep original row names
 		row.names(newData) <- attr(x, "row.names")
 	}
 	# ensure factor levels are the same
@@ -672,17 +492,17 @@ setTextviewMonospace <- function(tv)
 
 Filters <- matrix(c(
 	"R or S files (*.R,*.q,*.ssc,*.S)", "*.R;*.q;*.ssc;*.S",
-	"Postscript files (*.ps)",          "*.ps",             
-	"Encapsulated Postscript (*.eps)",  "*.eps",            
-	"PDF files (*.pdf)",                "*.pdf",            
-	"Png files (*.png)",                "*.png",            
-	"Jpeg files (*.jpeg,*.jpg)",        "*.jpeg;*.jpg",     
-	"Text files (*.txt)",               "*.txt",            
-	"R images (*.RData,*.rda)",         "*.RData;*.rda",    
-	"Zip files (*.zip)",                "*.zip",            
-	"SVG files (*.svg)",                "*.svg",            
-	"Windows Metafiles (*.wmf,*.emf)",  "*.wmf;*.emf",      
-	"xfig files (*.fig)",               "*.fig",            
+	"Postscript files (*.ps)",          "*.ps",
+	"Encapsulated Postscript (*.eps)",  "*.eps",
+	"PDF files (*.pdf)",                "*.pdf",
+	"Png files (*.png)",                "*.png",
+	"Jpeg files (*.jpeg,*.jpg)",        "*.jpeg;*.jpg",
+	"Text files (*.txt)",               "*.txt",
+	"R images (*.RData,*.rda)",         "*.RData;*.rda",
+	"Zip files (*.zip)",                "*.zip",
+	"SVG files (*.svg)",                "*.svg",
+	"Windows Metafiles (*.wmf,*.emf)",  "*.wmf;*.emf",
+	"xfig files (*.fig)",               "*.fig",
 	"All files (*.*)",                  "*.*"), ncol=2, byrow=T,
 	dimnames=list(c('R','ps','eps','pdf','png','jpeg','txt',
 	'RData','zip','svg','wmf','fig','All'),NULL))
@@ -693,11 +513,11 @@ choose.file.save <- function(default="", caption="Save File", filters=Filters[c(
 		"gtk-cancel", GtkResponseType["cancel"],
 		"gtk-save", GtkResponseType["accept"])
 	dialog$setCurrentName(default)
-	
+
 	if (length(filters)==2) {
 		filters <- matrix(filters, nrow=1, ncol=2)
 	}
-	
+
 	for (i in seq(1, nrow(filters))) {
 		ff <- gtkFileFilterNew()
 		ff$setName(filters[i,1])
@@ -707,7 +527,7 @@ choose.file.save <- function(default="", caption="Save File", filters=Filters[c(
 		dialog$addFilter(ff)
 		if (i == index) dialog$setFilter(ff)
 	}
-	
+
 	#dialog$setDoOverwriteConfirmation(T) crap, appears behind filechooser
 	if (dialog$run() == GtkResponseType["accept"]) {
 		filename <- dialog$getFilename()
@@ -727,7 +547,7 @@ choose.file.save <- function(default="", caption="Save File", filters=Filters[c(
 get.extension <- function(path)
 {
   ## Extract and return the extension part of a filename
-  
+
   parts <- strsplit(path, "\\.")[[1]]
   if (length(parts) > 1)
     last <- parts[length(parts)]
