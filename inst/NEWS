@@ -1,0 +1,17 @@
+
+Changes in Version 0.8-90 (in development)
+
+ o updated to work with new version of playwith package.
+
+ o import from a general site list file format.
+
+Changes in Version 0.8-87
+
+ o fixed arealSubPolygons function for calculating Voronoi polygons
+   (was inadvertently using base::intersect rather than gpclib::intercept).
+
+ o fixed function grid.timeseries.plot.superpose when xlim not specified.
+
+Changes in Version 0.8.76
+
+ (not recorded)

@@ -82,7 +82,7 @@ panel.levelplot.interp <- function(x, y, z, subscripts=T, xo.length=40, yo.lengt
 	linear=T, extrap=F, contour=F, region=T, at, ...) {
 	# draw interpolated grid
 	#require(grid)
-	#stopifnot(require(akima))
+    stopifnot(require(akima))
 	xlim <- convertX(unit(0:1,"npc"), "native", valueOnly=T)
 	ylim <- convertY(unit(0:1,"npc"), "native", valueOnly=T)
 	# only interpolate with sites in twice visible range

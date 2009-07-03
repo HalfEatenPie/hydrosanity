@@ -127,7 +127,7 @@ read.timeblob <- function(file, skip=1, sep=",", sitename=NULL, dataname="Data",
 		"; maybe 'sep'=\"", sep, "\" or 'skip'=", skip, " is wrong?")
 	}
 	# drop variables for which column does not exist in file
-	if (qualCol > fileCols) { qualCol <- NULL }
+	if (is.numeric(qualCol) && (qualCol > fileCols)) { qualCol <- NULL }
 	extraNames <- extraNames[!(extraCols > fileCols)]
 	extraCols <- extraCols[!(extraCols > fileCols)]
 	# define which columns to import and which to ignore

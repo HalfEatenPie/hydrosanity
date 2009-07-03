@@ -6,7 +6,7 @@
 
 MAJOR <- "0"
 MINOR <- "8"
-REVISION <- unlist(strsplit("$Revision: 77 $", split=" "))[2]
+REVISION <- unlist(strsplit("$Revision: 90 $", split=" "))[2]
 VERSION <- paste(MAJOR, MINOR, REVISION, sep=".")
 COPYRIGHT <- paste("(c) 2007 Felix Andrews <felix@nfrac.org>\n",
 	" GUI based on Rattle (c) 2006 Graham.Williams@togaware.com")
@@ -34,11 +34,15 @@ TIMESERIES.FORMATS <- list(
 		  'skip=1, sep=",", dataname="Rain (mm/day)", dataCol=6, qualCol=7, extraCols=c(9), extraNames=c("AccumSteps"), readTimesFromFile=F, startTime=list(year=3,month=4,day=5), timeSeqBy="DSTdays", timeOffset=as.difftime(9-24, units="hours")'),
 	".au NSW Pinneena v8 streamflow (ML/day, default time format)"=
 		c('read.timeblob',
-		  'skip=3, sep=",", dataname="Flow (ML/day)", timeFormat="%H:%M_%d/%m/%Y", na.strings=c(\'""\')')
+		  'skip=3, sep=",", dataname="Flow (ML/day)", timeFormat="%H:%M_%d/%m/%Y", na.strings=c(\'""\')'),
+        ".au BFCroke rainfall"=
+                c('read.timeblob',
+		  'skip=0, sep=",", dataname="Rain (mm/day)", na="-1", dataCol=7, qualCol=NULL, extraCols=c(), extraNames=c("AccumSteps"), readTimesFromFile=F, startTime=list(year=3,month=2,day=1), timeSeqBy="DSTdays", timeOffset=as.difftime(9-24, units="hours")')
 )
 
 SITELIST.FORMATS <- list(
-	".au BoM daily rainfall"='select.sites.BOM.AU'
+	".au BoM daily rainfall"='select.sites.BOM.AU',
+        "general sitelist"='select.sites.general'
 )
 
 # this stores application (non-project) state information
@@ -50,7 +54,7 @@ hydrosanity <- function(project = NULL) {
 	if (!is.null(StateEnv$win)) {
 		.hs_on_menu_quit_activate()
 	}
-	
+
 	StateEnv$update <- list(
 		import=F,
 		timeperiod=F,
@@ -61,40 +65,43 @@ hydrosanity <- function(project = NULL) {
 		multivar=F,
 		corr=F
 	)
-	
+
 	StateEnv$echo.to.console <- T
 	StateEnv$echo.to.log <- T
-	
+
 	StateEnv$GUI <- gladeXMLNew(getpackagefile("hydrosanity.glade"),
 		root="hs_window")
 	StateEnv$win <- theWidget("hs_window")
-	
+
 	# connect the callbacks (event handlers)
 	gladeXMLSignalAutoconnect(StateEnv$GUI)
 	gSignalConnect(StateEnv$win, "delete-event", .hs_on_menu_quit_activate)
-	
+
 	freezeGUI()
 	on.exit(thawGUI())
-	
+
 	# set up log page
 	addInitialLogMessage()
-	
+
 	# create empty project variable
 	guiDo(hsp <- list(data=list(), modified=F))
-	
+
+        # set playwith options - necessary as our plot data is created in global workspace
+        guiDo(playwith.options(eval.args = list("^hsp$", invert.match=TRUE)))
+
 	theWidget("welcome_label")$setMarkup(paste(sep='',
-		'<span foreground="#660066"><big><b>Welcome to Hydrosanity</b></big></span>', 
-		' version ', VERSION, '\n', 
-		gsub('[<>]','',COPYRIGHT), '\n', 
+		'<span foreground="#660066"><big><b>Welcome to Hydrosanity</b></big></span>',
+		' version ', VERSION, '\n',
+		gsub('[<>]','',COPYRIGHT), '\n',
 		'<tt>', WEBSITE, '</tt>'))
-	
+
 	# set up initial GUI state
 	theWidget("notebook")$setCurrentPage(0)
 	theWidget("import_file_radio_options_notebook")$setShowTabs(FALSE)
 	theWidget("import_options_expander")$setExpanded(FALSE)
 	theWidget("import_edit_expander")$setExpanded(FALSE)
 	setIsImportMode(TRUE)
-	
+
 	known_format_combo <- theWidget("import_known_format_combobox")
 	known_format_combo$getModel()$clear()
 	for (x in names(TIMESERIES.FORMATS)) {
@@ -121,7 +128,7 @@ hydrosanity <- function(project = NULL) {
 	sitelist_format_combo$setActive(0)
 	theWidget("scope_sitearchive_type_combobox")$setActive(0)
 	#theWidget("scope_yearstart_combobox")$setActive(0)
-	
+
 	theWidget("explore_timeseries_aggr1_comboboxentry")$setActive(2)
 	theWidget("explore_timeseries_aggr2_comboboxentry")$setActive(4)
 	theWidget("explore_cdf_aggr1_radiobutton")$setActive(T)
@@ -139,14 +146,14 @@ hydrosanity <- function(project = NULL) {
 	theWidget("corr_relationplot_lag_comboboxentry")$setActive(0)
 	theWidget("corr_relationplot_aggr1_comboboxentry")$setActive(2)
 	theWidget("corr_relationplot_aggr2_comboboxentry")$setActive(4)
-	
+
 	setTextviewMonospace(theWidget("log_textview"))
 	setTextviewMonospace(theWidget("impute_textview"))
 	setTextviewMonospace(theWidget("corr_contiguous_textview"))
-	
+
 	# set up table format on import page
 	importTreeView <- theWidget("import_summary_treeview")
-	insertTreeViewTextColumns(importTreeView, 
+	insertTreeViewTextColumns(importTreeView,
 		colNames=c("ID", "Name", "Start", "End", "Length", "Timestep", "Location_X.Y.Z", "Qual", "Extra_data", "Role", "Data"),
 		editors=list(ID=.hs_on_import_summary_treeview_id_edited,
 			Name=.hs_on_import_summary_treeview_sitename_edited,
@@ -156,17 +163,17 @@ hydrosanity <- function(project = NULL) {
 	importTreeView$getSelection()$setMode("multiple")
 	try(importTreeView$setRubberBanding(T), silent=T) # not in 2.8.7
 	importTreeView$setRulesHint(T)
-	
+
 	# set up table format on timeperiod page
 	timeperiodTreeView <- theWidget("summary_treeview")
-	insertTreeViewTextColumns(timeperiodTreeView, 
+	insertTreeViewTextColumns(timeperiodTreeView,
 		colNames=c("Name", "Min", "Q25", "Median", "Q75", "Max", "Missing", ""))
-	
+
 	# open the project file if given
 	if (!is.null(project)) {
 		openProject(project)
 	}
-	
+
 	updateNow()
 	StateEnv$win$present()
 	return(invisible(NULL))
@@ -177,18 +184,18 @@ addInitialLogMessage <- function() {
 	oldSetting <- StateEnv$echo.to.console
 	on.exit(StateEnv$echo.to.console <- oldSetting)
 	StateEnv$echo.to.console <- F
-	
+
 	addToLog(paste(
 "## Hydrosanity version", VERSION, "\n",
 "## Run by", Sys.info()["user"], "on", R.version.string, "\n\n",
-"## This log keeps a record of the analysis procedure. You can edit it or 
-## annotate it here in this frame. You can also export it to a file using the 
-## export button. Saving the Hydrosanity project also retains this log. To run 
+"## This log keeps a record of the analysis procedure. You can edit it or
+## annotate it here in this frame. You can also export it to a file using the
+## export button. Saving the Hydrosanity project also retains this log. To run
 ## commands again, copy and paste into the R Console.
 
 library(hydrosanity)
 
-## The variable hsp is used to store the current Hydrosanity Project. At any 
+## The variable hsp is used to store the current Hydrosanity Project. At any
 ## time, type \"str(hsp)\" in the R Console to see what is stored there!"
 	))
 	addLogSeparator()
@@ -213,7 +220,7 @@ updateNow <- function(page.num=theWidget("notebook")$getCurrentPage()) {
 	} else {
 		theWidget("selection_frame")$setSensitive(TRUE)
 	}
-	
+
 	if (page.num == 1) {
 		if (StateEnv$update$import) { updateImportPage() }
 	}
@@ -242,43 +249,43 @@ updateNow <- function(page.num=theWidget("notebook")$getCurrentPage()) {
 
 datasetModificationUpdate <- function() {
 	hsp$modified <<- T
-	
+
 	# set all pages to be updated
 	StateEnv$update[] <- T
-	
+
 	# sort hsp$data by name
 	if (is.unsorted(names(hsp$data))) {
 		hsp$data <<- hsp$data[order(names(hsp$data))]
 	}
-	
+
 	selection_iconview <- theWidget("selection_iconview")
 	setupIconView(selection_iconview)
 	if (length(iconViewGetSelectedNames(selection_iconview)) == 0) {
 		iconViewSetSelection(selection_iconview, "first")
 	}
-	
+
 	updateNow()
 }
 
 timeperiodModificationUpdate <- function() {
 	hsp$modified <<- T
-	
+
 	# set all pages except "dataset" to be updated
 	tmp <- StateEnv$update$import
 	StateEnv$update[] <- T
 	StateEnv$update$import <- tmp
-	
+
 	updateNow()
 }
 
 regionModificationUpdate <- function() {
 	hsp$modified <<- T
-	
+
 	# set all pages except "dataset" to be updated
 	tmp <- StateEnv$update$import
 	StateEnv$update[] <- T
 	StateEnv$update$import <- tmp
-	
+
 	updateNow()
 }
 
@@ -297,7 +304,7 @@ regionModificationUpdate <- function() {
 .hs_on_notebook_switch_page <- function(widget, page, page.num, ...) {
 	freezeGUI()
 	on.exit(thawGUI())
-	
+
 	updateNow(page.num=page.num)
 }
 
@@ -319,7 +326,7 @@ regionModificationUpdate <- function() {
 }
 
 .hs_on_menu_about_activate <-  function(action, window) {
-	about <- gladeXMLNew(getpackagefile("hydrosanity.glade"), 
+	about <- gladeXMLNew(getpackagefile("hydrosanity.glade"),
 		root="aboutdialog")
 	about$getWidget("aboutdialog")$setVersion(VERSION)
 	about$getWidget("aboutdialog")$setCopyright(COPYRIGHT)
@@ -329,18 +336,18 @@ regionModificationUpdate <- function() {
 .hs_on_export_log_button_clicked <- function(button) {
 	freezeGUI()
 	on.exit(thawGUI())
-	
-	filename <- choose.file.save("log.R", caption="Export Log", 
+
+	filename <- choose.file.save("log.R", caption="Export Log",
 		filters=Filters[c("R","txt","All"),])
 	StateEnv$win$present()
 	if (is.na(filename)) return()
-	
+
 	if (get.extension(filename) == "") {
 		filename <- paste(filename, "R", sep=".")
 	}
-	
+
 	write(getTextviewText(theWidget("log_textview")), filename)
-	
+
 	setStatusBar("The log has been exported to ", filename)
 }
 
@@ -389,16 +396,17 @@ getpackagefile <- function(filename) {
 	## Try firstly to load from the installed hydrosanity package
 	## Otherwise, look locally.
 	myPath <- system.file("etc", filename, package = "hydrosanity")
-	if (identical(myPath, "")) 
-		myPath <- file.path("hydrosanity", "hydrosanity", "inst", 
+	if (identical(myPath, ""))
+		myPath <- file.path("hydrosanity", "hydrosanity", "inst",
 			"etc", filename)
 	if (!file.exists(myPath)) stop("could not find file ", filename)
 	myPath
 }
 
 
+
 select.sites.BOM.AU <- function(siteListFile, archivePath, return.data=FALSE, xlim=NULL, ylim=NULL, timelim=NULL, min.years=NA) {
-	
+
 	nCol <- 22
 	colNames <- paste("V", 1:nCol, sep="")
 	colClass <- rep("NULL", nCol)
@@ -410,14 +418,14 @@ select.sites.BOM.AU <- function(siteListFile, archivePath, return.data=FALSE, xl
 	colClass[c(7:8,11)] <- "numeric"
 	colNames[14:15] <- c("first.year","last.year")
 	colClass[14:15] <- "numeric"
-	siteinfo <- read.table(siteListFile, sep=',', quote="", header=F, 
+	siteinfo <- read.table(siteListFile, sep=',', quote="", header=F,
 		strip.white=T, col.names=colNames, colClasses=colClass)
 	wordCaps <- function(x) {
 		gsub("\\b(\\w)", "\\U\\1", tolower(x), perl=TRUE)
 	}
 	siteinfo$name <- make.unique(wordCaps(siteinfo$name))
 	row.names(siteinfo) <- siteinfo$id
-	
+
 	# apply selection criteria
 	ok <- rep(TRUE, nrow(siteinfo))
 	if (!is.null(xlim)) {
@@ -438,13 +446,13 @@ select.sites.BOM.AU <- function(siteListFile, archivePath, return.data=FALSE, xl
 		ok <- ok & (nYears >= min.years)
 	}
 	siteinfo$ok <- ok
-	
+
 	if (return.data == FALSE) {
 		return(siteinfo)
 	}
-	
+
 	siteinfo <- siteinfo[ok,]
-	
+
 	# read in the data
 	dataset <- list()
 	nSites <- nrow(siteinfo)
@@ -457,16 +465,13 @@ select.sites.BOM.AU <- function(siteListFile, archivePath, return.data=FALSE, xl
 		} else {
 			fileConn <- file.path(archivePath, filename)
 		}
-		dataset[[x]] <- read.timeblob(fileConn, skip=1, sep=",", 
-			sitename=siteinfo$name[i], dataname="Rain (mm/day)", 
-			dataCol=6, qualCol=7, extraCols=c(9, 8), 
-			extraNames=c("AccumSteps", "AccumRainsteps"), readTimesFromFile=F, 
+		dataset[[x]] <- read.timeblob(fileConn, skip=1, sep=",",
+			sitename=siteinfo$name[i], dataname="Rain (mm/day)",
+			dataCol=6, qualCol=7, extraCols=c(9, 8),
+			extraNames=c("AccumSteps", "AccumRainsteps"), readTimesFromFile=F,
 			startTime=list(year=3, month=4, day=5),
 			timeOffset=as.difftime(9 - 24, units="hours"))
-		# observation covers 24 hours to 9am on the nominal day
-		# but the time series format requires that the time is the start
-		#dataset[[x]]$Time <- dataset[[x]]$Time + 
-		#	as.difftime(9 - 24, units="hours")
+                attr(dataset[[x]], "sitename") <- siteinfo$name[i]
 		attr(dataset[[x]], "role") <- "RAIN"
 		myLoc <- c(siteinfo$x[i], siteinfo$y[i])
 		if (!any(is.na(myLoc))) {
@@ -476,7 +481,92 @@ select.sites.BOM.AU <- function(siteListFile, archivePath, return.data=FALSE, xl
 			attr(dataset[[x]], "elevation") <- siteinfo$elev[i]
 		}
 	}
-	
+
+	return(dataset)
+}
+
+
+select.sites.general <- function(siteListFile, archivePath, return.data=FALSE, xlim=NULL, ylim=NULL, timelim=NULL, min.years=NA,
+                                 fileFormatKey = ".au BFCroke rainfall")
+{
+        siteinfo <- read.csv(siteListFile)
+        cnames <- colnames(siteinfo)
+        cnames[1] <- "id"
+        cnames[cnames == "long"] <- "x"
+        cnames[cnames == "lat"] <- "y"
+        colnames(siteinfo) <- cnames
+        reqColumns <- c("id", "x", "y", "start", "end")
+        if (!all(hits <- reqColumns %in% colnames(siteinfo))) {
+            stop("columns ", paste(reqColumns[!hits], collapse="/"),
+                 "not found in file")
+        }
+        siteinfo <- subset(siteinfo, !is.na(id) & (nchar(id) > 0))
+        siteinfo$id <- make.unique(as.character(siteinfo$id))
+        if (is.null(siteinfo$name))
+            siteinfo$name <- siteinfo$id
+	siteinfo$name <- as.character(siteinfo$name)
+	row.names(siteinfo) <- siteinfo$id
+        if (is.null(siteinfo$elev))
+            siteinfo$elev <- 0
+        siteinfo$start <- as.POSIXct(siteinfo$start)
+        siteinfo$end <- as.POSIXct(siteinfo$end)
+
+	# apply selection criteria
+	ok <- rep(TRUE, nrow(siteinfo))
+	if (!is.null(xlim)) {
+		ok <- ok & (siteinfo$x >= min(xlim)) & (siteinfo$x <= max(xlim))
+	}
+	if (!is.null(ylim)) {
+		ok <- ok & (siteinfo$y >= min(ylim)) & (siteinfo$y <= max(ylim))
+	}
+	if (!is.na(min.years)) {
+            start <- siteinfo$start
+            end <- siteinfo$end
+		if (!is.null(timelim)) {
+                    start <- pmax(start, min(timelim))
+                    end <- pmin(end, max(timelim))
+		}
+		nYears <- as.numeric(as.Date(end) - as.Date(start)) / 365.25
+		ok <- ok & (nYears >= min.years)
+	}
+	siteinfo$ok <- ok
+
+        siteinfo$first.year <- as.POSIXlt(siteinfo$start)$year + 1900
+        siteinfo$last.year <- as.POSIXlt(siteinfo$end)$year + 1900
+
+	if (return.data == FALSE) {
+		return(siteinfo)
+	}
+
+	siteinfo <- siteinfo[ok,]
+
+	# read in the data
+	dataset <- list()
+	nSites <- nrow(siteinfo)
+	for (i in seq(along=siteinfo$id)) {
+		x <- siteinfo$id[i]
+		filename <- paste(siteinfo$id[i], '.csv', sep='')
+		cat("reading file", i, "/", nSites, ":", filename, "...\n")
+		if (tolower(get.extension(archivePath)) == "zip") {
+			fileConn <- unz(archivePath, filename, open="")
+		} else {
+			fileConn <- file.path(archivePath, filename)
+		}
+                importSpec <- TIMESERIES.FORMATS[[fileFormatKey]]
+                importCmd <- paste(importSpec[1], "(fileConn, ",
+                                   importSpec[2], ")", sep="")
+		dataset[[x]] <- eval(parse(text=importCmd))
+                attr(dataset[[x]], "sitename") <- siteinfo$name[i]
+		attr(dataset[[x]], "role") <- "RAIN"
+		myLoc <- c(siteinfo$x[i], siteinfo$y[i])
+		if (!any(is.na(myLoc))) {
+			attr(dataset[[x]], "location.xy") <- myLoc
+		}
+		if (!is.na(siteinfo$elev[i])) {
+			attr(dataset[[x]], "elevation") <- siteinfo$elev[i]
+		}
+	}
+
 	return(dataset)
 }
 
