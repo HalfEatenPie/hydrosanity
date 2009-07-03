@@ -22,7 +22,7 @@ grid.timeline.plot <- function(blob.list, xlim=NULL, ylim=NULL, colMap=NULL, bar
 	keyHeight <- unit(0, "npc")
 	if (auto.key && !identical(colMap, NA)) {
 		if (is.null(colMap)) { colMap <- timelineColMapDefault() }
-		usedLevels <- unique(unlist(lapply(blob.list, 
+		usedLevels <- unique(unlist(lapply(blob.list,
 			function(x) { levels(x$Qual[,drop=T]) })))
 		usedIdx <- sort(match(usedLevels, names(colMap)))
 		keyList <- list(text=list(names(colMap)[usedIdx]),
@@ -55,18 +55,18 @@ grid.timeline.plot <- function(blob.list, xlim=NULL, ylim=NULL, colMap=NULL, bar
 	# layout for plot
 	pushViewport(viewport(name="titles.layout",
 		layout=grid.layout(5, 1,
-			heights=unit.c(pad, mainHeight, keyHeight, 
+			heights=unit.c(pad, mainHeight, keyHeight,
 					unit(1,"null"), subHeight))))
 	pushViewport(viewport(name="timeline.plot.layout",
-		layout.pos.row=4, 
+		layout.pos.row=4,
 		layout=grid.layout(3, 3,
 			widths=unit.c(stringWidth(maxlab)+pad, unit(1,"null"), pad),
 			heights=unit.c(pad, unit(1,"null"), unit(3, "lines")))))
 	# overall plot viewport, and layout for timeline bars
-	pushViewport(viewport(name="time.vp", 
+	pushViewport(viewport(name="time.vp",
 		layout.pos.col=2, layout.pos.row=2, xscale=as.numeric(xscale),
 		layout=grid.layout(nBlobs*2+1, 1,
-			heights=unit.c(unit(1,"null"), 
+			heights=unit.c(unit(1,"null"),
 				rep(unit.c(barThickness, unit(1,"null")), nBlobs)))))
 	# draw axis and grill
 	grid.lines(y=unit(0,"npc"))
@@ -111,10 +111,10 @@ grid.timeline.plot <- function(blob.list, xlim=NULL, ylim=NULL, colMap=NULL, bar
 }
 
 timelineColMapDefault <- function(colMap=list(
-		good="black", 
-		suspect=trellis.par.get("superpose.polygon")$col[1], 
-		poor=trellis.par.get("superpose.polygon")$col[2], 
-		disaccumulated=trellis.par.get("superpose.polygon")$col[3], 
+		good="black",
+		suspect=trellis.par.get("superpose.polygon")$col[1],
+		poor=trellis.par.get("superpose.polygon")$col[2],
+		disaccumulated=trellis.par.get("superpose.polygon")$col[3],
 		imputed=trellis.par.get("superpose.polygon")$col[4])) {
 	if (is.null(colMap)) {
 		eval(formals(timelineColMapDefault)$colMap)
@@ -155,7 +155,7 @@ grid.timeline.bar <- function(blob, colMap=NULL, name="timeline.bar", vp=NULL) {
 
 
 lattice.timeline.plot <- function(blob.list, allSameScales=F, xlim=NULL, ylim=NULL, logScale=F, sub=T, ...) {
-	
+
 }
 
 
@@ -170,8 +170,10 @@ grid.timeseries.plot.superpose <- function(superpose.blob.list, allSameScales=F,
 		}
 	}
 	if (is.null(xlim)) {
-		xlim <- min(lapply(superpose.blob.list, start.timeblobs))
-		xlim[2] <- max(lapply(superpose.blob.list, end.timeblobs))
+                tmp <- c(lapply(superpose.blob.list, start.timeblobs),
+                         lapply(superpose.blob.list, end.timeblobs))
+                xlim <- tmp[[which.min(tmp)]]
+                xlim[2] <- tmp[[which.max(tmp)]]
 	} else {
 		xlim <- as.POSIXct(xlim)
 		if (any(is.na(xlim))) { stop("'xlim' must be a pair of valid times (POSIXt)") }
@@ -188,13 +190,13 @@ grid.timeseries.plot.superpose <- function(superpose.blob.list, allSameScales=F,
 	} else
 	if (is.null(ylim) && allSameScales) {
 		allRanges <- sapply.timeblob.data(
-			c(unlist(superpose.blob.list, recursive=F)), 
+			c(unlist(superpose.blob.list, recursive=F)),
 			range, finite=T)
 		ylim <- range(allRanges[is.finite(allRanges)])
 		if (logScale && (ylim[1] <= 0)) {
 			# limit by minimum non-zero value (for log scale)
 			allMins <- sapply.timeblob.data(
-				c(unlist(superpose.blob.list, recursive=F)), 
+				c(unlist(superpose.blob.list, recursive=F)),
 				function(x){ min(x[x>0], na.rm=T) })
 			ylim[1] <- min(allMins[is.finite(allMins)])
 		}
@@ -250,7 +252,7 @@ grid.timeseries.plot <- function(blob.list, xlim=NULL, ylim=NULL, sameScales=T, 
 	keyHeight <- unit(0, "npc")
 	if (auto.key && qualTimeline && (superPos==1)) {
 		if (is.null(colMap)) { colMap <- timelineColMapDefault() }
-		usedLevels <- unique(unlist(lapply(blob.list, 
+		usedLevels <- unique(unlist(lapply(blob.list,
 			function(x) { levels(x$Qual[,drop=T]) })))
 		keyLabels <- "data"
 		keyCols <- "black"
@@ -266,7 +268,7 @@ grid.timeseries.plot <- function(blob.list, xlim=NULL, ylim=NULL, sameScales=T, 
 			keyCols <- c(keyCols, "transparent")
 		}
 		keyList <- list(text=list(keyLabels),
-			rectangles=list(col=keyCols, size=4), 
+			rectangles=list(col=keyCols, size=4),
 			columns=length(keyLabels), between.columns=2,
 			between=1)
 		theKey <- draw.key(keyList)
@@ -298,15 +300,15 @@ grid.timeseries.plot <- function(blob.list, xlim=NULL, ylim=NULL, sameScales=T, 
 	if (superPos == 1) {
 		pushViewport(viewport(name="titles.layout",
 		layout=grid.layout(5, 1,
-			heights=unit.c(pad, mainHeight, keyHeight, 
+			heights=unit.c(pad, mainHeight, keyHeight,
 					unit(1,"null"), subHeight))))
 		pushViewport(viewport(name="timeseries.plot.layout",
-			layout.pos.row=4, 
+			layout.pos.row=4,
 			layout=grid.layout(3, 3,
 			widths=unit.c(yLabSpace+yAxesSpace, unit(1,"null"), pad),
 			heights=unit.c(pad, unit(1,"null"), unit(3, "lines")))))
 		# overall plot viewport, and layout for timeseries plots
-		pushViewport(viewport(name="time.vp", 
+		pushViewport(viewport(name="time.vp",
 			layout.pos.col=2, layout.pos.row=2, xscale=as.numeric(xscale),
 			layout=grid.layout(nBlobs*3, 1,
 			heights=rep(unit.c(between, unit(1,"null"), barThickness), nBlobs))))
@@ -325,7 +327,7 @@ grid.timeseries.plot <- function(blob.list, xlim=NULL, ylim=NULL, sameScales=T, 
 		yscale <- range(allRanges[is.finite(allRanges)])
 		if (logScale && (yscale[1] <= 0)) {
 			# limit by minimum non-zero value (for log scale)
-			allMins <- sapply.timeblob.data(blob.list, 
+			allMins <- sapply.timeblob.data(blob.list,
 				function(x){ min(x[x>0], na.rm=T) })
 			yscale[1] <- min(allMins[is.finite(allMins)])
 		}
@@ -362,7 +364,7 @@ grid.timeseries.plot <- function(blob.list, xlim=NULL, ylim=NULL, sameScales=T, 
 			# create viewport for timeseries number k
 			pushViewport(viewport(
 				name=paste("timeseries",k,".vp",sep=''),
-				layout.pos.row=k*3-1, 
+				layout.pos.row=k*3-1,
 				xscale=as.numeric(xscale), yscale=myYScale, clip="on"))
 		} else {
 			# navigate down to where timeseries number k was plotted
@@ -378,7 +380,7 @@ grid.timeseries.plot <- function(blob.list, xlim=NULL, ylim=NULL, sameScales=T, 
 			gp=gp, name=paste("timeseries",k,sep=''))
 		# draw frame and axes
 		if (superPos == 1) {
-			pushViewport(viewport(xscale=as.numeric(xscale), yscale=myYScale, 
+			pushViewport(viewport(xscale=as.numeric(xscale), yscale=myYScale,
 				clip="off"))
 			grid.rect()
 			if (logScale) {
@@ -389,11 +391,11 @@ grid.timeseries.plot <- function(blob.list, xlim=NULL, ylim=NULL, sameScales=T, 
 				grid.yaxis(main=F, label=F)
 			}
 			# draw label number k
-			grid.text(ylabs[k], x=-1*yAxesSpace-unit(1,"lines"), 
+			grid.text(ylabs[k], x=-1*yAxesSpace-unit(1,"lines"),
 				rot=90, name=paste("label",k,sep=''))
 			# draw timeline bar and x-axis
 			if (qualTimeline) {
-				pushViewport(viewport(y=0, height=barThickness, 
+				pushViewport(viewport(y=0, height=barThickness,
 					just="top", xscale=as.numeric(xscale), clip="off"))
 				if (nBlobs <= 4) { grid.xaxis.POSIXt(label=F) }
 				grid.lines(y=0)
@@ -406,7 +408,7 @@ grid.timeseries.plot <- function(blob.list, xlim=NULL, ylim=NULL, sameScales=T, 
 			}
 		}
 		if ((superPos != 1) && newScale) {
-			pushViewport(viewport(x=-1*yAxisWidth*(superPos-1), 
+			pushViewport(viewport(x=-1*yAxisWidth*(superPos-1),
 				just="left", yscale=myYScale, clip="off", gp=gp))
 			do.call(ifelse(logScale,'grid.yaxis.log','grid.yaxis'),
 				list(
@@ -487,7 +489,7 @@ hydrosanity.caption <- function(timelim, by, n, series=NA, x=unit(1,"npc")-unit(
 # any unspecified levels (or NAs in qualityCodes) gets first colour in colMap
 applyColourMap <- function(qualityCodes, colMap) {
 	# check types
-	if (!is.factor(qualityCodes)) { 
+	if (!is.factor(qualityCodes)) {
 		warning(paste("'qualityCodes' must be a factor (skipping)"))
 		return(rep(factor("black"), length(qualityCodes)))
 	}
@@ -522,7 +524,7 @@ logAxisComponents <- function(logLim, label=T) {
 	if (diff(range(lim)) < 3) {
 		# make it a linear sequence log-transformed (gradient effect)
 		newAt <- log10(
-			sequence(rep(9,length(mags))) * 
+			sequence(rep(9,length(mags))) *
 				rep(10^mags, each=9) )
 		newAt <- newAt[(min(lim) <= newAt) & (newAt <= max(lim))]
 		# draw labels for the previous sequence (integer log powers)
@@ -537,7 +539,7 @@ logAxisComponents <- function(logLim, label=T) {
 	if ((diff(range(lim)) < 0.5)) {
 		# go into more detail: ticks between sub-orders of magnitude
 		newAt <- log10(
-			0.1*(9+sequence(rep(90,length(mags)))) * 
+			0.1*(9+sequence(rep(90,length(mags)))) *
 				rep(10^mags, each=90) )
 		newAt <- newAt[(min(lim) <= newAt) & (newAt <= max(lim))]
 		# keep labels only for the previous sequence
@@ -552,7 +554,7 @@ logAxisComponents <- function(logLim, label=T) {
 	if ((diff(range(lim)) < 0.05)) {
 		# go into more detail: ticks between sub-sub-orders of magnitude
 		newAt <- log10(
-			0.01*(99+sequence(rep(900,length(mags)))) * 
+			0.01*(99+sequence(rep(900,length(mags)))) *
 				rep(10^mags, each=900) )
 		newAt <- newAt[(min(lim) <= newAt) & (newAt <= max(lim))]
 		# keep labels only for the previous sequence
@@ -688,7 +690,7 @@ timeAxisComponents <- function(lim, label=TRUE, tz="GMT") {
 	}
 	# work out time sequence and formatting, depending on the time scale
 	# each of tickSpec and labelSpec defines a time sequence and formatting
-	tickSpec <- list(by="1 hour", format="%m-%d %H:%M", 
+	tickSpec <- list(by="1 hour", format="%m-%d %H:%M",
 		from=trunc(startTime, units="hours"))
 	labelSpec <- tickSpec
 	if (diff(range(lim)) > 8 * 60*60) { # 8 hours
@@ -786,7 +788,7 @@ timeAxis <- function(side, at=NULL, labels=TRUE, ..., tz="GMT") {
 	axis(side, at=axisStuff$at, labels=labels, ...)
 }
 
-grid.xaxis.POSIXt <- function(lim=convertX(unit(0:1,"npc"), "native", valueOnly=T), 
+grid.xaxis.POSIXt <- function(lim=convertX(unit(0:1,"npc"), "native", valueOnly=T),
 	label=T, draw=T, name=NULL, ...)
 {
 	axisStuff <- timeAxisComponents(lim, label=label)

@@ -9,18 +9,18 @@ updateImportPage <- function() {
 		ratio_item_combo$appendText(x)
 	}
 	ratio_item_combo$setActive(0)
-	
+
 	# generate summary table
-	
-	dfID <- dfName <- dfData <- dfStart <- dfEnd <- dfLength <- dfFreq <- 
+
+	dfID <- dfName <- dfData <- dfStart <- dfEnd <- dfLength <- dfFreq <-
 		dfLoc <- dfQual <- dfExtra <- dfRole <- character(length(hsp$data))
-	
+
 	for (i in seq(along=hsp$data)) {
 		# note this may overflow as a difftime, so do as numeric
-		myLength <- as.numeric(end(hsp$data[[i]])) - 
+		myLength <- as.numeric(end(hsp$data[[i]])) -
 			as.numeric(start(hsp$data[[i]]))
 		#myAvgFreq <- myLength / nrow(hsp$data[[i]])
-		
+
 		dfID[i] <- names(hsp$data)[i]
 		dfName[i] <- attr(hsp$data[[i]], "sitename")
 		dfData[i] <- attr(hsp$data[[i]], "dataname")
@@ -29,7 +29,7 @@ updateImportPage <- function() {
 		dfLength[i] <- as.byString(myLength, digits=2, explicit=T)
 		#dfFreq[i] <- as.byString(myAvgFreq, digits=2)
 		dfFreq[i] <- attr(hsp$data[[i]], "timestep")
-		
+
 		dfLoc[i] <- 'NA'
 		myLoc <- attr(hsp$data[[i]], "location.xy")
 		myElev <- attr(hsp$data[[i]], "elevation")
@@ -38,10 +38,10 @@ updateImportPage <- function() {
 			if (is.null(myElev)) { myElev <- 'NA' } else {
 				myElev <- format(round(myElev, digits=2))
 			}
-			dfLoc[i] <- paste('(', myLoc[1], ', ', myLoc[2], 
+			dfLoc[i] <- paste('(', myLoc[1], ', ', myLoc[2],
 				', ', myElev, ')', sep='')
 		}
-		
+
 		dfQual[i] <- class(hsp$data[[i]]$Qual)[1]
 		if (is.factor(hsp$data[[i]]$Qual) || is.numeric(hsp$data[[i]]$Qual)) {
 			levelsFn <- if (is.factor(hsp$data[[i]]$Qual))
@@ -65,12 +65,12 @@ updateImportPage <- function() {
 			)
 		}
 		}
-		
+
 		myRole <- attr(hsp$data[[i]], "role")
 		if (is.null(myRole)) { myRole <- "" }
 		dfRole[i] <- myRole
 	}
-	
+
 	dfModel <- rGtkDataFrame(data.frame(
 		ID=dfID,
 		Name=dfName,
@@ -88,7 +88,7 @@ updateImportPage <- function() {
 	myTreeView <- theWidget("import_summary_treeview")
 	myTreeView$setModel(dfModel)
 	myTreeView$columnsAutosize()
-	
+
 	StateEnv$update$import <- F
 	StateEnv$win$present()
 }
@@ -98,7 +98,7 @@ updateImportPage <- function() {
 .hs_on_import_displayfile_button_clicked <- function(button) {
 	freezeGUI()
 	on.exit(thawGUI())
-	
+
 	filename <- try(file.choose(), silent=T)
 	StateEnv$win$present()
 	if (inherits(filename, "try-error")) return()
@@ -108,7 +108,7 @@ updateImportPage <- function() {
 .hs_on_import_viewtable_button_clicked <- function(button) {
 	freezeGUI()
 	on.exit(thawGUI())
-	
+
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
 	if (length(blobIndices)==0) {
 		errorDialog("No items selected.")
@@ -135,38 +135,39 @@ updateImportPage <- function() {
 .hs_on_import_file_button_clicked <- function(button) {
 	freezeGUI()
 	on.exit(thawGUI())
-	
+
 	# TODO this probably windows-only -- do it with GTK?
 	filenames <- choose.files()
 	StateEnv$win$present()
 	if (length(filenames)==0) { return() }
-	
+
 	addLogComment("Import data from file")
-	
+
 	wasEmpty <- (length(hsp$data) == 0)
-	
+
 	import.string <- rep("", length(filenames))
 	dataName <- rep("", length(filenames))
-	
+
 	## Fix filename for MS - otherwise eval/parse strip the \\.
 	for (i in seq(along=filenames)) {
 		filenames[i] <- gsub("\\\\", "/", filenames[i])
 		dataName[i] <- get.stem(filenames[i])
 	}
-	
+
 	myOptionString <- theWidget("import_options_entry")$getText()
 	if (nchar(myOptionString) > 0) {
 		myOptionString <- paste(",", myOptionString)
 	}
-	
+
 	if (theWidget("import_known_format_radio")$getActive()) {
 		kfIndex <- theWidget("import_known_format_combobox")$getActive()+1
+                if (kfIndex == 0) kfIndex <- 1
 		importSpec <- TIMESERIES.FORMATS[[kfIndex]]
 		importFn <- importSpec[1]
 		# user may have changed options in GUI, so use myOptionString
 		for (i in seq(along=filenames)) {
 			import.string[i] <- sprintf(
-				'hsp$data[["%s"]] <- %s("%s"%s)', 
+				'hsp$data[["%s"]] <- %s("%s"%s)',
 				dataName[i], importFn, filenames[i], myOptionString)
 		}
 	}
@@ -188,7 +189,7 @@ updateImportPage <- function() {
 				dataName[i], filenames[i], myStartTime, myTimeSeqBy, myOptionString)
 		}
 	}
-	
+
 	for (i in seq(along=filenames)) {
 		result <- guiDo(string=import.string[i])
 		setStatusBar("Imported file ", shQuote(basename(filenames[i])),
@@ -198,15 +199,15 @@ updateImportPage <- function() {
 		# update table etc: inefficient, but gives user more feedback
 		updateImportPage()
 	}
-	
+
 	if (wasEmpty) {
 		# basic check included in transcipt once, not used in GUI
 		addLogComment("Display a simple summary (structure) of the data.")
 		addToLog('str(hsp$data)')
 	}
-	
+
 	setIsImportMode(FALSE)
-	
+
 	datasetModificationUpdate()
 }
 
@@ -219,7 +220,7 @@ updateImportPage <- function() {
 	guiDo(call=bquote(
 		names(hsp$data)[.(blobIndex)] <- .(new.text)
 	))
-	
+
 	setStatusBar("Set ID for object ", shQuote(blobID), " to ", shQuote(new.text))
 	datasetModificationUpdate()
 }
@@ -234,7 +235,7 @@ updateImportPage <- function() {
 	guiDo(call=bquote(
 		attr(hsp$data[[.(blobID)]], "sitename") <- .(new.text)
 	))
-	
+
 	setStatusBar("Set sitename for object ", shQuote(blobID), " to ", shQuote(new.text))
 	datasetModificationUpdate()
 }
@@ -249,7 +250,7 @@ updateImportPage <- function() {
 	guiDo(call=bquote(
 		attr(hsp$data[[.(blobID)]], "dataname") <- .(new.text)
 	))
-	
+
 	setStatusBar("Set dataname for object ", shQuote(blobID), " to ", shQuote(new.text))
 	datasetModificationUpdate()
 }
@@ -265,16 +266,16 @@ updateImportPage <- function() {
 .hs_on_import_edit_metadata_button_clicked <- function(button) {
 	freezeGUI()
 	on.exit(thawGUI())
-	
+
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
 	if (length(blobIndices)==0) {
 		errorDialog("No items selected.")
 		return()
 	}
-	
+
 	dfID <- dfName <- dfData <- dfRole <- character(length(blobIndices))
 	dfLocX <- dfLocY <- dfElev <- numeric(length(blobIndices))
-	
+
 	for (k in seq(along=blobIndices)) {
 		# 'i' indexes hsp$data; 'k' indexes metadata (subset)
 		i <- blobIndices[k]
@@ -292,7 +293,7 @@ updateImportPage <- function() {
 		dfElev[k] <- myElev
 	}
 	#dfRole <- factor(dfRole, levels=c("RAIN", "AREAL", "FLOW", "OTHER"))
-	
+
 	metadata <- data.frame(
 		SiteID=dfID,
 		SiteName=dfName,
@@ -308,9 +309,9 @@ updateImportPage <- function() {
 	if (identical(metadata, newMeta)) {
 		return()
 	}
-	
+
 	# TODO: check that number of rows is the same...
-	
+
 	maybeUpdate <- function(assign.expr, subs=list(i=eval(i,envir)), envir=parent.frame()) {
 		expr <- substitute(assign.expr)
 		force(expr)
@@ -325,13 +326,13 @@ updateImportPage <- function() {
 		# assign as literal value
 		expr[[3]] <- newval
 		# evaluate indices in assignment target
-		substitute.call <- function(the.call, ...) 
+		substitute.call <- function(the.call, ...)
 			do.call(substitute, list(the.call, ...))
 		expr[[2]] <- substitute.call(expr[[2]], subs)
 		guiDo(call=expr)
 		return(TRUE)
 	}
-	
+
 	addLogComment(paste("Edit metadata for", length(blobIndices), "objects"))
 	for (k in seq(along=blobIndices)) {
 		# 'i' indexes hsp$data; 'k' indexes metadata (subset)
@@ -340,11 +341,11 @@ updateImportPage <- function() {
 		maybeUpdate(attr(hsp$data[[i]], "sitename") <- newMeta$SiteName[k])
 		maybeUpdate(attr(hsp$data[[i]], "dataname") <- newMeta$DataName[k])
 		maybeUpdate(attr(hsp$data[[i]], "role") <- newMeta$Role[k])
-		maybeUpdate(attr(hsp$data[[i]], "location.xy") <- 
+		maybeUpdate(attr(hsp$data[[i]], "location.xy") <-
 			c(newMeta$X_Long[k], newMeta$Y_Lat[k]))
 		maybeUpdate(attr(hsp$data[[i]], "elevation") <- newMeta$Z_Elev[k])
 	}
-	
+
 	setStatusBar(paste("Edited metadata for", length(blobIndices), "objects"))
 	datasetModificationUpdate()
 }
@@ -352,21 +353,21 @@ updateImportPage <- function() {
 .hs_on_import_remove_blob_button_clicked <- function(button) {
 	freezeGUI()
 	on.exit(thawGUI())
-	
+
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
 	if (length(blobIndices)==0) {
 		errorDialog("No items selected.")
 		return()
 	}
-	
+
 	blobNames <- names(hsp$data)[blobIndices]
-	if (is.null(questionDialog("Remove item(s) ", 
+	if (is.null(questionDialog("Remove item(s) ",
 		paste(blobNames,collapse=', '), "?"))) {
 		return()
 	}
 	addLogComment("Remove data object(s)")
 	guiDo(call=bquote(hsp$data[.(blobNames)] <- NULL))
-	
+
 	setStatusBar('Removed data object(s) ', paste(shQuote(blobNames),collapse=', '))
 	datasetModificationUpdate()
 }
@@ -374,15 +375,15 @@ updateImportPage <- function() {
 .hs_on_import_extract_extra_button_clicked <- function(button) {
 	freezeGUI()
 	on.exit(thawGUI())
-	
+
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
 	if (length(blobIndices)==0) {
 		errorDialog("No items selected.")
 		return()
 	}
-	
+
 	blobNames <- names(hsp$data)[blobIndices]
-	
+
 	for (x in blobNames) {
 		addLogComment("Extract extra columns into new item(s)")
 		myCols <- ncol(hsp$data[[x]])
@@ -405,14 +406,14 @@ updateImportPage <- function() {
 .hs_on_import_makefactor_button_clicked <- function(button) {
 	freezeGUI()
 	on.exit(thawGUI())
-	
+
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
 	if (length(blobIndices)==0) {
 		errorDialog("No items selected.")
 		return()
 	}
 	factorCmdRaw <- theWidget("import_makefactor_comboboxentry")$getActiveText()
-	
+
 	addLogComment("Convert quality codes")
 	factor_fn.string <- paste(sep="\n",
 		'tmp.factor <- function(x) {',
@@ -420,7 +421,7 @@ updateImportPage <- function() {
 			'factor(x2, ordered=T, exclude=NULL)',
 		'}')
 	guiDo(string=factor_fn.string)
-	
+
 	for (i in blobIndices) {
 		blobName <- names(hsp$data)[i]
 		guiDo(call=bquote(
@@ -435,7 +436,7 @@ updateImportPage <- function() {
 .hs_on_import_set_accums_button_clicked <- function(button) {
 	freezeGUI()
 	on.exit(thawGUI())
-	
+
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
 	if (length(blobIndices)==0) {
 		errorDialog("No items selected.")
@@ -443,17 +444,17 @@ updateImportPage <- function() {
 	}
 	nBlobs <- length(blobIndices)
 	blobNames <- names(hsp$data)[blobIndices]
-	
+
 	maxGapLengthAccum <- theWidget("import_accum_gaps_comboboxentry")$getActiveText()
-	
+
 	addLogComment("Set multiple accumulations")
-	
+
 	for (x in blobNames) {
 		maxGapStepsAccum <- round(
 			as.numeric.byString(maxGapLengthAccum)
 			/ as.numeric.byString(attr(hsp$data[[x]], "timestep")))
 		guiDo(call=bquote(
-			tmp.gapInfo <- gaps(hsp$data[[.(x)]]$Data, internal.only=T, 
+			tmp.gapInfo <- gaps(hsp$data[[.(x)]]$Data, internal.only=T,
 				max.length=.(maxGapStepsAccum))
 		))
 		if (nrow(tmp.gapInfo) > 0) {
@@ -475,7 +476,7 @@ updateImportPage <- function() {
 .hs_on_export_button_clicked <- function(button) {
 	freezeGUI()
 	on.exit(thawGUI())
-	
+
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
 	if (length(blobIndices)==0) {
 		errorDialog("No items selected.")
@@ -485,7 +486,7 @@ updateImportPage <- function() {
 	blobNames <- names(hsp$data)[blobIndices]
 	dataString <- paste('hsp$data[',
 		paste(shQuote(blobNames),collapse=", "), ']', sep='')
-	
+
 	justTimePeriod <- theWidget("export_timeperiod_radiobutton")$getActive()
 	oneFile <- theWidget("export_onefile_radiobutton")$getActive()
 	csvFile <- theWidget("export_csv_radiobutton")$getActive()
@@ -500,10 +501,10 @@ updateImportPage <- function() {
 	if (!csvFile) {
 		myOptionString <- paste(', sep="\t"', myOptionString, sep='')
 	}
-	
+
 	exportFn <- if (csvFile) { "write.csv" } else { "write.table" }
 	ext <- if (csvFile) { "csv" } else { "txt" }
-	
+
 	defaultName <- blobNames[1]
 	if (!oneFile && (nBlobs > 1)) {
 		defaultName <- "%NAME%"
@@ -513,32 +514,32 @@ updateImportPage <- function() {
 		defaultName <- paste(defaultName, periodString, sep='_')
 	}
 	defaultName <- paste(defaultName, ext, sep='.')
-	filename <- choose.file.save(defaultName, caption="Export data", 
+	filename <- choose.file.save(defaultName, caption="Export data",
 		filters=Filters[c("txt","All"),])
 	StateEnv$win$present()
 	if (is.na(filename)) { return() }
-	
+
 	## Fix filename for MS - otherwise eval/parse strip the \\.
 	filename <- gsub("\\\\", "/", filename)
-	
+
 	if (get.extension(filename) != ext) {
 		filename <- paste(filename, ext, sep='.')
 	}
-	
+
 	addLogComment("Export data to file")
-	
+
 	if (oneFile) {
 		guiDo(call=bquote({
-			tmp.data <- sync.timeblobs(hsp$data[.(blobNames)], 
+			tmp.data <- sync.timeblobs(hsp$data[.(blobNames)],
 				timelim=.(if (justTimePeriod) { quote(hsp$timePeriod) }))
 			tmp.data$Time <- format(tmp.data$Time, format=.(timeFormat))
 		}))
 		export.string <- sprintf(
-			'%s(tmp.data, %s%s)', 
+			'%s(tmp.data, %s%s)',
 			exportFn, shQuote(filename), myOptionString)
 		guiDo(string=export.string)
 		setStatusBar("Exported data to ", shQuote(filename))
-			
+
 	} else {
 		for (i in seq(along=blobNames)) {
 			x <- blobNames[i]
@@ -565,21 +566,21 @@ updateImportPage <- function() {
 				tmp.data$Time <- format(tmp.data$Time, format=.(timeFormat))
 			))
 			export.string <- sprintf(
-				'%s(tmp.data, %s%s)', 
+				'%s(tmp.data, %s%s)',
 				exportFn, shQuote(myFilename), myOptionString)
 			guiDo(string=export.string)
-			setStatusBar("Exported data item ", shQuote(x), " to ", 
+			setStatusBar("Exported data item ", shQuote(x), " to ",
 				shQuote(myFilename))
 		}
 	}
-	
+
 	guiDo(rm(tmp.data))
 }
 
 .hs_on_import_transform_button_clicked <- function(button) {
 	freezeGUI()
 	on.exit(thawGUI())
-	
+
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
 	if (length(blobIndices)==0) {
 		errorDialog("No items selected.")
@@ -587,17 +588,17 @@ updateImportPage <- function() {
 	}
 	nBlobs <- length(blobIndices)
 	blobNames <- names(hsp$data)[blobIndices]
-	
+
 	timestepString <- theWidget("import_transform_timestep_comboboxentry")$getActiveText()
 	aggrFunIdx <- theWidget("import_transform_aggrfun_combobox")$getActive() + 1
 	qualFunIdx <- theWidget("import_transform_qualfun_combobox")$getActive() + 1
 	doReplace <- theWidget("import_transform_replace_checkbutton")$getActive()
-	
+
 	aggrFun <- switch(aggrFunIdx, quote(mean), quote(median), quote(sum), quote(max))
 	qualFunName <- switch(qualFunIdx, 'worst', 'median', 'mode')
-	
+
 	addLogComment("Resample to different timestep")
-	
+
 	for (x in blobNames) {
 		newName <- x
 		if (!doReplace) {
@@ -615,14 +616,14 @@ updateImportPage <- function() {
 		guiDo(call=aggr.call)
 		setStatusBar("Resampled object ", shQuote(x))
 	}
-	
+
 	datasetModificationUpdate()
 }
 
 .hs_on_import_transform_ratio_button_clicked <- function(button) {
 	freezeGUI()
 	on.exit(thawGUI())
-	
+
 	blobIndices <- treeViewGetSelectedIndices(theWidget("import_summary_treeview"))
 	if (length(blobIndices)==0) {
 		errorDialog("No items selected.")
@@ -630,40 +631,40 @@ updateImportPage <- function() {
 	}
 	nBlobs <- length(blobIndices)
 	blobNames <- names(hsp$data)[blobIndices]
-	
+
 	timestepString <- theWidget("import_transform_ratio_timestep_comboboxentry")$getActiveText()
 	denomIndex <- theWidget("import_transform_ratio_item_combobox")$getActive() + 1
 	denomName <- names(hsp$data)[denomIndex]
-	
+
 	addLogComment("Take ratio of time series over ", timestepString)
-	
+
 	delta <- as.numeric.byString(attr(hsp$data[[denomName]], "timestep"))
 	smoothDelta <- as.numeric.byString(timestepString)
 	winSize <- round(smoothDelta / delta)
 	guiDo(call=bquote(tmp.filter <- rep(1/.(winSize), .(winSize))))
-		
+
 	guiDo(call=bquote({
 		tmp.denom <- quick.disaccumulate.timeblob(hsp$data[[.(denomName)]])
 		tmp.denom$Data <- filter(tmp.denom$Data, tmp.filter)
-		tmp.data <- syncTo.timeblobs(lapply(hsp$data[.(blobNames)], quick.disaccumulate.timeblob), 
+		tmp.data <- syncTo.timeblobs(lapply(hsp$data[.(blobNames)], quick.disaccumulate.timeblob),
 			blob=tmp.denom)
 		tmp.data[-1] <- lapply(tmp.data[-1,drop=F], filter, tmp.filter)
 	}))
-	
+
 	for (i in seq(along=blobNames)) {
 		x <- blobNames[i]
 		newName <- paste('ratio', x, denomName, sep='_')
 		newDataName <- paste(attr(hsp$data[[x]], "dataname"),
 			attr(hsp$data[[denomName]], "dataname"), sep=" / ")
 		guiDo(call=bquote(
-			hsp$data[[.(newName)]] <- timeblob(tmp.data$Time, 
-				Data=(tmp.data[[.(i+1)]] / tmp.denom$Data), 
+			hsp$data[[.(newName)]] <- timeblob(tmp.data$Time,
+				Data=(tmp.data[[.(i+1)]] / tmp.denom$Data),
 				dataname=.(newDataName))
 		))
 	}
-	
+
 	setStatusBar("Generated ratio of ", nBlobs, " item(s) to ", shQuote(denomName))
-	
+
 	datasetModificationUpdate()
 }
 
@@ -672,7 +673,7 @@ updateImportPage <- function() {
 
 setDataRole <- function(blobName, role=NULL, doLogComment=T) {
 	StateEnv$echo.to.log <- T
-	
+
 	if (is.null(role)) {
 		if (one.step.acf(hsp$data[[blobName]]) > 0.5) {
 			role <- "FLOW"
@@ -680,9 +681,9 @@ setDataRole <- function(blobName, role=NULL, doLogComment=T) {
 			role <- "RAIN"
 		}
 	}
-	
+
 	if (doLogComment) addLogComment("Set data role")
-	
+
 	guiDo(call=bquote(
 		attr(hsp$data[[.(blobName)]], "role") <- .(role)
 	))
@@ -691,7 +692,7 @@ setDataRole <- function(blobName, role=NULL, doLogComment=T) {
 }
 
 .hs_on_import_file_radio_options_toggled <- function(button) {
-	
+
 	newPageIdx <- 0
 	if (theWidget("import_known_format_radio")$getActive()) {
 		newPageIdx <- 0
@@ -703,15 +704,15 @@ setDataRole <- function(blobName, role=NULL, doLogComment=T) {
 		theWidget("import_options_entry")$setText(
 			'sep=",", skip=1, dataname="Data", dataCol=2, qualCol=3')
 	}
-	
+
 	if (theWidget("import_file_with_time_radio")$getActive()) {
 		newPageIdx <- 1
 	}
-	
+
 	if (theWidget("import_file_seq_radio")$getActive()) {
 		newPageIdx <- 2
 	}
-	
+
 	theWidget("import_file_radio_options_notebook")$setCurrentPage(newPageIdx)
 }
 

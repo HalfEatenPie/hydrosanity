@@ -99,10 +99,9 @@ updateMultivarPage <- function() {
 		timestepTimeFormat(attr(tmp.data, "timestep")))
 
 	addToLog(paste(deparse(plot.call), collapse="\n"))
-	guiDo(playwith(plot.call=plot.call, name="rainfall-runoff",
-		extra.buttons=list("zero", "logscale"),
-		trans.scales=c("x","y"), labels=idLabels,
-		eval.args="^hsp$", invert=T, restore.on.close=StateEnv$win),
+	guiDo(playwith(plot.call=plot.call, title="rainfall-runoff",
+                       labels=idLabels,
+		on.close=restoreHS),
 		doLog=F)
 
 	if (length(tmpObjs) > 0) {
@@ -186,8 +185,8 @@ updateMultivarPage <- function() {
 	plot.call$ylim <- extendrange(c(-1, lagMax))
 
 	addToLog(paste(deparse(plot.call), collapse="\n"))
-	guiDo(playwith(plot.call=plot.call, name="lag over time",
-		eval.args="^hsp$", invert=T, restore.on.close=StateEnv$win),
+	guiDo(playwith(plot.call=plot.call, title="lag over time",
+		on.close=restoreHS),
 		doLog=F)
 
 	if (length(tmpObjs) > 0) {

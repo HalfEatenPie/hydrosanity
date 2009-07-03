@@ -34,18 +34,18 @@ restoreHS <- function(playState) {
 	FALSE
 }
 
-setPeriodTool <- function(playState) {
-	quickTool(playState,
-		"Set period",
-		icon = "gtk-yes",
-		f = setperiod_handler)
+setPeriodTool <- function() {
+    list(name = "setPeriod",
+         stock_id = "gtk-yes",
+         label = "Set Period",
+         callback = setperiod_handler)
 }
 
-setRegionTool <- function(playState) {
-	quickTool(playState,
-		"Set region",
-		icon = "gtk-yes",
-		f = setregion_handler)
+setRegionTool <- function() {
+    list(name = "setRegion",
+         stock_id = "gtk-yes",
+         label = "Set Region",
+         callback = setregion_handler)
 }
 
 setperiod_handler <- function(widget, playState) {
