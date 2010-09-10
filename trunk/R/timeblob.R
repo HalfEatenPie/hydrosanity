@@ -81,7 +81,7 @@ sapply.timeblob.data <- function(blob.list, FUN, ...) {
 read.timeblob <- function(file, skip=1, sep=",", sitename=NULL, dataname="Data",
 	dataCol=2, qualCol=3, extraCols=c(), extraNames=paste("Extra",extraCols),
 	readTimesFromFile=T, timeCol=1, timeFormat="%d %b %Y", startTime=NA,
-	tz="GMT", timeSeqBy="days", timeOffset=NULL, ...) {
+	tz="GMT", timeSeqBy="days", timeOffset=NULL, negNA = TRUE, ...) {
 
 	# check types
 	if (is.null(sitename)) {
@@ -186,6 +186,8 @@ read.timeblob <- function(file, skip=1, sep=",", sitename=NULL, dataname="Data",
 	names(extras) <- extraNames
 	blob <- timeblob(Time=myTime, Data=rawData[[dataIndex]], Qual=myQual,
 		extras=extras, sitename=sitename, dataname=dataname)
+        if (negNA)
+            blob$Data[blob$Data < 0] <- NA
 	return(blob)
 }
 
@@ -502,6 +504,17 @@ aggregate.timeblob <- function(x, by="1 year", FUN=mean, fun.qual=c("worst","med
 			}
 		}
 	}
+
+        delta <- as.numeric.byString(attr(x, "timestep"))
+        newdelta <- as.numeric.byString(by)
+        if (newdelta <= delta) {
+            ## not aggregation, just resampling
+            newDates <- seq(start(x), end(x), by = by)
+            newBlob <- x[matchtimes.timeblob(x, newDates),]
+            attr(newBlob, "timestep") <- by
+            return(newBlob)
+        }
+
 	# extend start and end times to find missing values in first and last groups
 	newStart <- decr.POSIXt(start(x), by=attr(x, "timestep"))
 	newEnd <- incr.POSIXt(end(x), by=attr(x, "timestep"))
@@ -866,7 +879,7 @@ impute.timeblobs <- function(blob.list, which.impute=names(blob.list), timelim=N
 			scales <- pairScales[[blobNameOK]]
 
 			# calculate correlations with blob$Data
-			cors <- sapply(rawSync[-1,drop=F], cor, blob$Data, use="complete")
+			cors <- sapply(rawSync[-1,drop=F], cor, blob$Data, use="na.or.complete")
 			names(cors) <- names(blob.list)
 			cors <- rev(sort(cors))
 
