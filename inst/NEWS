@@ -1,5 +1,18 @@
 
-Changes in Version 0.8-90 (in development)
+Changes in Version 0.8-99 (in development)
+
+ o 
+
+Changes in Version 0.8-92
+
+ o argument negNA = TRUE to read.timeblob, can be specified in options.
+   When importing, negative values are replaced with NA by default.
+
+ o updated to use cor(use = "na.or.complete") in R >= 2.9.
+
+ o can now resample timeseries to a shorter timestep (e.g. months to days).
+
+Changes in Version 0.8-90
 
  o updated to work with new version of playwith package.
 

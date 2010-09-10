@@ -1,11 +1,12 @@
 Package: hydrosanity
 Type: Package
 Title: Graphical user interface for exploring hydrological time series
-Version: 0.8-90
-Date: 2009-07-03
+Version: 0.8-99
+Date: 2010-01-25
 Author: Felix Andrews <felix@nfrac.org>
 Maintainer: Felix Andrews <felix@nfrac.org>
-Depends: R (>= 2.5.0), stats, reshape, playwith (>= 0.8.24), lattice (>= 0.16),
+Depends: R (>= 2.10.0), stats, reshape, 
+  playwith, lattice (>= 0.18-1), latticeExtra (>= 0.6-6),
   sp, rgdal, gpclib, tripack, RGtk2 (>= 2.10.11), gWidgets, gWidgetsRGtk2
 Imports: grid, grDevices, utils
 Suggests: maptools, akima, oz, maps, mapdata
