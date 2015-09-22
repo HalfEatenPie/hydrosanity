@@ -2,8 +2,11 @@
 Automatically exported from code.google.com/p/hydrosanity
 
 Project released under labels: hydrology, statistics, dataanalysis, R
+
 By: foolish.android
+
 Code License: GNU GPL v2
+
 Google Groups: https://groups.google.com/forum/#!forum/hydrosanity-users
 
 Hydrosanity is an add-on package for R. It provides a graphical user interface for exploring hydrological time series. It is designed to work with catchment surface hydrology data (mainly rainfall and streamflow time series at a set of locations). There are functions to import from a database or files; summarise and visualise the dataset in various ways; estimate areal rainfall; fill gaps in rainfall data; and estimate the rainfall-runoff relationship. Probably the most useful features are the interactive graphical displays of a spatial set of time series.
